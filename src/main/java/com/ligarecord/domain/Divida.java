@@ -9,13 +9,13 @@ import java.util.UUID;
 public class Divida {
 
     private UUID id;
-    private Treinador treinador;
+    private Equipa equipa;
     private List<BlocoDivida> blocos;
     private EstadoDivida estado;
 
     public Divida(UUID id, Treinador treinador, EstadoDivida estado){
         this.id = id;
-        this.treinador = treinador;
+        this.equipa = equipa;
         this.blocos = new ArrayList<>();
         this.estado = estado;
     }
@@ -28,12 +28,12 @@ public class Divida {
         this.id = id;
     }
 
-    public Treinador getTreinador() {
-        return treinador;
+    public Equipa getEquipa() {
+        return equipa;
     }
 
-    public void setTreinador(Treinador treinador) {
-        this.treinador = treinador;
+    public void setEquipa(Equipa equipa) {
+        this.equipa = equipa;
     }
 
     public List<BlocoDivida> getBlocos() {

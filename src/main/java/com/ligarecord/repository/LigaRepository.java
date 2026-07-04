@@ -1,4 +1,12 @@
 package com.ligarecord.repository;
 
-public class LigaRepository {
+import com.ligarecord.domain.Liga;
+
+import java.util.List;
+
+public interface LigaRepository {
+
+    Liga guardarLiga(Liga liga);
+    List<Liga> listarLigas();
+
 }

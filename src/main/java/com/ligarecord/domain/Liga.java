@@ -71,4 +71,8 @@ public class Liga {
     public void setMaxEquipas(int maxEquipas) {
         this.maxEquipas = maxEquipas;
     }
+
+    public void adicionarEquipa(Equipa equipa){
+        this.equipas.add(equipa);
+    }
 }

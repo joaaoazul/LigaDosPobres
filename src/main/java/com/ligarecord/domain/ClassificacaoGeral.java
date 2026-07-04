@@ -2,13 +2,13 @@ package com.ligarecord.domain;
 
 import java.util.UUID;
 
-public class ClassificaçãoGeral {
+public class ClassificacaoGeral {
     private UUID id;
     private Equipa equipa;
     private int posicao;
     private int pontosAcumulados;
 
-    public ClassificaçãoGeral(UUID id, Equipa equipa, int posicao, int pontosAcumulados){
+    public ClassificacaoGeral(UUID id, Equipa equipa, int posicao, int pontosAcumulados){
         this.id = id;
         this.equipa = equipa;
         this.posicao = posicao;
