@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class ClassificacaoServiceTest {
 
@@ -34,5 +36,10 @@ Equipa real = new Equipa(UUID.randomUUID(), "RealDesistente", david, ligaTeste, 
 
         List<ClassificacaoGeral> resultado = classificacaoService.calcularClassificacao(ligaTeste);
 
+        resultado.get(resultado.size() - 1);
+
+        assertEquals(real, resultado.get(resultado.size() - 1).getEquipa());
+
     }
+
 }
