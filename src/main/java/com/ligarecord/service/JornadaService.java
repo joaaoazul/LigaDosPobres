@@ -14,8 +14,35 @@ public class JornadaService {
         this.jornadaRepository = jornadaRepository;
     }
 
-    public Jornada abrirJornada(Liga liga){
-        return null;
+    public Jornada abrirJornada(Liga liga, Jornada jornada){
+        if (verificaSeTreino(jornada)){
+
+        };
+        if (liga == null){
+            throw new IllegalArgumentException("Não existe uma liga disponível");
+        }
+
+        int countTreino = 0;
+        int countOficial = 0;
+        for(int i = 0; i < liga.getJornadas().size(); i++){
+            if(liga.getJornadas().get(i).iseTreino()){
+                countTreino++;
+            } else {
+                countOficial++;
+            }
+        }
+
+
+int jornadaAtual;
+
+        if(countTreino < 5){
+            jornadaAtual = countTreino +1;
+        }
+
+        if(countTreino >= 5){
+
+        }
+
     }
 
     public ResultadoJornada inserirResultado(Jornada jornada, Equipa equipa, int pontuacao){
@@ -27,6 +54,8 @@ public class JornadaService {
     }
 
     public boolean verificaSeTreino(Jornada jornada){
-        return false;
+        if(jornada == null){
+            throw new IllegalArgumentException("Não existe uma jornada válida.");
+        } else return jornada.iseTreino();
     }
 }
