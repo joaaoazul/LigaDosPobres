@@ -75,4 +75,8 @@ public class Liga {
     public void adicionarEquipa(Equipa equipa){
         this.equipas.add(equipa);
     }
+
+    public void adicionarJornada(Jornada jornada){
+        this.jornadas.add(jornada);
+    }
 }

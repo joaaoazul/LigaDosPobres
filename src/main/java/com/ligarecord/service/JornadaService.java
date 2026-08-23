@@ -4,11 +4,18 @@ import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.ResultadoJornada;
+import com.ligarecord.domain.enums.EstadoJornada;
+import com.ligarecord.domain.enums.EstadoJornadaTreino;
 import com.ligarecord.repository.JornadaRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class JornadaService {
 
     private JornadaRepository jornadaRepository;
+    private EstadoJornadaTreino tipoJornada;
 
     public JornadaService(JornadaRepository jornadaRepository){
         this.jornadaRepository = jornadaRepository;
@@ -32,16 +39,21 @@ public class JornadaService {
             }
         }
 
-
-int jornadaAtual;
+        int jornadaAtual;
+        boolean eTreino = false;
 
         if(countTreino < 5){
+            tipoJornada = EstadoJornadaTreino.TREINO;
             jornadaAtual = countTreino +1;
+        } else {
+            jornadaAtual = countOficial +1;
+            tipoJornada = EstadoJornadaTreino.OFICIAL;
         }
 
-        if(countTreino >= 5){
+        Jornada jornadaModelo = new Jornada(UUID.randomUUID(), jornadaAtual, EstadoJornada.ABERTA, eTreino);
+        liga.adicionarJornada(jornadaModelo);
+        JornadaRepository.
 
-        }
 
     }
 

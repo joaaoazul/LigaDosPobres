@@ -1,6 +1,7 @@
 package com.ligarecord.domain;
 
 import com.ligarecord.domain.enums.EstadoJornada;
+import com.ligarecord.domain.enums.EstadoJornadaTreino;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,11 +13,13 @@ public class Jornada {
     private EstadoJornada estadoJ;
     private boolean eTreino;
     private List<ResultadoJornada> resultadoJ;
+    private EstadoJornadaTreino tipoJornada;
 
-    public Jornada(UUID id, int numJornada, EstadoJornada estadoJ, boolean eTreino){
+    public Jornada(UUID id, int numJornada, EstadoJornada estadoJ, boolean eTreino, EstadoJornadaTreino tipoJornada){
         this.id = id;
         this.numJornada = numJornada;
         this.estadoJ = estadoJ;
+        this.tipoJornada = tipoJornada;
         this.eTreino = eTreino;
         this.resultadoJ = new ArrayList<>();
     }
