@@ -1,0 +1,57 @@
+# Produção no teu servidor: aplicação + base de dados.
+# A camada de HTTPS (Caddy ou Cloudflare Tunnel) fica num ficheiro à parte,
+# para poder ser trocada sem mexer nisto.
+#
+#   docker compose -f compose.prod.yml up -d --build
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ligadospobres}
+      POSTGRES_USER: ${POSTGRES_USER:-liga}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Os backups saem para o disco do servidor, fora do volume da base de dados:
+      # um volume corrompido não leva as cópias atrás.
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liga} -d ${POSTGRES_DB:-ligadospobres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-ligadospobres}
+      DB_USER: ${POSTGRES_USER:-liga}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+      COOKIE_SECURE: "true"
+      FORWARD_HEADERS: framework
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    # Só escuta em localhost: quem fala com a aplicação é o proxy, na mesma
+    # máquina. A porta 8080 nunca fica exposta à internet.
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  pgdata:
