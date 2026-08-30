@@ -42,7 +42,8 @@ public class AuthController {
     public ResponseEntity<GestorDto> registar(@RequestBody RegistoRequest pedido,
                                               HttpServletRequest http,
                                               HttpServletResponse resposta) {
-        Gestor gestor = gestorService.registar(pedido.email(), pedido.password(), pedido.nome());
+        Gestor gestor = gestorService.registar(
+                pedido.email(), pedido.password(), pedido.nome(), pedido.codigo());
 
         // Regista e inicia sessão de imediato: evita pedir a password duas vezes seguidas.
         autenticar(pedido.email(), pedido.password(), http, resposta);

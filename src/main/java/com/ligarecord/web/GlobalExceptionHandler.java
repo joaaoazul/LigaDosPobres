@@ -27,6 +27,11 @@ public class GlobalExceptionHandler {
         return resposta(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    @ExceptionHandler(ConviteInvalidoException.class)
+    public ResponseEntity<ErroDto> conviteInvalido(ConviteInvalidoException ex) {
+        return resposta(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroDto> pedidoInvalido(IllegalArgumentException ex) {
         return resposta(HttpStatus.BAD_REQUEST, ex.getMessage());

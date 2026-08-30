@@ -30,6 +30,7 @@ ambiente e, quando não existem, usa os valores de desenvolvimento local:
 | `DB_POOL` | `5` | Máximo de ligações simultâneas |
 | `PORT` | `8080` | Porta HTTP |
 | `COOKIE_SECURE` | `false` | **Põe `true` em produção**: restringe o cookie de sessão a HTTPS |
+| `REGISTO_CODIGO` | vazio | Código de convite exigido para criar conta. **Vazio = registo fechado** |
 
 ## Publicar
 
@@ -42,6 +43,29 @@ ambiente e, quando não existem, usa os valores de desenvolvimento local:
 As migrações do Flyway correm sozinhas no arranque. **Um ficheiro de migração já
 aplicado nunca se edita**: o Flyway guarda uma assinatura de cada um e recusa
 arrancar se ela mudar. Correções fazem-se com um `V2__…` novo.
+
+## Contas de gestor
+
+O registo é por convite. Quem quiser criar conta precisa do código definido em
+`REGISTO_CODIGO`, que distribuis a quem de direito. Assim cada gestor cria a sua
+conta sozinho sem que o registo fique aberto a toda a internet.
+
+Se a variável não estiver definida, o registo fica **fechado** e ninguém cria
+conta — esquecer de a configurar nunca deixa a porta aberta. Usa um código longo
+e aleatório, por exemplo `openssl rand -hex 16`, e trata-o como uma password:
+mudá-lo invalida convites já distribuídos.
+
+Criar uma conta pela API, em vez de pelo formulário:
+
+```bash
+curl -s -c j.txt https://a-tua-app/api/auth/estado > /dev/null
+curl -b j.txt -X POST https://a-tua-app/api/auth/registo \
+  -H 'Content-Type: application/json' \
+  -H "X-XSRF-TOKEN: $(grep XSRF-TOKEN j.txt | awk '{print $7}')" \
+  -d '{"nome":"...","email":"...","password":"...","codigo":"..."}'
+```
+
+O primeiro pedido serve para obter o cookie CSRF; sem ele o segundo devolve 403.
 
 ## Segurança
 
@@ -68,3 +92,5 @@ correm em segundos e não precisam de base de dados.
 - Resolução manual de empates (`DesempateService`); equipas empatadas ficam com
   a mesma posição na jornada
 - Recuperação de password e verificação de email no registo
+- Limite de tentativas de login: hoje nada impede tentativas repetidas de
+  adivinhar uma password, além da lentidão própria do BCrypt

@@ -15,11 +15,14 @@
         <h1>Liga dos Pobres</h1>
     </div>
 
-    <p class="ajuda">Cria a tua conta de gestor. Podes gerir várias ligas com a mesma conta.</p>
+    <p class="ajuda">Cria a tua conta de gestor. Precisas do código de convite; pede-o a quem administra a aplicação.</p>
 
     <div id="alerta" class="alerta oculto" role="alert"></div>
 
     <form id="form-registo" class="formulario">
+        <label for="codigo">Código de convite</label>
+        <input id="codigo" type="text" autocomplete="off" required>
+
         <label for="nome">Nome</label>
         <input id="nome" type="text" autocomplete="name" required>
 
@@ -41,6 +44,7 @@
 document.getElementById("form-registo").addEventListener("submit", (evento) => {
     evento.preventDefault();
     submeter("/api/auth/registo", {
+        codigo: document.getElementById("codigo").value.trim(),
         nome: document.getElementById("nome").value.trim(),
         email: document.getElementById("email").value.trim(),
         password: document.getElementById("password").value
