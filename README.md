@@ -79,11 +79,41 @@ pode arder não é um backup.
 ### Alojar numa plataforma em vez do teu servidor
 
 Nada aqui é específico do teu servidor: é um contentor Docker, uma base de dados
-PostgreSQL e variáveis de ambiente. Em Railway, Render ou Fly basta apontar ao
-`Dockerfile`, criar a base de dados e definir as mesmas variáveis, mais
-`FORWARD_HEADERS=framework` (a plataforma trata do TLS, dispensando o Caddy).
+PostgreSQL e variáveis de ambiente. A plataforma trata do TLS, dispensando o
+Caddy e o certificado.
 
-Mudar de um lado para o outro é um `pg_dump` e um novo arranque.
+**No Railway**, cria o serviço a partir do `Dockerfile`, junta um PostgreSQL e
+define as variáveis. A base de dados do Railway anuncia-se em formato
+`postgres://`, que o Java não entende — tens de montar o URL JDBC a partir das
+peças:
+
+```
+DB_URL          jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USER         ${{Postgres.PGUSER}}
+DB_PASSWORD     ${{Postgres.PGPASSWORD}}
+COOKIE_SECURE   true
+FORWARD_HEADERS framework
+ADMIN_EMAIL     o-teu-email
+ADMIN_PASSWORD  uma-password-longa
+```
+
+Aponta o *health check* do serviço a `/actuator/health`. A porta vem da variável
+`PORT`, que a aplicação já respeita.
+
+O `compose.prod.yml`, o `Caddyfile` e o script de backup ficam por usar — só
+servem quando fores para o teu servidor.
+
+### Mudar de plataforma para servidor próprio
+
+```bash
+# na plataforma
+pg_dump "$DATABASE_URL" --clean --if-exists | gzip > mudanca.sql.gz
+
+# no servidor, com o compose.prod.yml já a correr
+gunzip -c mudanca.sql.gz | docker compose -f compose.prod.yml exec -T db psql -U liga -d ligadospobres
+```
+
+Depois muda o registo DNS e acabou. Nada no código muda.
 
 ## Contas de gestor
 
