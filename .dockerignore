@@ -2,4 +2,10 @@ target/
 .git/
 .idea/
 *.iml
+# Nunca entram na imagem: credenciais, certificados e cópias de segurança.
+.env
+.env.*
+certs/
+backups/
 data/
+pgdata/
