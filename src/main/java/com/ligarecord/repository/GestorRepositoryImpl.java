@@ -34,6 +34,16 @@ public class GestorRepositoryImpl implements GestorRepository {
     }
 
     @Override
+    public List<Gestor> listarTodos() {
+        return new ArrayList<>(gestores);
+    }
+
+    @Override
+    public long contarAdminsAtivos() {
+        return gestores.stream().filter(g -> g.isAdmin() && g.isAtivo()).count();
+    }
+
+    @Override
     public Optional<Gestor> buscarPorId(UUID id) {
         for (Gestor gestor : gestores) {
             if (gestor.getId().equals(id)) {

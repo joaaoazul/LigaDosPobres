@@ -2,6 +2,7 @@ package com.ligarecord.security;
 
 import com.ligarecord.domain.Gestor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -18,12 +19,20 @@ public class GestorAutenticado implements UserDetails {
     private final String email;
     private final String passwordHash;
     private final String nome;
+    private final boolean admin;
+    private final boolean ativo;
 
     public GestorAutenticado(Gestor gestor) {
         this.id = gestor.getId();
         this.email = gestor.getEmail();
         this.passwordHash = gestor.getPasswordHash();
         this.nome = gestor.getNome();
+        this.admin = gestor.isAdmin();
+        this.ativo = gestor.isAtivo();
+    }
+
+    public boolean isAdmin() {
+        return admin;
     }
 
     public UUID getId() {
@@ -40,7 +49,9 @@ public class GestorAutenticado implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return admin
+                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                : List.of();
     }
 
     @Override
@@ -60,7 +71,7 @@ public class GestorAutenticado implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return ativo;
     }
 
     @Override
@@ -68,8 +79,9 @@ public class GestorAutenticado implements UserDetails {
         return true;
     }
 
+    /** Uma conta desativada não consegue autenticar-se. */
     @Override
     public boolean isEnabled() {
-        return true;
+        return ativo;
     }
 }

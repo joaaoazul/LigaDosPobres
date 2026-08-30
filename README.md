@@ -35,7 +35,8 @@ ambiente e, quando não existem, usa os valores de desenvolvimento local:
 | `DB_POOL` | `5` | Máximo de ligações simultâneas |
 | `PORT` | `8080` | Porta HTTP |
 | `COOKIE_SECURE` | `false` | **Põe `true` em produção**: restringe o cookie de sessão a HTTPS |
-| `REGISTO_CODIGO` | vazio | Código de convite exigido para criar conta. **Vazio = registo fechado** |
+| `ADMIN_EMAIL` | vazio | Primeiro administrador, criado só se não existir nenhum |
+| `ADMIN_PASSWORD` | vazio | Password desse administrador. Mínimo 10 caracteres |
 
 ## Publicar
 
@@ -51,26 +52,37 @@ arrancar se ela mudar. Correções fazem-se com um `V2__…` novo.
 
 ## Contas de gestor
 
-O registo é por convite. Quem quiser criar conta precisa do código definido em
-`REGISTO_CODIGO`, que distribuis a quem de direito. Assim cada gestor cria a sua
-conta sozinho sem que o registo fique aberto a toda a internet.
+Há dois papéis. Um **gestor** cria e gere as suas ligas. Um **administrador**
+faz o mesmo e ainda administra contas e convites, em `/admin.html`.
 
-Se a variável não estiver definida, o registo fica **fechado** e ninguém cria
-conta — esquecer de a configurar nunca deixa a porta aberta. Usa um código longo
-e aleatório, por exemplo `openssl rand -hex 16`, e trata-o como uma password:
-mudá-lo invalida convites já distribuídos.
+### Primeiro arranque
 
-Criar uma conta pela API, em vez de pelo formulário:
+Numa base de dados vazia não há forma de entrar: não existem convites porque não
+existe quem os crie. Define `ADMIN_EMAIL` e `ADMIN_PASSWORD` e o primeiro
+administrador é criado no arranque. Depois de entrares, muda a password e remove
+`ADMIN_PASSWORD` do ambiente.
 
-```bash
-curl -s -c j.txt https://a-tua-app/api/auth/estado > /dev/null
-curl -b j.txt -X POST https://a-tua-app/api/auth/registo \
-  -H 'Content-Type: application/json' \
-  -H "X-XSRF-TOKEN: $(grep XSRF-TOKEN j.txt | awk '{print $7}')" \
-  -d '{"nome":"...","email":"...","password":"...","codigo":"..."}'
-```
+Estas variáveis só têm efeito enquanto não existir nenhum administrador ativo:
+numa instalação já povoada não fazem nada, portanto não servem de porta das
+traseiras.
 
-O primeiro pedido serve para obter o cookie CSRF; sem ele o segundo devolve 403.
+### Convites
+
+O registo é sempre por convite. Cada convite serve **uma vez**, pode ter prazo
+e pode ser revogado enquanto não for usado. O código só é mostrado enquanto
+estiver por usar.
+
+Os convites nunca são apagados: fica registado quem entrou com qual, que é o que
+permite perceber mais tarde como é que uma conta apareceu.
+
+### Desativar contas
+
+Uma conta desativada é bloqueada de imediato, mesmo que a pessoa já tenha sessão
+aberta &mdash; cada pedido confirma que a conta continua ativa. As ligas dessa
+pessoa não são apagadas, para não se perder o histórico das provas.
+
+Um administrador não pode alterar a própria conta. É isso que garante que nunca
+ficas sem ninguém com acesso à administração.
 
 ## Segurança
 

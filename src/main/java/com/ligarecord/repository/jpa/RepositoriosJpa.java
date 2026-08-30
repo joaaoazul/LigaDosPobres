@@ -1,10 +1,12 @@
 package com.ligarecord.repository.jpa;
 
+import com.ligarecord.domain.Convite;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
+import com.ligarecord.repository.ConviteRepository;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
@@ -122,6 +124,46 @@ public final class RepositoriosJpa {
         @Override
         public Optional<Gestor> buscarPorId(UUID id) {
             return jpa.findById(id);
+        }
+
+        @Override
+        public List<Gestor> listarTodos() {
+            return jpa.findAllByOrderByCriadoEmAsc();
+        }
+
+        @Override
+        public long contarAdminsAtivos() {
+            return jpa.countByPapelAndAtivoTrue(com.ligarecord.domain.enums.PapelGestor.ADMIN);
+        }
+    }
+
+    @Repository
+    public static class Convites implements ConviteRepository {
+
+        private final ConviteJpaRepository jpa;
+
+        public Convites(ConviteJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public Convite guardar(Convite convite) {
+            return jpa.save(convite);
+        }
+
+        @Override
+        public Optional<Convite> buscarPorCodigo(String codigo) {
+            return jpa.findByCodigo(codigo);
+        }
+
+        @Override
+        public Optional<Convite> buscarPorId(UUID id) {
+            return jpa.findById(id);
+        }
+
+        @Override
+        public List<Convite> listarTodos() {
+            return jpa.findAllByOrderByCriadoEmDesc();
         }
     }
 }

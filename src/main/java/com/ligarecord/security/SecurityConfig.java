@@ -20,9 +20,11 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
+    private final ContaAtivaFilter contaAtivaFilter;
 
-    public SecurityConfig(ObjectMapper objectMapper) {
+    public SecurityConfig(ObjectMapper objectMapper, ContaAtivaFilter contaAtivaFilter) {
         this.objectMapper = objectMapper;
+        this.contaAtivaFilter = contaAtivaFilter;
     }
 
     @Bean
@@ -60,7 +62,12 @@ public class SecurityConfig {
                                      "/favicon.ico", "/erro.html").permitAll()
                     .requestMatchers("/api/auth/registo", "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
+                    // A administração é a única zona com autorização por papel;
+                    // todo o resto é isolado por dono, não por perfil.
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
+            .addFilterAfter(contaAtivaFilter,
+                    org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class)
             .exceptionHandling(e -> e
                     .authenticationEntryPoint(this::naoAutenticado)
                     .accessDeniedHandler(this::acessoNegado))
@@ -69,15 +76,24 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Dois motivos distintos dão 403 e não se devem confundir: falta o token
+     * CSRF (o utilizador recarrega a página e resolve-se) ou a conta não tem
+     * permissão (recarregar não resolve nada).
+     */
     private void acessoNegado(jakarta.servlet.http.HttpServletRequest pedido,
                               HttpServletResponse resposta,
                               org.springframework.security.access.AccessDeniedException excecao)
             throws java.io.IOException {
+
+        boolean falhaCsrf = excecao instanceof org.springframework.security.web.csrf.CsrfException;
+
         resposta.setStatus(HttpServletResponse.SC_FORBIDDEN);
         resposta.setContentType(MediaType.APPLICATION_JSON_VALUE);
         resposta.setCharacterEncoding("UTF-8");
-        objectMapper.writeValue(resposta.getWriter(),
-                new ErroDto(403, "Pedido rejeitado por falta de token de segurança. Recarrega a página."));
+        objectMapper.writeValue(resposta.getWriter(), new ErroDto(403, falhaCsrf
+                ? "Pedido rejeitado por falta de token de segurança. Recarrega a página."
+                : "Não tens permissão para esta operação."));
     }
 
     /**

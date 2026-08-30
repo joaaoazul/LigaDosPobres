@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração &middot; Liga dos Pobres</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topo">
+    <div class="marca">
+        <span class="bola">&#9917;</span>
+        <div>
+            <h1>Administração</h1>
+            <p>Contas de gestor e convites</p>
+        </div>
+    </div>
+    <div class="sessao">
+        <a href="/" class="botao pequeno">Voltar às ligas</a>
+        <span id="gestor-nome"></span>
+        <button id="btn-sair" class="botao pequeno">Sair</button>
+    </div>
+</header>
+
+<div id="alerta" class="alerta oculto" role="alert"></div>
+
+<main class="conteudo-admin">
+
+    <section class="painel-principal">
+        <h2 class="titulo-seccao">Convites</h2>
+        <p class="ajuda">
+            Cada convite serve uma vez. O código só é visível enquanto estiver por
+            usar &mdash; copia-o e entrega-o a quem vai criar a conta.
+        </p>
+
+        <form id="form-convite" class="formulario em-linha">
+            <div>
+                <label for="convite-nota">Para quem é (opcional)</label>
+                <input id="convite-nota" type="text" placeholder="Ricardo, da Rotunda" maxlength="160">
+            </div>
+            <div>
+                <label for="convite-dias">Validade em dias</label>
+                <input id="convite-dias" type="number" min="1" max="365" placeholder="sem prazo">
+            </div>
+            <button type="submit" class="botao primario">Criar convite</button>
+        </form>
+
+        <div id="tabela-convites"></div>
+    </section>
+
+    <section class="painel-principal">
+        <h2 class="titulo-seccao">Gestores</h2>
+        <p class="ajuda">
+            Desativar uma conta bloqueia o acesso de imediato, inclusive de quem já
+            esteja com sessão aberta. As ligas dessa pessoa não são apagadas.
+        </p>
+        <div id="tabela-gestores"></div>
+    </section>
+
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>

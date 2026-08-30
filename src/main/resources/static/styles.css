@@ -511,3 +511,44 @@ td.numero, th.numero {
 .cartao-auth a {
     color: var(--verde-claro);
 }
+
+
+/* ---------- administração ---------- */
+
+.conteudo-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 22px 28px 60px;
+}
+
+@media (max-width: 900px) {
+    .conteudo-admin { padding: 16px; }
+}
+
+.titulo-seccao {
+    font-size: 17px;
+    margin-bottom: 4px;
+}
+
+.conteudo-admin .ajuda {
+    display: block;
+    margin-bottom: 16px;
+    max-width: 70ch;
+}
+
+.codigo {
+    background: var(--fundo);
+    border: 1px solid var(--borda);
+    border-radius: 5px;
+    color: var(--verde-claro);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    padding: 3px 7px;
+    margin-right: 6px;
+    word-break: break-all;
+}
+
+.sessao a.botao {
+    text-decoration: none;
+}

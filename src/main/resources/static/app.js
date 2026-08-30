@@ -458,6 +458,9 @@ async function iniciar() {
     estado.gestor = await resposta.json();
     $("#gestor-nome").textContent = estado.gestor.nome;
     $("#barra-sessao").classList.remove("oculto");
+    if (estado.gestor.admin) {
+        $("#link-admin").classList.remove("oculto");
+    }
     await carregarLigas();
 }
 

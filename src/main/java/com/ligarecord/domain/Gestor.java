@@ -1,7 +1,10 @@
 package com.ligarecord.domain;
 
+import com.ligarecord.domain.enums.PapelGestor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -33,16 +36,30 @@ public class Gestor extends EntidadeBase {
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PapelGestor papel;
+
+    /** Uma conta desativada não entra e não é apagada, para não levar as ligas atrás. */
+    @Column(nullable = false)
+    private boolean ativo;
+
     protected Gestor() {
         // exigido pelo Hibernate
     }
 
     public Gestor(UUID id, String email, String passwordHash, String nome) {
+        this(id, email, passwordHash, nome, PapelGestor.GESTOR);
+    }
+
+    public Gestor(UUID id, String email, String passwordHash, String nome, PapelGestor papel) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
         this.nome = nome;
         this.criadoEm = Instant.now();
+        this.papel = papel;
+        this.ativo = true;
     }
 
     @Override
@@ -76,6 +93,26 @@ public class Gestor extends EntidadeBase {
 
     public Instant getCriadoEm() {
         return criadoEm;
+    }
+
+    public PapelGestor getPapel() {
+        return papel;
+    }
+
+    public void setPapel(PapelGestor papel) {
+        this.papel = papel;
+    }
+
+    public boolean isAdmin() {
+        return papel == PapelGestor.ADMIN;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     @Override

@@ -49,7 +49,7 @@ public class AuthController {
         autenticar(pedido.email(), pedido.password(), http, resposta);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new GestorDto(gestor.getId(), gestor.getNome(), gestor.getEmail()));
+                .body(new GestorDto(gestor.getId(), gestor.getNome(), gestor.getEmail(), gestor.isAdmin()));
     }
 
     @PostMapping("/login")

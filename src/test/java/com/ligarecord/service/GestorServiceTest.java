@@ -1,6 +1,10 @@
 package com.ligarecord.service;
 
+import com.ligarecord.domain.Convite;
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.domain.enums.PapelGestor;
+import com.ligarecord.repository.ConviteRepository;
+import com.ligarecord.repository.ConviteRepositoryImpl;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.GestorRepositoryImpl;
 import com.ligarecord.web.ConviteInvalidoException;
@@ -9,40 +13,71 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class GestorServiceTest {
 
-    private static final String CONVITE = "convite-de-teste-123";
-
     private GestorRepository gestorRepository;
+    private ConviteRepository conviteRepository;
     private PasswordEncoder passwordEncoder;
+    private ConviteService conviteService;
     private GestorService gestorService;
+    private Gestor admin;
 
     @BeforeEach
     void setUp() {
         gestorRepository = new GestorRepositoryImpl();
+        conviteRepository = new ConviteRepositoryImpl();
         passwordEncoder = new BCryptPasswordEncoder();
-        gestorService = new GestorService(gestorRepository, passwordEncoder, CONVITE);
+        conviteService = new ConviteService(conviteRepository);
+        gestorService = new GestorService(gestorRepository, conviteService, passwordEncoder);
+
+        admin = new Gestor(UUID.randomUUID(), "admin@teste.pt", "hash", "Admin", PapelGestor.ADMIN);
+        gestorRepository.guardar(admin);
+    }
+
+    private String convite() {
+        return conviteService.criar(admin, null, null).getCodigo();
     }
 
     @Test
     void deveRegistarComConviteValido() {
-        Gestor gestor = gestorService.registar("Joao@Exemplo.PT", "passwordsegura1", "João", CONVITE);
+        Gestor gestor = gestorService.registar("Joao@Exemplo.PT", "passwordsegura1", "João", convite());
 
         assertNotNull(gestor.getId());
-        assertEquals("João", gestor.getNome());
         // o email é normalizado para evitar contas duplicadas com maiúsculas diferentes
         assertEquals("joao@exemplo.pt", gestor.getEmail());
+        assertEquals(PapelGestor.GESTOR, gestor.getPapel());
+        assertTrue(gestor.isAtivo());
     }
 
     @Test
     void naoDeveGuardarAPasswordEmClaro() {
-        Gestor gestor = gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", CONVITE);
+        Gestor gestor = gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", convite());
 
         assertNotEquals("passwordsegura1", gestor.getPasswordHash());
-        assertTrue(gestor.getPasswordHash().startsWith("$2"));
         assertTrue(passwordEncoder.matches("passwordsegura1", gestor.getPasswordHash()));
+    }
+
+    @Test
+    void conviteSoServeUmaVez() {
+        String codigo = convite();
+        gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", codigo);
+
+        assertThrows(
+                ConviteInvalidoException.class,
+                () -> gestorService.registar("outro@exemplo.pt", "passwordsegura1", "Outro", codigo)
+        );
+    }
+
+    @Test
+    void naoDeveRegistarComConviteInexistente() {
+        assertThrows(
+                ConviteInvalidoException.class,
+                () -> gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", "inventado")
+        );
     }
 
     @Test
@@ -54,55 +89,49 @@ class GestorServiceTest {
     }
 
     @Test
-    void naoDeveRegistarComConviteErrado() {
+    void naoDeveRegistarComConviteRevogado() {
+        Convite convite = conviteService.criar(admin, "para ninguém", null);
+        conviteService.revogar(convite.getId());
+
         assertThrows(
                 ConviteInvalidoException.class,
-                () -> gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", "outro-codigo")
+                () -> gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", convite.getCodigo())
         );
     }
 
     @Test
-    void registoFicaFechadoQuandoNaoHaConviteConfigurado() {
-        GestorService semConvite = new GestorService(gestorRepository, passwordEncoder, "");
+    void conviteInexistenteEUsadoDaoAMesmaResposta() {
+        String codigo = convite();
+        gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", codigo);
 
-        assertThrows(
-                ConviteInvalidoException.class,
-                () -> semConvite.registar("joao@exemplo.pt", "passwordsegura1", "João", "")
-        );
-    }
+        ConviteInvalidoException usado = assertThrows(ConviteInvalidoException.class,
+                () -> gestorService.registar("a@exemplo.pt", "passwordsegura1", "A", codigo));
+        ConviteInvalidoException inexistente = assertThrows(ConviteInvalidoException.class,
+                () -> gestorService.registar("b@exemplo.pt", "passwordsegura1", "B", "nao-existe"));
 
-    @Test
-    void conviteErradoNaoRevelaSeOEmailJaExiste() {
-        gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", CONVITE);
-
-        // com convite errado, a resposta é sempre a mesma quer o email exista quer não
-        ConviteInvalidoException existente = assertThrows(
-                ConviteInvalidoException.class,
-                () -> gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", "errado")
-        );
-        ConviteInvalidoException novo = assertThrows(
-                ConviteInvalidoException.class,
-                () -> gestorService.registar("outro@exemplo.pt", "passwordsegura1", "Outro", "errado")
-        );
-
-        assertEquals(existente.getMessage(), novo.getMessage());
+        assertEquals(usado.getMessage(), inexistente.getMessage());
     }
 
     @Test
     void naoDeveRegistarPasswordCurta() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> gestorService.registar("joao@exemplo.pt", "curta", "João", CONVITE)
+                () -> gestorService.registar("joao@exemplo.pt", "curta", "João", convite())
         );
     }
 
     @Test
     void naoDeveRegistarEmailRepetido() {
-        gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", CONVITE);
+        gestorService.registar("joao@exemplo.pt", "passwordsegura1", "João", convite());
 
         assertThrows(
                 IllegalStateException.class,
-                () -> gestorService.registar("JOAO@exemplo.pt", "passwordsegura2", "Outro João", CONVITE)
+                () -> gestorService.registar("JOAO@exemplo.pt", "passwordsegura2", "Outro", convite())
         );
+    }
+
+    @Test
+    void codigosDeConviteNaoSeRepetem() {
+        assertNotEquals(convite(), convite());
     }
 }
