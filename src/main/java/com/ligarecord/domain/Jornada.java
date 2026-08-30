@@ -63,4 +63,16 @@ public class Jornada {
     public void setResultadoJ(List<ResultadoJornada> resultadoJ) {
         this.resultadoJ = resultadoJ;
     }
+
+    public EstadoJornadaTreino getTipoJornada() {
+        return tipoJornada;
+    }
+
+    public void setTipoJornada(EstadoJornadaTreino tipoJornada) {
+        this.tipoJornada = tipoJornada;
+    }
+
+    public void adicionarResultado(ResultadoJornada resultado) {
+        this.resultadoJ.add(resultado);
+    }
 }

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liga dos Pobres</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topo">
+    <div class="marca">
+        <span class="bola">&#9917;</span>
+        <div>
+            <h1>Liga dos Pobres</h1>
+            <p>Gestão de ligas, jornadas e classificações</p>
+        </div>
+    </div>
+</header>
+
+<div id="alerta" class="alerta oculto" role="alert"></div>
+
+<main class="conteudo">
+
+    <aside class="painel-lateral">
+        <h2>Ligas</h2>
+
+        <form id="form-liga" class="formulario">
+            <label for="liga-nome">Nome da liga</label>
+            <input id="liga-nome" name="nome" type="text" placeholder="Liga dos Pobres 25/26" required>
+
+            <label for="liga-max">Máximo de equipas</label>
+            <input id="liga-max" name="maxEquipas" type="number" min="1" max="45" value="20" required>
+
+            <button type="submit" class="botao primario">Criar liga</button>
+        </form>
+
+        <ul id="lista-ligas" class="lista-ligas"></ul>
+    </aside>
+
+    <section class="painel-principal">
+
+        <div id="sem-liga" class="vazio">
+            <span class="bola-grande">&#9917;</span>
+            <h2>Nenhuma liga selecionada</h2>
+            <p>Cria uma liga ou escolhe uma da lista à esquerda.</p>
+        </div>
+
+        <div id="detalhe-liga" class="oculto">
+
+            <div class="cabecalho-liga">
+                <div>
+                    <h2 id="liga-titulo"></h2>
+                    <div id="liga-badges" class="badges"></div>
+                </div>
+                <button id="btn-terminar" class="botao perigo">Terminar liga</button>
+            </div>
+
+            <nav class="separadores">
+                <button class="separador ativo" data-tab="classificacao">Classificação</button>
+                <button class="separador" data-tab="equipas">Equipas</button>
+                <button class="separador" data-tab="jornadas">Jornadas</button>
+            </nav>
+
+            <section id="tab-classificacao" class="tab">
+                <div id="tabela-classificacao"></div>
+            </section>
+
+            <section id="tab-equipas" class="tab oculto">
+                <form id="form-equipa" class="formulario em-linha">
+                    <div>
+                        <label for="equipa-nome">Equipa</label>
+                        <input id="equipa-nome" type="text" placeholder="Bairro da Caixa FC" required>
+                    </div>
+                    <div>
+                        <label for="equipa-treinador">Treinador</label>
+                        <input id="equipa-treinador" type="text" placeholder="João Azul" required>
+                    </div>
+                    <button type="submit" class="botao primario">Adicionar equipa</button>
+                </form>
+                <div id="tabela-equipas"></div>
+            </section>
+
+            <section id="tab-jornadas" class="tab oculto">
+                <div class="barra-acoes">
+                    <button id="btn-abrir-jornada" class="botao primario">Abrir jornada</button>
+                    <span class="ajuda">As primeiras 5 jornadas são de treino; as seguintes contam como oficiais.</span>
+                </div>
+                <div class="grelha-jornadas">
+                    <div id="lista-jornadas" class="lista-jornadas"></div>
+                    <div id="detalhe-jornada" class="detalhe-jornada"></div>
+                </div>
+            </section>
+
+        </div>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
