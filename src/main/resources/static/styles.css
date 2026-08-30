@@ -447,3 +447,67 @@ td.numero, th.numero {
 .oculto {
     display: none;
 }
+
+
+/* ---------- sessão ---------- */
+
+.topo {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.sessao {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+.sessao span {
+    color: var(--texto-suave);
+    font-size: 14px;
+}
+
+/* ---------- páginas de autenticação ---------- */
+
+.pagina-auth {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.cartao-auth {
+    background: var(--fundo-painel);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    max-width: 400px;
+    padding: 30px;
+    width: 100%;
+}
+
+.marca-auth {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.marca-auth h1 {
+    font-size: 20px;
+}
+
+.cartao-auth .formulario {
+    margin: 18px 0 14px;
+}
+
+.cartao-auth .botao {
+    margin-top: 10px;
+}
+
+.cartao-auth a {
+    color: var(--verde-claro);
+}

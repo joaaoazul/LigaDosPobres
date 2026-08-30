@@ -8,8 +8,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface EquipaRepository {
-    Equipa guardar(Equipa equipa);
-    List<Equipa> buscarPorTreinador(Treinador treinador);
-    Optional<Equipa> buscarPorId(UUID id);
 
+    Equipa guardar(Equipa equipa);
+
+    List<Equipa> buscarPorTreinador(Treinador treinador);
+
+    /** Filtrada pelo gestor dono da liga a que a equipa pertence. */
+    Optional<Equipa> buscarPorIdEGestor(UUID id, UUID gestorId);
 }

@@ -1,5 +1,6 @@
 package com.ligarecord.service;
 
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.EquipaRepositoryImpl;
@@ -9,6 +10,8 @@ import com.ligarecord.domain.enums.EstadoLiga;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class LigaServiceTest {
@@ -16,6 +19,7 @@ class LigaServiceTest {
     private LigaService ligaService;
     private LigaRepository ligaRepository;
     private EquipaRepository equipaRepository;
+    private Gestor gestor;
 
     @BeforeEach
     void setUp() {
@@ -26,12 +30,14 @@ class LigaServiceTest {
                 ligaRepository,
                 equipaRepository
         );
+
+        gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
     }
 
     @Test
     void deveCriarLiga() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         assertNotNull(liga);
         assertNotNull(liga.getId());
@@ -40,7 +46,7 @@ class LigaServiceTest {
         assertEquals(10, liga.getMaxEquipas());
         assertEquals(EstadoLiga.ATIVA, liga.getEstado());
 
-        assertEquals(1, ligaRepository.listarLigas().size());
+        assertEquals(1, ligaRepository.listarLigas(gestor).size());
     }
 
     @Test
@@ -48,7 +54,7 @@ class LigaServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ligaService.criarLiga("", 10)
+                () -> ligaService.criarLiga(gestor, "", 10)
         );
     }
 
@@ -57,7 +63,7 @@ class LigaServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ligaService.criarLiga("Liga dos Pobres", 46)
+                () -> ligaService.criarLiga(gestor, "Liga dos Pobres", 46)
         );
     }
 
@@ -66,14 +72,14 @@ class LigaServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ligaService.criarLiga("Liga dos Pobres", -1)
+                () -> ligaService.criarLiga(gestor, "Liga dos Pobres", -1)
         );
     }
 
     @Test
     void deveTerminarLiga() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Liga resultado = ligaService.terminarLiga(liga);
 
@@ -81,14 +87,14 @@ class LigaServiceTest {
 
         assertEquals(
                 EstadoLiga.DESATIVADA,
-                ligaRepository.listarLigas().get(0).getEstado()
+                ligaRepository.listarLigas(gestor).get(0).getEstado()
         );
     }
 
     @Test
     void naoDeveTerminarLigaDuasVezes() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         ligaService.terminarLiga(liga);
 

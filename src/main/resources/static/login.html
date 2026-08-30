@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar &middot; Liga dos Pobres</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-auth">
+
+<main class="cartao-auth">
+    <div class="marca-auth">
+        <span class="bola">&#9917;</span>
+        <h1>Liga dos Pobres</h1>
+    </div>
+
+    <p class="ajuda">Entra com a tua conta de gestor.</p>
+
+    <div id="alerta" class="alerta oculto" role="alert"></div>
+
+    <form id="form-login" class="formulario">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+
+        <button type="submit" class="botao primario">Entrar</button>
+    </form>
+
+    <p class="ajuda">Ainda não tens conta? <a href="registo.html">Criar conta</a></p>
+</main>
+
+<script src="auth.js"></script>
+<script>
+document.getElementById("form-login").addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    submeter("/api/auth/login", {
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+    });
+});
+</script>
+</body>
+</html>

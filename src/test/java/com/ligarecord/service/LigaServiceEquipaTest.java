@@ -1,6 +1,7 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.Equipa;
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
@@ -20,6 +21,7 @@ class LigaServiceEquipaTest {
     private LigaService ligaService;
     private LigaRepository ligaRepository;
     private EquipaRepository equipaRepository;
+    private Gestor gestor;
 
     @BeforeEach
     void setUp() {
@@ -30,6 +32,8 @@ class LigaServiceEquipaTest {
                 ligaRepository,
                 equipaRepository
         );
+
+        gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
     }
 
     private Treinador criarTreinador(String nome) {
@@ -52,7 +56,7 @@ class LigaServiceEquipaTest {
     @Test
     void deveAdicionarEquipa() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);
@@ -68,13 +72,13 @@ class LigaServiceEquipaTest {
         assertEquals(EstadoEquipa.ATIVA, equipa.getEstado());
 
         assertEquals(1, equipaRepository.buscarPorTreinador(treinador).size());
-        assertEquals(1, ligaRepository.listarLigas().get(0).getEquipas().size());
+        assertEquals(1, ligaRepository.listarLigas(gestor).get(0).getEquipas().size());
     }
 
     @Test
     void naoDeveAdicionarEquipaAposLigaTerminada() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
         ligaService.terminarLiga(liga);
 
         Treinador treinador = criarTreinador("João");
@@ -89,7 +93,7 @@ class LigaServiceEquipaTest {
     @Test
     void naoDeveAdicionarMaisEquipasQueOMaximo() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 1);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 1);
 
         Treinador treinador1 = criarTreinador("João");
         Treinador treinador2 = criarTreinador("Pedro");
@@ -108,8 +112,8 @@ class LigaServiceEquipaTest {
     @Test
     void naoDeveAdicionarEquipaQueJaPertenceAOutraLiga() {
 
-        Liga liga1 = ligaService.criarLiga("Liga 1", 10);
-        Liga liga2 = ligaService.criarLiga("Liga 2", 10);
+        Liga liga1 = ligaService.criarLiga(gestor, "Liga 1", 10);
+        Liga liga2 = ligaService.criarLiga(gestor, "Liga 2", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);
@@ -125,7 +129,7 @@ class LigaServiceEquipaTest {
     @Test
     void naoDeveAdicionarAmesmaEquipaDuasVezes() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);
@@ -141,7 +145,7 @@ class LigaServiceEquipaTest {
     @Test
     void deveRegistarDesistencia() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);
@@ -165,7 +169,7 @@ class LigaServiceEquipaTest {
     @Test
     void naoDeveRegistarDesistenciaDuasVezes() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);
@@ -183,7 +187,7 @@ class LigaServiceEquipaTest {
     @Test
     void naoDeveRegistarDesistenciaNumaLigaTerminada() {
 
-        Liga liga = ligaService.criarLiga("Liga dos Pobres", 10);
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
 
         Treinador treinador = criarTreinador("João");
         Equipa equipa = criarEquipa("Os Pobres", treinador);

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar conta &middot; Liga dos Pobres</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-auth">
+
+<main class="cartao-auth">
+    <div class="marca-auth">
+        <span class="bola">&#9917;</span>
+        <h1>Liga dos Pobres</h1>
+    </div>
+
+    <p class="ajuda">Cria a tua conta de gestor. Podes gerir várias ligas com a mesma conta.</p>
+
+    <div id="alerta" class="alerta oculto" role="alert"></div>
+
+    <form id="form-registo" class="formulario">
+        <label for="nome">Nome</label>
+        <input id="nome" type="text" autocomplete="name" required>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="new-password" minlength="10" required>
+        <span class="ajuda">Pelo menos 10 caracteres.</span>
+
+        <button type="submit" class="botao primario">Criar conta</button>
+    </form>
+
+    <p class="ajuda">Já tens conta? <a href="login.html">Entrar</a></p>
+</main>
+
+<script src="auth.js"></script>
+<script>
+document.getElementById("form-registo").addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    submeter("/api/auth/registo", {
+        nome: document.getElementById("nome").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+    });
+});
+</script>
+</body>
+</html>

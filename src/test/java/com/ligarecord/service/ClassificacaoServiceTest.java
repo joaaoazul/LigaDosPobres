@@ -2,6 +2,7 @@ package com.ligarecord.service;
 
 import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Equipa;
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
@@ -19,7 +20,8 @@ public class ClassificacaoServiceTest {
     @Test
     public void equipaDesistenteDeveFicarEmUltimaPosicao(){
         ClassificacaoService classificacaoService = new ClassificacaoService();
-        Liga ligaTeste = new Liga(UUID.randomUUID(), "Teste", 20, EstadoLiga.ATIVA);
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
+        Liga ligaTeste = new Liga(UUID.randomUUID(), "Teste", 20, EstadoLiga.ATIVA, gestor);
         Treinador joao = new Treinador(UUID.randomUUID(), "João Azul");
         Treinador rica = new Treinador(UUID.randomUUID(), "Ricardo Gomes");
 Treinador david = new Treinador(UUID.randomUUID(), "David Livramento");

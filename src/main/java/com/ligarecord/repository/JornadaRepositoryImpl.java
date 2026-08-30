@@ -9,36 +9,29 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class JornadaRepositoryImpl implements JornadaRepository {
-    List<Jornada> jornadas = new ArrayList<>();
+
+    private final List<Jornada> jornadas = new ArrayList<>();
 
     @Override
-    public Jornada guardar(Jornada jornada){
-       boolean found = false;
-       for(int i = 0; i < jornadas.size(); i++){
-           if(jornadas.get(i).getId().equals(jornada.getId())){
-               jornadas.set(i, jornada);
-               found = true;
-               break;
-           }
-       }
-       if(!found){
-           jornadas.add(jornada);
-
-       }
-       return jornada;
+    public Jornada guardar(Jornada jornada) {
+        for (int i = 0; i < jornadas.size(); i++) {
+            if (jornadas.get(i).getId().equals(jornada.getId())) {
+                jornadas.set(i, jornada);
+                return jornada;
+            }
+        }
+        jornadas.add(jornada);
+        return jornada;
     }
 
-    /**
-     * Devolve apenas as jornadas guardadas que pertencem a esta liga.
-     */
     @Override
-    public List<Jornada> listarJornadas(Liga liga){
+    public List<Jornada> listarJornadas(Liga liga) {
         List<Jornada> resultado = new ArrayList<>();
         if (liga == null) {
             return resultado;
         }
         for (Jornada jornada : jornadas) {
-            if (liga.getJornadas().contains(jornada)) {
+            if (jornada.getLiga() != null && jornada.getLiga().getId().equals(liga.getId())) {
                 resultado.add(jornada);
             }
         }
@@ -46,12 +39,18 @@ public class JornadaRepositoryImpl implements JornadaRepository {
     }
 
     @Override
-    public Optional<Jornada> buscarPorId(UUID id) {
+    public Optional<Jornada> buscarPorIdEGestor(UUID id, UUID gestorId) {
         for (Jornada jornada : jornadas) {
-            if (jornada.getId().equals(id)) {
+            if (jornada.getId().equals(id) && pertenceAoGestor(jornada, gestorId)) {
                 return Optional.of(jornada);
             }
         }
         return Optional.empty();
+    }
+
+    private boolean pertenceAoGestor(Jornada jornada, UUID gestorId) {
+        return jornada.getLiga() != null
+                && jornada.getLiga().getGestor() != null
+                && jornada.getLiga().getGestor().getId().equals(gestorId);
     }
 }

@@ -13,7 +13,7 @@ public class Divida {
     private List<BlocoDivida> blocos;
     private EstadoDivida estado;
 
-    public Divida(UUID id, Treinador treinador, EstadoDivida estado){
+    public Divida(UUID id, Equipa equipa, EstadoDivida estado){
         this.id = id;
         this.equipa = equipa;
         this.blocos = new ArrayList<>();

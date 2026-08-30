@@ -1,6 +1,7 @@
 "use strict";
 
 const estado = {
+    gestor: null,
     ligas: [],
     ligaId: null,
     detalhe: null,
@@ -10,11 +11,25 @@ const estado = {
 
 /* ---------------------------------------------------------------- API ---- */
 
+function tokenCsrf() {
+    const par = document.cookie.split("; ").find((c) => c.startsWith("XSRF-TOKEN="));
+    return par ? decodeURIComponent(par.split("=").slice(1).join("=")) : null;
+}
+
 async function api(caminho, opcoes = {}) {
-    const resposta = await fetch(caminho, {
-        headers: { "Content-Type": "application/json" },
-        ...opcoes
-    });
+    const cabecalhos = { "Content-Type": "application/json" };
+    const token = tokenCsrf();
+    if (token) {
+        cabecalhos["X-XSRF-TOKEN"] = token;
+    }
+
+    const resposta = await fetch(caminho, { headers: cabecalhos, ...opcoes });
+
+    // Sessão expirada ou inexistente: volta ao login em vez de falhar em silêncio.
+    if (resposta.status === 401) {
+        window.location.href = "/login.html";
+        throw new Error("Sessão terminada.");
+    }
 
     if (resposta.status === 204) {
         return null;
@@ -406,7 +421,7 @@ document.addEventListener("click", (evento) => {
             return;
         }
         executar(async () => {
-            await api(`/api/jornadas/${estado.jornadaId}/resultados`, {
+            await api(`/api/ligas/${estado.ligaId}/jornadas/${estado.jornadaId}/resultados`, {
                 method: "PUT",
                 body: JSON.stringify({
                     equipaId: alvo.dataset.guardar,
@@ -424,7 +439,7 @@ document.addEventListener("click", (evento) => {
             return;
         }
         executar(async () => {
-            await api(`/api/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
+            await api(`/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
             await carregarDetalhe();
             await carregarLigas();
             mostrarAlerta("Jornada fechada.", "sucesso");
@@ -434,5 +449,24 @@ document.addEventListener("click", (evento) => {
 
 /* --------------------------------------------------------------- início --- */
 
+async function iniciar() {
+    const resposta = await fetch("/api/auth/estado");
+    if (!resposta.ok) {
+        window.location.href = "/login.html";
+        return;
+    }
+    estado.gestor = await resposta.json();
+    $("#gestor-nome").textContent = estado.gestor.nome;
+    $("#barra-sessao").classList.remove("oculto");
+    await carregarLigas();
+}
+
+$("#btn-sair").addEventListener("click", () => {
+    executar(async () => {
+        await api("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login.html";
+    });
+});
+
 selecionarTab("classificacao");
-executar(carregarLigas);
+executar(iniciar);

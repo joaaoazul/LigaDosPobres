@@ -1,15 +1,20 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.Equipa;
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.LigaRepository;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class LigaService {
     private LigaRepository ligaRepository;
     private EquipaRepository equipaRepository;
@@ -20,7 +25,11 @@ public class LigaService {
     }
 
     //esta func vai ver se o nr de equipas e o nome são validos
-    public Liga criarLiga(String nome, int maxEquipas){
+    @Transactional
+    public Liga criarLiga(Gestor gestor, String nome, int maxEquipas){
+        if(gestor == null){
+            throw new IllegalArgumentException("A liga tem de ter um gestor.");
+        }
         if(nome == null ||nome .isBlank()){
             throw new IllegalArgumentException("O nome da liga é obrigatório.");
         }
@@ -34,7 +43,8 @@ public class LigaService {
                 id,
                 nome,
                 maxEquipas,
-                EstadoLiga.ATIVA
+                EstadoLiga.ATIVA,
+                gestor
         );
 
         ligaRepository.guardarLiga(liga);
@@ -42,6 +52,7 @@ public class LigaService {
         return liga;
     }
 
+    @Transactional
     public Equipa adicionarEquipa(Liga liga, Equipa equipa){
 
         if(liga == null){
@@ -82,6 +93,7 @@ public class LigaService {
 
     }
 
+    @Transactional
     public Equipa registarDesistencia(Liga liga, Equipa equipa){
         if(liga == null){
             throw new IllegalArgumentException("A liga não existe.");
@@ -106,6 +118,7 @@ public class LigaService {
     return equipa;
     }
 
+    @Transactional
     public Liga terminarLiga(Liga liga){
 
         if(liga == null){

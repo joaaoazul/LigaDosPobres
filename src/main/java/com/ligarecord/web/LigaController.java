@@ -1,11 +1,14 @@
 package com.ligarecord.web;
 
 import com.ligarecord.domain.Equipa;
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.repository.EquipaRepository;
+import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.LigaRepository;
+import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.ClassificacaoService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
@@ -16,6 +19,8 @@ import com.ligarecord.web.dto.LigaDetalheDto;
 import com.ligarecord.web.dto.LigaDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,46 +39,66 @@ public class LigaController {
     private final ClassificacaoService classificacaoService;
     private final LigaRepository ligaRepository;
     private final EquipaRepository equipaRepository;
+    private final GestorRepository gestorRepository;
 
     public LigaController(LigaService ligaService,
                           ClassificacaoService classificacaoService,
                           LigaRepository ligaRepository,
-                          EquipaRepository equipaRepository) {
+                          EquipaRepository equipaRepository,
+                          GestorRepository gestorRepository) {
         this.ligaService = ligaService;
         this.classificacaoService = classificacaoService;
         this.ligaRepository = ligaRepository;
         this.equipaRepository = equipaRepository;
+        this.gestorRepository = gestorRepository;
     }
 
     @GetMapping
-    public List<LigaDto> listar() {
-        return ligaRepository.listarLigas().stream().map(LigaDto::de).toList();
+    @Transactional(readOnly = true)
+    public List<LigaDto> listar(@AuthenticationPrincipal GestorAutenticado autenticado) {
+        return ligaRepository.listarLigas(gestor(autenticado)).stream().map(LigaDto::de).toList();
     }
 
     @PostMapping
-    public ResponseEntity<LigaDto> criar(@RequestBody CriarLigaRequest pedido) {
-        Liga liga = ligaService.criarLiga(pedido.nome(), pedido.maxEquipas());
+    /*
+     * A transação abre no controller, e não só no serviço, porque a liga é
+     * carregada aqui: sem uma transação a envolver a busca e a alteração, as
+     * coleções lazy da liga já estão desligadas da sessão quando o serviço lhes
+     * toca (LazyInitializationException).
+     */
+    @Transactional
+    public ResponseEntity<LigaDto> criar(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                         @RequestBody CriarLigaRequest pedido) {
+        Liga liga = ligaService.criarLiga(gestor(autenticado), pedido.nome(), pedido.maxEquipas());
         return ResponseEntity.status(HttpStatus.CREATED).body(LigaDto.de(liga));
     }
 
     @GetMapping("/{ligaId}")
-    public LigaDetalheDto detalhe(@PathVariable UUID ligaId) {
-        Liga liga = liga(ligaId);
+    @Transactional(readOnly = true)
+    public LigaDetalheDto detalhe(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                  @PathVariable UUID ligaId) {
+        Liga liga = liga(autenticado, ligaId);
         return LigaDetalheDto.de(liga, classificacao(liga));
     }
 
     @GetMapping("/{ligaId}/classificacao")
-    public List<ClassificacaoDto> classificacao(@PathVariable UUID ligaId) {
-        return classificacao(liga(ligaId));
+    @Transactional(readOnly = true)
+    public List<ClassificacaoDto> classificacao(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                                @PathVariable UUID ligaId) {
+        return classificacao(liga(autenticado, ligaId));
     }
 
     @PostMapping("/{ligaId}/terminar")
-    public LigaDto terminar(@PathVariable UUID ligaId) {
-        return LigaDto.de(ligaService.terminarLiga(liga(ligaId)));
+    @Transactional
+    public LigaDto terminar(@AuthenticationPrincipal GestorAutenticado autenticado,
+                            @PathVariable UUID ligaId) {
+        return LigaDto.de(ligaService.terminarLiga(liga(autenticado, ligaId)));
     }
 
     @PostMapping("/{ligaId}/equipas")
-    public ResponseEntity<EquipaDto> adicionarEquipa(@PathVariable UUID ligaId,
+    @Transactional
+    public ResponseEntity<EquipaDto> adicionarEquipa(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                                     @PathVariable UUID ligaId,
                                                      @RequestBody AdicionarEquipaRequest pedido) {
         if (pedido.nome() == null || pedido.nome().isBlank()) {
             throw new IllegalArgumentException("O nome da equipa é obrigatório.");
@@ -91,23 +116,32 @@ public class LigaController {
                 EstadoEquipa.ATIVA
         );
 
-        Equipa guardada = ligaService.adicionarEquipa(liga(ligaId), equipa);
+        Equipa guardada = ligaService.adicionarEquipa(liga(autenticado, ligaId), equipa);
         return ResponseEntity.status(HttpStatus.CREATED).body(EquipaDto.de(guardada));
     }
 
     @PostMapping("/{ligaId}/equipas/{equipaId}/desistencia")
-    public EquipaDto registarDesistencia(@PathVariable UUID ligaId, @PathVariable UUID equipaId) {
-        Equipa equipa = equipaRepository.buscarPorId(equipaId)
+    @Transactional
+    public EquipaDto registarDesistencia(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                         @PathVariable UUID ligaId,
+                                         @PathVariable UUID equipaId) {
+        Liga liga = liga(autenticado, ligaId);
+        Equipa equipa = equipaRepository.buscarPorIdEGestor(equipaId, autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
-        return EquipaDto.de(ligaService.registarDesistencia(liga(ligaId), equipa));
+        return EquipaDto.de(ligaService.registarDesistencia(liga, equipa));
     }
 
     private List<ClassificacaoDto> classificacao(Liga liga) {
         return classificacaoService.calcularClassificacao(liga).stream().map(ClassificacaoDto::de).toList();
     }
 
-    private Liga liga(UUID ligaId) {
-        return ligaRepository.buscarPorId(ligaId)
+    private Liga liga(GestorAutenticado autenticado, UUID ligaId) {
+        return ligaRepository.buscarPorIdEGestor(ligaId, autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Liga não encontrada."));
+    }
+
+    private Gestor gestor(GestorAutenticado autenticado) {
+        return gestorRepository.buscarPorId(autenticado.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Gestor não encontrado."));
     }
 }

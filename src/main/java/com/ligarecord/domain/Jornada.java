@@ -2,28 +2,66 @@ package com.ligarecord.domain;
 
 import com.ligarecord.domain.enums.EstadoJornada;
 import com.ligarecord.domain.enums.EstadoJornadaTreino;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class Jornada {
+@Entity
+@Table(name = "jornada")
+public class Jornada extends EntidadeBase {
+
+    @Id
     private UUID id;
+
+    @Column(name = "num_jornada", nullable = false)
     private int numJornada;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
     private EstadoJornada estadoJ;
-    private boolean eTreino;
-    private List<ResultadoJornada> resultadoJ;
+
+    /**
+     * Única fonte de verdade sobre o tipo da jornada. O antigo campo booleano
+     * {@code eTreino} foi removido: guardava a mesma informação e as duas
+     * colunas podiam contradizer-se.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false)
     private EstadoJornadaTreino tipoJornada;
 
-    public Jornada(UUID id, int numJornada, EstadoJornada estadoJ, boolean eTreino, EstadoJornadaTreino tipoJornada){
+    @OneToMany(mappedBy = "jornada", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResultadoJornada> resultadoJ = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "liga_id", nullable = false)
+    private Liga liga;
+
+    protected Jornada() {
+        // exigido pelo Hibernate
+    }
+
+    public Jornada(UUID id, int numJornada, EstadoJornada estadoJ, EstadoJornadaTreino tipoJornada, Liga liga){
         this.id = id;
         this.numJornada = numJornada;
         this.estadoJ = estadoJ;
         this.tipoJornada = tipoJornada;
-        this.eTreino = eTreino;
+        this.liga = liga;
         this.resultadoJ = new ArrayList<>();
     }
 
+    @Override
     public UUID getId() {
         return id;
     }
@@ -48,12 +86,17 @@ public class Jornada {
         this.estadoJ = estadoJ;
     }
 
-    public boolean iseTreino() {
-        return eTreino;
+    public EstadoJornadaTreino getTipoJornada() {
+        return tipoJornada;
     }
 
-    public void seteTreino(boolean eTreino) {
-        this.eTreino = eTreino;
+    public void setTipoJornada(EstadoJornadaTreino tipoJornada) {
+        this.tipoJornada = tipoJornada;
+    }
+
+    /** Derivado do tipo: não há estado duplicado para se desencontrar. */
+    public boolean iseTreino() {
+        return tipoJornada == EstadoJornadaTreino.TREINO;
     }
 
     public List<ResultadoJornada> getResultadoJ() {
@@ -64,15 +107,27 @@ public class Jornada {
         this.resultadoJ = resultadoJ;
     }
 
-    public EstadoJornadaTreino getTipoJornada() {
-        return tipoJornada;
+    public Liga getLiga() {
+        return liga;
     }
 
-    public void setTipoJornada(EstadoJornadaTreino tipoJornada) {
-        this.tipoJornada = tipoJornada;
+    public void setLiga(Liga liga) {
+        this.liga = liga;
     }
 
     public void adicionarResultado(ResultadoJornada resultado) {
         this.resultadoJ.add(resultado);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Jornada outra)) return false;
+        return id != null && id.equals(outra.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

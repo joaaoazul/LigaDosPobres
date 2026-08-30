@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@org.springframework.stereotype.Service
 public class ClassificacaoService {
 
     private static final int TAMANHO_ESCALAO = 5;

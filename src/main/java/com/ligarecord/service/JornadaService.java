@@ -10,11 +10,15 @@ import com.ligarecord.domain.enums.EstadoJornadaTreino;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.JornadaRepository;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class JornadaService {
 
     private static final int NUMERO_JORNADAS_TREINO = 5;
@@ -30,6 +34,7 @@ public class JornadaService {
      * jornadas são de treino, as seguintes são oficiais. Cada tipo tem a sua
      * própria numeração.
      */
+    @Transactional
     public Jornada abrirJornada(Liga liga){
         if (liga == null){
             throw new IllegalArgumentException("Não existe uma liga disponível");
@@ -54,16 +59,13 @@ public class JornadaService {
         }
 
         int jornadaAtual;
-        boolean eTreino;
         EstadoJornadaTreino tipoJornada;
 
         if(countTreino < NUMERO_JORNADAS_TREINO){
             tipoJornada = EstadoJornadaTreino.TREINO;
-            eTreino = true;
             jornadaAtual = countTreino + 1;
         } else {
             tipoJornada = EstadoJornadaTreino.OFICIAL;
-            eTreino = false;
             jornadaAtual = countOficial + 1;
         }
 
@@ -71,8 +73,8 @@ public class JornadaService {
                 UUID.randomUUID(),
                 jornadaAtual,
                 EstadoJornada.ABERTA,
-                eTreino,
-                tipoJornada
+                tipoJornada,
+                liga
         );
 
         liga.adicionarJornada(jornada);
@@ -81,6 +83,7 @@ public class JornadaService {
         return jornada;
     }
 
+    @Transactional
     public ResultadoJornada inserirResultado(Jornada jornada, Equipa equipa, int pontuacao){
         if(jornada == null){
             throw new IllegalArgumentException("Não existe uma jornada válida.");
@@ -126,6 +129,7 @@ public class JornadaService {
      * Equipas empatadas ficam, para já, com a mesma posição — a resolução de
      * empates é feita pelo {@link DesempateService}.
      */
+    @Transactional
     public Jornada fecharJornada(Jornada jornada){
         if(jornada == null){
             throw new IllegalArgumentException("Não existe uma jornada válida.");
