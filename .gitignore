@@ -37,3 +37,12 @@ build/
 
 ### Mac OS ###
 .DS_Store
+### Segredos ###
+# Credenciais locais. Nunca versionar — o .env.example é que serve de modelo.
+.env
+.env.local
+.env.production
+
+### Dados locais ###
+data/
+pgdata/

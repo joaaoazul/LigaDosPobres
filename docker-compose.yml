@@ -1,16 +1,17 @@
-# Postgres para desenvolvimento local. Em produção a base de dados é a do
-# serviço alojado, definida pelas variáveis de ambiente.
+# Postgres para desenvolvimento local.
+# As credenciais vêm do ficheiro .env, que não é versionado. Copia o .env.example
+# para .env antes do primeiro arranque.
 services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: ligadospobres
-      POSTGRES_USER: liga
-      POSTGRES_PASSWORD: liga
+      POSTGRES_DB: ${POSTGRES_DB:-ligadospobres}
+      POSTGRES_USER: ${POSTGRES_USER:-liga}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD — copia o .env.example para .env}
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U liga -d ligadospobres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liga} -d ${POSTGRES_DB:-ligadospobres}"]
       interval: 5s
       timeout: 5s
       retries: 10

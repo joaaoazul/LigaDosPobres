@@ -9,9 +9,14 @@ sem passo de build no frontend.
 ## Correr localmente
 
 ```bash
+cp .env.example .env          # preenche as passwords e o REGISTO_CODIGO
+set -a; source .env; set +a   # exporta as variáveis para esta shell
 docker compose up -d          # PostgreSQL na porta 5432
 mvn spring-boot:run
 ```
+
+O `.env` está no `.gitignore` e nunca deve ser versionado. O `.env.example` é o
+modelo, e é esse que vai para o repositório — sem valores reais lá dentro.
 
 Abre <http://localhost:8080>. Sem sessão és reencaminhado para o registo/login.
 
@@ -19,7 +24,7 @@ Requisitos: JDK 21+, Maven e Docker (ou um PostgreSQL já instalado).
 
 ## Configuração
 
-Nenhuma credencial está no repositório. A aplicação lê estas variáveis de
+Nenhuma credencial está no repositório, nem sequer as de desenvolvimento local. A aplicação lê estas variáveis de
 ambiente e, quando não existem, usa os valores de desenvolvimento local:
 
 | Variável | Omissão | Para que serve |
