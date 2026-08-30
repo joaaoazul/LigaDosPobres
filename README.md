@@ -38,17 +38,52 @@ ambiente e, quando não existem, usa os valores de desenvolvimento local:
 | `ADMIN_EMAIL` | vazio | Primeiro administrador, criado só se não existir nenhum |
 | `ADMIN_PASSWORD` | vazio | Password desse administrador. Mínimo 10 caracteres |
 
-## Publicar
+## Publicar no teu servidor
 
-1. Cria uma base de dados PostgreSQL gerida (Neon, Supabase, Railway).
-2. Faz deploy do `Dockerfile` num serviço que corra contentores (Railway, Render, Fly).
-3. Define as variáveis acima no painel do serviço. Acrescenta `?sslmode=require`
-   ao `DB_URL` e põe `COOKIE_SECURE=true`.
-4. Aponta o *health check* do serviço para `/actuator/health`.
+Pressupõe um VPS com IP público e o domínio na Cloudflare.
 
-As migrações do Flyway correm sozinhas no arranque. **Um ficheiro de migração já
-aplicado nunca se edita**: o Flyway guarda uma assinatura de cada um e recusa
-arrancar se ela mudar. Correções fazem-se com um `V2__…` novo.
+**1. Certificado de origem.** No painel da Cloudflare, *SSL/TLS → Origin Server →
+Create Certificate*. Guarda os dois ficheiros em `./certs/origin.pem` e
+`./certs/origin.key`. A pasta `certs/` está no `.gitignore`.
+
+**2. Modo de TLS: `Full (strict)`.** Não `Flexible`. Em `Flexible` o troço entre
+a Cloudflare e o teu servidor vai em HTTP simples pela internet, e o cookie de
+sessão marcado como `Secure` deixa de funcionar de maneira difícil de diagnosticar.
+
+**3. DNS.** Um registo `A` para o IP do servidor, com a nuvem laranja ligada
+(proxied). Assim o IP do servidor não fica público.
+
+**4. Domínio no Caddyfile.** Troca `liga.exemplo.pt` pelo teu.
+
+**5. Variáveis.** `cp .env.example .env` e preenche `POSTGRES_PASSWORD`,
+`ADMIN_EMAIL` e `ADMIN_PASSWORD`.
+
+**6. Arrancar.**
+
+```bash
+docker compose -f compose.prod.yml -f compose.caddy.yml up -d --build
+```
+
+**7. Firewall.** Só 22, 80 e 443. A aplicação escuta em `127.0.0.1:8080` e a
+base de dados não é exposta.
+
+**8. Backups no cron.** Sem isto não há plano de recuperação nenhum:
+
+```
+0 4 * * * cd /caminho/LigaDosPobres && ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+Copia os backups para fora do servidor. Um backup que só existe na máquina que
+pode arder não é um backup.
+
+### Alojar numa plataforma em vez do teu servidor
+
+Nada aqui é específico do teu servidor: é um contentor Docker, uma base de dados
+PostgreSQL e variáveis de ambiente. Em Railway, Render ou Fly basta apontar ao
+`Dockerfile`, criar a base de dados e definir as mesmas variáveis, mais
+`FORWARD_HEADERS=framework` (a plataforma trata do TLS, dispensando o Caddy).
+
+Mudar de um lado para o outro é um `pg_dump` e um novo arranque.
 
 ## Contas de gestor
 

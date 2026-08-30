@@ -1,0 +1,30 @@
+# Camada de HTTPS para o cenário "VPS com IP público".
+#
+#   docker compose -f compose.prod.yml -f compose.caddy.yml up -d --build
+#
+# Antes: gera o certificado Origin no painel da Cloudflare (SSL/TLS → Origin
+# Server → Create Certificate) e guarda os dois ficheiros em ./certs/.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy_data:
+  caddy_config:
+  caddy_logs:

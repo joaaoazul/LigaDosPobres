@@ -1,0 +1,54 @@
+# Camada de HTTPS à frente da aplicação.
+#
+# A Cloudflare fica no modo "Full (strict)": cifrado do browser até à Cloudflare
+# e da Cloudflare até aqui. O modo "Flexible" deixaria este último troço em HTTP
+# simples pela internet fora — e, pior, o cookie de sessão marcado como Secure
+# deixaria de funcionar de forma difícil de diagnosticar.
+
+{
+	# Sem estes intervalos, o X-Forwarded-For que chega pode ser forjado por
+	# quem fizer o pedido, e todos os registos e limites por IP passam a mentir.
+	# Lista oficial: https://www.cloudflare.com/ips/  (muda muito raramente)
+	servers {
+		trusted_proxies static \
+			173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 \
+			141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 \
+			197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 \
+			104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 \
+			2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 \
+			2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	}
+}
+
+# Substitui pelo teu domínio.
+liga.exemplo.pt {
+	# Certificado Origin da Cloudflare: emitido no painel, válido 15 anos, sem
+	# renovações automáticas para falhar de madrugada.
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+
+	encode zstd gzip
+
+	header {
+		# A aplicação só carrega recursos dela própria. Como não há JavaScript
+		# embutido no HTML, isto pode ser estrito: um XSS deixa de conseguir
+		# executar seja o que for.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:8080 {
+		health_uri /actuator/health
+		health_interval 30s
+	}
+
+	log {
+		output file /var/log/caddy/acesso.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}

@@ -58,8 +58,9 @@ public class SecurityConfig {
                     .csrfTokenRequestHandler(manipuladorCsrf))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(a -> a
-                    .requestMatchers("/login.html", "/registo.html", "/styles.css", "/auth.js",
-                                     "/favicon.ico", "/erro.html").permitAll()
+                    .requestMatchers("/login.html", "/registo.html", "/styles.css",
+                                     "/auth.js", "/login.js", "/registo.js",
+                                     "/favicon.ico").permitAll()
                     .requestMatchers("/api/auth/registo", "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;

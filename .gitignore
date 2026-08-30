@@ -43,6 +43,10 @@ build/
 .env.local
 .env.production
 
+### Certificados ###
+certs/*.pem
+certs/*.key
+
 ### Dados locais ###
 data/
 pgdata/

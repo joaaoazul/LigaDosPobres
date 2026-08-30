@@ -33,14 +33,6 @@
 </main>
 
 <script src="auth.js"></script>
-<script>
-document.getElementById("form-login").addEventListener("submit", (evento) => {
-    evento.preventDefault();
-    submeter("/api/auth/login", {
-        email: document.getElementById("email").value.trim(),
-        password: document.getElementById("password").value
-    });
-});
-</script>
+<script src="login.js"></script>
 </body>
 </html>
