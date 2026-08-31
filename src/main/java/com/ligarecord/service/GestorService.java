@@ -66,4 +66,34 @@ public class GestorService {
 
         return gestorRepository.guardar(gestor);
     }
+
+    /**
+     * Muda a password do próprio gestor.
+     *
+     * <p>Exige a password actual mesmo estando a sessão aberta: sem isso, quem
+     * apanhasse um computador destrancado trocava a password e ficava dono da
+     * conta. É também a razão para não haver aqui um caminho de administrador —
+     * ver a nota no fim.
+     */
+    @Transactional
+    public void alterarPassword(UUID gestorId, String atual, String nova) {
+        Gestor gestor = gestorRepository.buscarPorId(gestorId)
+                .orElseThrow(() -> new IllegalArgumentException("A conta não existe."));
+
+        if (atual == null || !passwordEncoder.matches(atual, gestor.getPasswordHash())) {
+            // Mensagem própria: aqui já sabemos quem é o utilizador, por isso não
+            // há nada a proteger em ser-se vago, e ser-se vago só o confundiria.
+            throw new IllegalArgumentException("A password actual não está correcta.");
+        }
+        if (nova == null || nova.length() < MINIMO_PASSWORD) {
+            throw new IllegalArgumentException(
+                    "A password nova tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
+        }
+        if (passwordEncoder.matches(nova, gestor.getPasswordHash())) {
+            throw new IllegalArgumentException("A password nova tem de ser diferente da actual.");
+        }
+
+        gestor.setPasswordHash(passwordEncoder.encode(nova));
+        gestorRepository.guardar(gestor);
+    }
 }

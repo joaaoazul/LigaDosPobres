@@ -3,6 +3,7 @@ package com.ligarecord.web;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.GestorService;
+import com.ligarecord.web.dto.AlterarPasswordRequest;
 import com.ligarecord.web.dto.GestorDto;
 import com.ligarecord.web.dto.LoginRequest;
 import com.ligarecord.web.dto.RegistoRequest;
@@ -19,6 +20,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,6 +66,28 @@ public class AuthController {
             // a quem tenta se um dado email tem conta.
             throw new CredenciaisInvalidasException("Email ou password incorretos.");
         }
+    }
+
+    /**
+     * Muda a password do gestor com sessão aberta.
+     *
+     * <p>A sessão é invalidada a seguir, de propósito: quem mudou a password
+     * volta a entrar com a nova, e qualquer sessão aberta noutro sítio deixa de
+     * servir. Se a password foi mudada por se suspeitar que alguém a sabia, uma
+     * sessão que continuasse viva tornava a mudança inútil.
+     */
+    @PostMapping("/password")
+    public ResponseEntity<Void> alterarPassword(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                                @RequestBody AlterarPasswordRequest pedido,
+                                                HttpServletRequest http) {
+        gestorService.alterarPassword(autenticado.getId(), pedido.atual(), pedido.nova());
+
+        HttpSession sessao = http.getSession(false);
+        if (sessao != null) {
+            sessao.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

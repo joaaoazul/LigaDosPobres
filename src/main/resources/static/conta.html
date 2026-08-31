@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password &middot; Liga dos Pobres</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='none' stroke='%23f0f1f3' stroke-width='2'/><polygon points='16,9 22.66,13.84 20.12,21.66 11.88,21.66 9.34,13.84' fill='%23ff5a1f'/></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-auth">
+
+
+<main class="cartao-auth">
+    <div class="marca-auth">
+        <svg class="simbolo" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.75"/><polygon class="placa" points="16,9 22.66,13.84 20.12,21.66 11.88,21.66 9.34,13.84"/></svg>
+        <h1>Mudar password</h1>
+    </div>
+
+    <p class="ajuda">Depois de mudares, a sessão termina e voltas a entrar com a password nova.</p>
+
+    <div id="alerta" class="alerta oculto" role="alert"></div>
+
+    <form id="form-password" class="formulario">
+        <label for="atual">Password actual</label>
+        <input id="atual" type="password" autocomplete="current-password" required>
+
+        <label for="nova">Password nova</label>
+        <input id="nova" type="password" autocomplete="new-password" minlength="10" required>
+
+        <label for="repetir">Repetir a nova</label>
+        <input id="repetir" type="password" autocomplete="new-password" minlength="10" required>
+
+        <button type="submit" class="botao primario">Mudar password</button>
+    </form>
+
+    <p class="ajuda">Mínimo 10 caracteres. <a href="/">Voltar</a></p>
+</main>
+
+<script src="auth.js"></script>
+<script src="conta.js"></script>
+</body>
+</html>

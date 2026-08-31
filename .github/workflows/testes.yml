@@ -1,0 +1,47 @@
+# Corre os testes a cada push e a cada pull request.
+#
+# Existe porque o Dockerfile constroi com -DskipTests, para a imagem nao demorar
+# o dobro a construir. Essa decisao e' defensavel, mas deixava os testes sem
+# correr em sitio nenhum: podiam estar vermelhos ha semanas que o deploy passava
+# na mesma. Um teste que ninguem corre nao e' uma rede de seguranca, e'
+# documentacao optimista.
+
+name: testes
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar o JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          # Guarda o ~/.m2 entre corridas. Sem isto, cada corrida volta a
+          # descarregar o Spring inteiro e demora minutos a nao fazer nada.
+          cache: maven
+
+      - name: Correr os testes
+        run: mvn -B test
+
+      # Compilar a imagem apanha o que os testes nao apanham: uma dependencia
+      # que falta no Dockerfile, um recurso que nao entra no jar. Sem isto, um
+      # deploy podia falhar por uma razao que o CI verde nao previu.
+      - name: Construir a imagem
+        run: docker build -t ligadospobres:ci .
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo "### Testes" >> $GITHUB_STEP_SUMMARY
+          for f in target/surefire-reports/*.txt; do
+            [ -f "$f" ] && grep -H "Tests run" "$f" >> $GITHUB_STEP_SUMMARY || true
+          done
