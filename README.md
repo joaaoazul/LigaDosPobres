@@ -82,10 +82,16 @@ Nada aqui é específico do teu servidor: é um contentor Docker, uma base de da
 PostgreSQL e variáveis de ambiente. A plataforma trata do TLS, dispensando o
 Caddy e o certificado.
 
-**No Railway**, cria o serviço a partir do `Dockerfile`, junta um PostgreSQL e
-define as variáveis. A base de dados do Railway anuncia-se em formato
-`postgres://`, que o Java não entende — tens de montar o URL JDBC a partir das
-peças:
+**No Railway**, por esta ordem:
+
+1. **Cria primeiro a base de dados.** No projeto: *New → Database → Add PostgreSQL*.
+   Sem ela a aplicação arranca, não encontra o PostgreSQL e morre em ciclo.
+2. Cria o serviço da aplicação a partir do repositório; o `railway.json` trata
+   do resto.
+3. Define as variáveis no serviço **da aplicação** (não no do PostgreSQL).
+
+A base de dados do Railway anuncia-se em formato `postgres://`, que o Java não
+entende — tens de montar o URL JDBC a partir das peças:
 
 ```
 DB_URL          jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
@@ -97,8 +103,12 @@ ADMIN_EMAIL     o-teu-email
 ADMIN_PASSWORD  uma-password-longa
 ```
 
-Aponta o *health check* do serviço a `/actuator/health`. A porta vem da variável
-`PORT`, que a aplicação já respeita.
+`Postgres` nas referências acima é o **nome do serviço** no Railway. Se lhe
+mudaste o nome, muda também as referências.
+
+Não é preciso correr SQL nenhum: o Flyway cria o esquema no primeiro arranque.
+
+A porta vem da variável `PORT`, que a aplicação já respeita.
 
 **Se o arranque falhar com um erro de ligação ao PostgreSQL** (`PGStream`,
 `ConnectionFactoryImpl`, `Socket.connect`), é quase sempre a rede privada do
