@@ -9,6 +9,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErroDto> conflito(IllegalStateException ex) {
         return resposta(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
+     * Ficheiro acima do limite do multipart (ex.: um logo grande de mais). É
+     * culpa de quem enviou; um 500 mandava-o tentar outra vez em vão.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroDto> ficheiroGrande(MaxUploadSizeExceededException ex) {
+        return resposta(HttpStatus.BAD_REQUEST, "A imagem é demasiado grande.");
     }
 
     /**

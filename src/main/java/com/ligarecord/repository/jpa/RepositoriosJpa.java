@@ -5,11 +5,13 @@ import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.LigaLogo;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.repository.ConviteRepository;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
+import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -49,6 +51,35 @@ public final class RepositoriosJpa {
         @Override
         public Optional<Liga> buscarPorIdEGestor(UUID id, UUID gestorId) {
             return jpa.findByIdAndGestorId(id, gestorId);
+        }
+    }
+
+    @Repository
+    public static class LogosDeLiga implements LigaLogoRepository {
+
+        private final LigaLogoJpaRepository jpa;
+
+        public LogosDeLiga(LigaLogoJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public void guardar(UUID ligaId, byte[] dados) {
+            // save() faz merge: grava se não existir, substitui se já existir.
+            jpa.save(new LigaLogo(ligaId, dados));
+        }
+
+        @Override
+        public Optional<byte[]> buscar(UUID ligaId) {
+            return jpa.findById(ligaId).map(LigaLogo::getDados);
+        }
+
+        @Override
+        public void apagar(UUID ligaId) {
+            // deleteById lança se a linha não existir; apagar sem logo é inócuo.
+            if (jpa.existsById(ligaId)) {
+                jpa.deleteById(ligaId);
+            }
         }
     }
 

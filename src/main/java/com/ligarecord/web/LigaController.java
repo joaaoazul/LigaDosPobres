@@ -7,6 +7,7 @@ import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
+import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.ClassificacaoService;
@@ -17,38 +18,54 @@ import com.ligarecord.web.dto.CriarLigaRequest;
 import com.ligarecord.web.dto.EquipaDto;
 import com.ligarecord.web.dto.LigaDetalheDto;
 import com.ligarecord.web.dto.LigaDto;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ligas")
 public class LigaController {
 
+    /** O logo de uma liga tem de ser uma imagem, e não uma imagem qualquer:
+     *  SVG fica de fora de propósito — servido do nosso domínio, um SVG do
+     *  utilizador podia trazer scripts (XSS). */
+    private static final Set<String> TIPOS_LOGO = Set.of("image/png", "image/jpeg", "image/webp");
+    private static final long LOGO_MAX_BYTES = 1_000_000L;
+
     private final LigaService ligaService;
     private final ClassificacaoService classificacaoService;
     private final LigaRepository ligaRepository;
+    private final LigaLogoRepository ligaLogoRepository;
     private final EquipaRepository equipaRepository;
     private final GestorRepository gestorRepository;
 
     public LigaController(LigaService ligaService,
                           ClassificacaoService classificacaoService,
                           LigaRepository ligaRepository,
+                          LigaLogoRepository ligaLogoRepository,
                           EquipaRepository equipaRepository,
                           GestorRepository gestorRepository) {
         this.ligaService = ligaService;
         this.classificacaoService = classificacaoService;
         this.ligaRepository = ligaRepository;
+        this.ligaLogoRepository = ligaLogoRepository;
         this.equipaRepository = equipaRepository;
         this.gestorRepository = gestorRepository;
     }
@@ -129,6 +146,62 @@ public class LigaController {
         Equipa equipa = equipaRepository.buscarPorIdEGestor(equipaId, autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
         return EquipaDto.de(ligaService.registarDesistencia(liga, equipa));
+    }
+
+    /**
+     * O logo é identidade da liga (do tenant), não do produto: por isso vive
+     * aqui, atrás da autorização por dono, e não nos recursos públicos.
+     */
+    @PostMapping("/{ligaId}/logo")
+    @Transactional
+    public LigaDto carregarLogo(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                @PathVariable UUID ligaId,
+                                @RequestParam("ficheiro") MultipartFile ficheiro) {
+        Liga liga = liga(autenticado, ligaId);
+        if (ficheiro == null || ficheiro.isEmpty()) {
+            throw new IllegalArgumentException("Escolhe uma imagem.");
+        }
+        String tipo = ficheiro.getContentType();
+        if (tipo == null || !TIPOS_LOGO.contains(tipo)) {
+            throw new IllegalArgumentException("O logo tem de ser PNG, JPEG ou WEBP.");
+        }
+        if (ficheiro.getSize() > LOGO_MAX_BYTES) {
+            throw new IllegalArgumentException("A imagem é demasiado grande (máx. 1 MB).");
+        }
+        byte[] dados;
+        try {
+            dados = ficheiro.getBytes();
+        } catch (IOException e) {
+            throw new IllegalStateException("Não foi possível ler a imagem.");
+        }
+        ligaLogoRepository.guardar(ligaId, dados);
+        liga.setLogoTipo(tipo);
+        ligaRepository.guardarLiga(liga);
+        return LigaDto.de(liga);
+    }
+
+    @GetMapping("/{ligaId}/logo")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> logo(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                       @PathVariable UUID ligaId) {
+        Liga liga = liga(autenticado, ligaId);
+        byte[] dados = ligaLogoRepository.buscar(ligaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Esta liga não tem logo."));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(liga.getLogoTipo()))
+                .cacheControl(CacheControl.noCache())
+                .body(dados);
+    }
+
+    @DeleteMapping("/{ligaId}/logo")
+    @Transactional
+    public LigaDto removerLogo(@AuthenticationPrincipal GestorAutenticado autenticado,
+                               @PathVariable UUID ligaId) {
+        Liga liga = liga(autenticado, ligaId);
+        ligaLogoRepository.apagar(ligaId);
+        liga.setLogoTipo(null);
+        ligaRepository.guardarLiga(liga);
+        return LigaDto.de(liga);
     }
 
     private List<ClassificacaoDto> classificacao(Liga liga) {

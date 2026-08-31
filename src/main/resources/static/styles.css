@@ -161,15 +161,27 @@ h1, h2, h3 {
     font-size: var(--t-min);
 }
 
-/* O logo da marca: um emblema próprio. O ficheiro tem fundo preto, por isso é
-   emoldurado com uma régua fina e cantos arredondados para assentar de
-   propósito sobre o grafite do painel, e não parecer um rectângulo perdido. */
-.logo-marca {
-    height: 40px;
-    width: auto;
+/* A marca do produto: um emblema vetorial próprio — um anel com um arco no
+   acento laranja, o "quinhão" que dá nome à Quota. Desenhado, não um emoji, e
+   sem depender de imagem: fica nítido em qualquer tamanho e segue a cor. */
+.emblema {
+    width: 30px;
+    height: 30px;
     flex: none;
-    border-radius: var(--r-g);
-    border: 1px solid var(--regua);
+    color: var(--tinta);
+}
+
+.emblema .arco { stroke: var(--sinal); }
+
+/* O subtítulo do produto, na porta de entrada. Estreito e em versais, como as
+   etiquetas — é rótulo, não frase. */
+.tagline {
+    margin: 0;
+    color: var(--tinta-media);
+    font-family: "Archivo Narrow", "Archivo", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: var(--t-min);
 }
 
 .bola-grande {
@@ -412,6 +424,64 @@ input:disabled {
     font-weight: 700;
     letter-spacing: 0;
 }
+
+/* A identidade da liga: o logo do gestor à esquerda do título. */
+.identidade-liga {
+    display: flex;
+    align-items: center;
+    gap: var(--e3);
+    min-width: 0;
+}
+
+.logo-liga-wrap {
+    position: relative;
+    flex: none;
+}
+
+/* O logo é um botão: carrega-se para o pôr ou trocar. Emoldurado como o resto
+   dos instrumentos — régua fina, cantos apertados. */
+.liga-logo {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--painel-alto);
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    overflow: hidden;
+    cursor: pointer;
+    color: var(--tinta-fraca);
+    transition: border-color 0.12s;
+}
+
+.liga-logo:hover { border-color: var(--regua-forte); }
+.liga-logo:focus-visible { outline: 2px solid var(--sinal); outline-offset: 2px; }
+.liga-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.liga-logo svg { width: 30px; height: 30px; }
+
+/* O "remover", só quando há logo: um alvo pequeno sobreposto ao canto. */
+.logo-remover {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    line-height: 1;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--painel);
+    color: var(--tinta-media);
+    border: 1px solid var(--regua-forte);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.logo-remover:hover { color: var(--fim); border-color: var(--fim); }
 
 .badges {
     display: flex;
@@ -729,10 +799,15 @@ td.numero, th.numero { text-align: right; }
     text-align: center;
 }
 
-/* No cartão de entrada o logo é o protagonista, não um ícone ao lado do
-   título — sobe para 120px e o bloco passa a empilhar-se ao centro. */
-.marca-auth .logo-marca {
-    height: 120px;
+/* No cartão de entrada o emblema é o protagonista — cresce e o bloco
+   empilha-se ao centro, com a palavra Quota logo por baixo. */
+.marca-auth .emblema {
+    width: 60px;
+    height: 60px;
+}
+
+.marca-auth .tagline {
+    margin-top: -2px;
 }
 
 .marca-auth h1 {

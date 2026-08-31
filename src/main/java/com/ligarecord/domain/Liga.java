@@ -44,6 +44,14 @@ public class Liga extends EntidadeBase {
     private int maxEquipas;
 
     /**
+     * Tipo de conteúdo do logo desta liga (ex.: {@code image/png}), ou
+     * {@code null} se a liga não tiver logo. Os bytes vivem na tabela
+     * {@code liga_logo}, à parte, para não serem carregados em cada listagem.
+     */
+    @Column(name = "logo_tipo")
+    private String logoTipo;
+
+    /**
      * O gestor que criou e administra esta liga. Toda a autorização da aplicação
      * assenta neste campo.
      */
@@ -112,6 +120,18 @@ public class Liga extends EntidadeBase {
 
     public void setMaxEquipas(int maxEquipas) {
         this.maxEquipas = maxEquipas;
+    }
+
+    public String getLogoTipo() {
+        return logoTipo;
+    }
+
+    public void setLogoTipo(String logoTipo) {
+        this.logoTipo = logoTipo;
+    }
+
+    public boolean temLogo() {
+        return logoTipo != null;
     }
 
     public Gestor getGestor() {

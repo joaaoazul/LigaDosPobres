@@ -6,8 +6,14 @@ const estado = {
     ligaId: null,
     detalhe: null,
     jornadaId: null,
-    tab: "classificacao"
+    tab: "classificacao",
+    // Muda a cada gravação/remoção de logo, para rebentar a cache da <img>.
+    logoV: 0
 };
+
+/* Emblema neutro para uma liga ainda sem logo — o mesmo anel+arco da marca,
+   mas aqui é só um espaço reservado que convida a carregar um. */
+const EMBLEMA_LIGA = `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.5"/><path d="M16 4a12 12 0 0 1 10.392 6" fill="none" stroke="#ff5a1f" stroke-width="2.5" stroke-linecap="round"/></svg>`;
 
 /* ---------------------------------------------------------------- API ---- */
 
@@ -145,6 +151,8 @@ function desenharDetalhe() {
     const liga = detalhe.liga;
     const desativada = liga.estado !== "ATIVA";
 
+    desenharLogo(liga);
+
     $("#liga-titulo").textContent = liga.nome;
     $("#liga-badges").innerHTML = [
         badgeEstado(liga.estado),
@@ -160,6 +168,49 @@ function desenharDetalhe() {
     desenharEquipas(detalhe.equipas, desativada);
     desenharJornadas(detalhe.jornadas);
     desenharJornadaSelecionada();
+}
+
+/* O logo é a identidade da liga (do gestor), mostrada aqui, no seu espaço. */
+function desenharLogo(liga) {
+    const alvo = $("#liga-logo");
+    const remover = $("#btn-logo-remover");
+    if (liga.temLogo) {
+        alvo.innerHTML = `<img src="/api/ligas/${liga.id}/logo?v=${estado.logoV}" alt="Logo de ${texto(liga.nome)}">`;
+        remover.classList.remove("oculto");
+    } else {
+        alvo.innerHTML = EMBLEMA_LIGA;
+        remover.classList.add("oculto");
+    }
+}
+
+/* Upload do logo: multipart, e por isso à parte do api() — aqui o Content-Type
+   é o browser que o define (com o boundary), não nós. */
+async function enviarLogo(ficheiro) {
+    const dados = new FormData();
+    dados.append("ficheiro", ficheiro);
+
+    const cabecalhos = {};
+    const token = tokenCsrf();
+    if (token) {
+        cabecalhos["X-XSRF-TOKEN"] = token;
+    }
+
+    const resposta = await fetch(`/api/ligas/${estado.ligaId}/logo`, {
+        method: "POST",
+        headers: cabecalhos,
+        body: dados
+    });
+
+    if (resposta.status === 401) {
+        window.location.href = "/login.html";
+        throw new Error("Sessão terminada.");
+    }
+
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok) {
+        throw new Error((corpo && corpo.mensagem) || `Erro ${resposta.status}`);
+    }
+    return corpo;
 }
 
 function desenharClassificacao(classificacao) {
@@ -366,6 +417,34 @@ $("#btn-terminar").addEventListener("click", () => {
         await carregarDetalhe();
         await carregarLigas();
         mostrarAlerta("Liga terminada.", "sucesso");
+    });
+});
+
+$("#liga-logo").addEventListener("click", () => $("#input-logo").click());
+
+$("#input-logo").addEventListener("change", (evento) => {
+    const ficheiro = evento.target.files[0];
+    evento.target.value = "";  // permite reescolher o mesmo ficheiro a seguir
+    if (!ficheiro) {
+        return;
+    }
+    executar(async () => {
+        await enviarLogo(ficheiro);
+        estado.logoV = Date.now();
+        await carregarDetalhe();
+        mostrarAlerta("Logo da liga atualizado.", "sucesso");
+    });
+});
+
+$("#btn-logo-remover").addEventListener("click", () => {
+    if (!confirm("Remover o logo desta liga?")) {
+        return;
+    }
+    executar(async () => {
+        await api(`/api/ligas/${estado.ligaId}/logo`, { method: "DELETE" });
+        estado.logoV = Date.now();
+        await carregarDetalhe();
+        mostrarAlerta("Logo removido.", "sucesso");
     });
 });
 

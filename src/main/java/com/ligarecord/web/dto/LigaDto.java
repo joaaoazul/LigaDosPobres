@@ -13,7 +13,8 @@ public record LigaDto(
         int maxEquipas,
         int totalEquipas,
         int equipasAtivas,
-        int totalJornadas) {
+        int totalJornadas,
+        boolean temLogo) {
 
     public static LigaDto de(Liga liga) {
         int ativas = 0;
@@ -29,7 +30,8 @@ public record LigaDto(
                 liga.getMaxEquipas(),
                 liga.getEquipas().size(),
                 ativas,
-                liga.getJornadas().size()
+                liga.getJornadas().size(),
+                liga.temLogo()
         );
     }
 }
