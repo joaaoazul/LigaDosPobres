@@ -30,4 +30,10 @@ EXPOSE 8080
 
 # MaxRAMPercentage em vez de -Xmx: a JVM respeita o limite de memória que a
 # plataforma impuser ao contentor, seja ele qual for.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+#
+# preferIPv6Addresses: a rede privada do Railway só existe em IPv6. O nome
+# postgres.railway.internal resolve apenas para um endereço IPv6 e, sem esta
+# opção, a JVM não o usa — a ligação à base de dados fica a tentar até estourar
+# e a aplicação morre no arranque. Não faz mal onde há IPv4: só muda a ordem
+# de preferência quando ambos existem.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-Djava.net.preferIPv6Addresses=true", "-jar", "app.jar"]

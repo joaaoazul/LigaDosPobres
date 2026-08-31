@@ -100,6 +100,20 @@ ADMIN_PASSWORD  uma-password-longa
 Aponta o *health check* do serviço a `/actuator/health`. A porta vem da variável
 `PORT`, que a aplicação já respeita.
 
+**Se o arranque falhar com um erro de ligação ao PostgreSQL** (`PGStream`,
+`ConnectionFactoryImpl`, `Socket.connect`), é quase sempre a rede privada do
+Railway, que só existe em IPv6. A imagem já arranca com
+`-Djava.net.preferIPv6Addresses=true`, mas se o problema persistir usa o
+endereço público da base de dados para desbloquear:
+
+```
+DB_URL  jdbc:postgresql://${{Postgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{Postgres.RAILWAY_TCP_PROXY_PORT}}/${{Postgres.PGDATABASE}}?sslmode=require
+```
+
+O endereço público sai da rede do Railway e volta a entrar, por isso é mais
+lento e conta para o tráfego. Serve para confirmar que o resto está bem; depois
+volta ao `PGHOST` interno.
+
 O `compose.prod.yml`, o `Caddyfile` e o script de backup ficam por usar — só
 servem quando fores para o teu servidor.
 
