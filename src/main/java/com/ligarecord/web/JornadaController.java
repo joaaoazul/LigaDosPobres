@@ -82,6 +82,13 @@ public class JornadaController {
         if (pedido.equipaId() == null) {
             throw new IllegalArgumentException("A equipa é obrigatória.");
         }
+        // Enquanto o campo era um int primitivo, um corpo sem "pontuacao" — ou
+        // com o nome do campo trocado — chegava aqui como zero, e ficava gravado
+        // como zero sem uma queixa. Uma classificação errada em silêncio é pior
+        // do que um erro: ninguém a vai procurar.
+        if (pedido.pontuacao() == null) {
+            throw new IllegalArgumentException("A pontuação é obrigatória.");
+        }
         Jornada jornada = jornada(autenticado, ligaId, jornadaId);
         Equipa equipa = equipaRepository.buscarPorIdEGestor(pedido.equipaId(), autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
