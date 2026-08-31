@@ -212,6 +212,22 @@ h1, h2, h3 {
     border: 1px solid var(--regua);
     border-radius: var(--r-g);
     padding: var(--e5);
+    /* Sem isto o painel recusa encolher abaixo do seu conteúdo: um filho de
+       grelha ou de flex tem min-width: auto por omissão. Uma tabela larga
+       deixava de caber e empurrava a PÁGINA INTEIRA para o lado, em vez de
+       rolar dentro da sua caixa. Era isto que partia o telemóvel. */
+    min-width: 0;
+}
+
+/* Cada tabela rola dentro da sua própria caixa. A alternativa — deixar a
+   página rolar na horizontal — arrasta o cabeçalho e tudo o resto com ela,
+   e perde-se a noção de onde se está. */
+#tabela-classificacao,
+#tabela-equipas,
+#tabela-convites,
+#tabela-gestores {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .painel-lateral h2 {
@@ -758,6 +774,73 @@ td.numero, th.numero { text-align: right; }
     padding: 3px 7px;
     margin-right: var(--e1);
     word-break: break-all;
+}
+
+/* ------------------------------------------------------------------------
+   Telemóvel
+
+   A folha foi escrita a olhar para o ecrã grande, e notava-se: os
+   formulários em linha espremiam dois campos em 390px, os separadores
+   partiam-se em duas linhas, e o marcador punha números de 30px em colunas
+   de 62. Nada disto é uma questão de gosto — é a diferença entre usar e
+   não usar a aplicação no telemóvel.
+   ------------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+    :root {
+        --t-marcador: 24px;
+        --t-grande: 21px;
+    }
+
+    .topo { padding: var(--e3) var(--pad-x); }
+
+    /* O subtítulo da marca rouba a linha inteira ao botão de sair. */
+    .marca p { display: none; }
+
+    .painel-lateral,
+    .painel-principal { padding: var(--e4); }
+
+    .conteudo,
+    .conteudo-admin { gap: var(--e4); }
+
+    /* "Em linha" deixa de fazer sentido: dois campos lado a lado nesta
+       largura não são dois campos, são dois campos ilegíveis. */
+    .formulario.em-linha { flex-direction: column; align-items: stretch; }
+    .formulario.em-linha > div { width: 100%; }
+    .formulario.em-linha .botao { width: 100%; }
+
+    /* Os separadores rolam em vez de se partirem em duas linhas. Sem barra
+       à vista: num ecrã de toque ela não serve para nada e só suja. */
+    .separadores {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .separadores::-webkit-scrollbar { display: none; }
+
+    .separador {
+        padding: var(--e3);
+        white-space: nowrap;
+    }
+
+    /* Alvo de toque: 9px de padding dava 38px de altura, abaixo dos 44 que
+       um dedo precisa para acertar à primeira. */
+    .botao { padding: 12px 16px; }
+    .botao.pequeno { padding: 8px 12px; }
+
+    .cabecalho-liga { flex-direction: column; align-items: stretch; }
+    .cabecalho-liga .botao { width: 100%; }
+
+    .barra-acoes .botao { width: 100%; }
+
+    th, td { padding: var(--e2) var(--e3); }
+
+    .marcador .col-pos { width: 44px; }
+    .marcador .col-pts { width: 62px; }
+    .marcador .col-equipa .equipa { font-size: var(--t-corpo); }
+
+    .vazio { padding: var(--e5) var(--e3); }
 }
 
 /* ------------------------------------------------------------------------
