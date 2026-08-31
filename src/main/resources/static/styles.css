@@ -1,186 +1,340 @@
-:root {
-    --fundo: #0d1117;
-    --fundo-painel: #151b23;
-    --fundo-painel-alt: #1c232c;
-    --borda: #2a333f;
-    --texto: #e6edf3;
-    --texto-suave: #8b98a5;
-    --verde: #2ea043;
-    --verde-claro: #3fb950;
-    --vermelho: #da3633;
-    --amarelo: #d29922;
-    --azul: #388bfd;
+/* =========================================================================
+   Liga dos Pobres — folha de estilos
+
+   Direcção: "painel". A classificação é um marcador de estádio, não uma
+   tabela de dashboard. Um só sistema tipográfico em duas larguras, réguas
+   finas, numerais tabulares, e um único acento de sinalética industrial
+   usado apenas onde carrega informação: o líder, o separador activo e o
+   foco do teclado. Tudo o resto é cinzento e cala-se.
+
+   As fontes são servidas pela própria aplicação (ver fontes/). Não há
+   pedidos a terceiros: assim a Content-Security-Policy pode continuar a
+   ser default-src 'self' sem abrir excepções para tipos de letra.
+   Archivo e Archivo Narrow, Omnibus-Type, licença SIL Open Font 1.1.
+   ========================================================================= */
+
+@font-face {
+    font-family: "Archivo";
+    src: url("fontes/archivo.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
 }
 
-* {
-    box-sizing: border-box;
+@font-face {
+    font-family: "Archivo Narrow";
+    src: url("fontes/archivo-narrow.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
 }
+
+:root {
+    /* --- fundo: grafite quente. Não o azul-preto de toda a gente. --- */
+    --ground: #141518;
+    --painel: #1a1c20;
+    --painel-alto: #212429;
+
+    /* --- réguas --- */
+    --regua: #2b2f35;
+    --regua-forte: #454b54;
+
+    /* --- tinta --- */
+    --tinta: #f0f1f3;
+    --tinta-media: #a0a7b0;
+    --tinta-fraca: #6e757e;
+
+    /* --- o acento. Um só, e sempre com trabalho para fazer. --- */
+    --sinal: #ff5a1f;
+    --sinal-fundo: #2a1409;
+
+    /* --- estados. A cor acelera a leitura numa lista longa; a palavra é
+           que a garante. --- */
+    --ok: #35b36b;
+    --espera: #cc9a2e;
+    --fim: #e0484d;
+    --frio: #5b9dd9;
+
+    /* --- escala tipográfica --- */
+    --t-micro: 11px;
+    --t-min: 12.5px;
+    --t-corpo: 14.5px;
+    --t-med: 16px;
+    --t-titulo: 20px;
+    --t-grande: 26px;
+    --t-marcador: 30px;
+
+    /* --- escala de espaço. Sete valores, e mais nenhum. --- */
+    --e1: 4px;
+    --e2: 8px;
+    --e3: 12px;
+    --e4: 16px;
+    --e5: 24px;
+    --e6: 32px;
+    --e7: 48px;
+
+    /* --- cantos apertados: instrumento, não cartão --- */
+    --r: 3px;
+    --r-g: 5px;
+
+    --pad-x: var(--e6);
+}
+
+@media (max-width: 900px) {
+    :root { --pad-x: var(--e4); }
+}
+
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
-    background: var(--fundo);
-    color: var(--texto);
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    font-size: 15px;
+    background: var(--ground);
+    color: var(--tinta);
+    font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: var(--t-corpo);
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* A régua de sinal no topo do ecrã. É a única coisa gritada na página
+   inteira, e é por isso que se ouve. */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--sinal);
+    z-index: 10;
 }
 
 h1, h2, h3 {
     margin: 0;
     font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
-/* ---------- topo ---------- */
+/* Tudo o que é número alinha em coluna. Uma tabela cujos algarismos dançam
+   não se lê, compara-se mal, e parece amadora. */
+.numero, .posicao, .pos, .pts, .codigo, td.numero, th.numero {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+:focus-visible {
+    outline: 2px solid var(--sinal);
+    outline-offset: 2px;
+    border-radius: 1px;
+}
+
+/* ---------------------------------------------------------------- topo --- */
 
 .topo {
-    background: linear-gradient(90deg, #10331d, var(--fundo-painel) 60%);
-    border-bottom: 1px solid var(--borda);
-    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--e4);
+    flex-wrap: wrap;
+    background: var(--painel);
+    border-bottom: 1px solid var(--regua);
+    padding: var(--e4) var(--pad-x);
 }
 
 .marca {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--e3);
 }
 
 .marca h1 {
-    font-size: 22px;
-    letter-spacing: 0.5px;
+    font-family: "Archivo Narrow", "Archivo", sans-serif;
+    font-size: var(--t-titulo);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 .marca p {
-    margin: 2px 0 0;
-    color: var(--texto-suave);
-    font-size: 13px;
+    margin: 1px 0 0;
+    color: var(--tinta-fraca);
+    font-size: var(--t-min);
 }
 
-.bola {
-    font-size: 30px;
+/* O símbolo: uma bola reduzida ao essencial — uma circunferência e uma só
+   placa. Desenhado, não um emoji: o emoji muda de forma em cada sistema
+   operativo, e é o sinal mais claro de que ninguém pensou no assunto. */
+.simbolo {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    color: var(--tinta);
 }
+
+.simbolo .placa { fill: var(--sinal); }
 
 .bola-grande {
-    font-size: 56px;
-    opacity: 0.5;
+    width: 44px;
+    height: 44px;
+    color: var(--tinta-fraca);
 }
 
-/* ---------- layout ---------- */
+.sessao {
+    display: flex;
+    align-items: center;
+    gap: var(--e3);
+}
+
+.sessao span {
+    color: var(--tinta-media);
+    font-size: var(--t-min);
+}
+
+.sessao a.botao { text-decoration: none; }
+
+/* -------------------------------------------------------------- layout --- */
 
 .conteudo {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 22px;
-    padding: 22px 28px 60px;
+    grid-template-columns: 300px 1fr;
+    gap: var(--e5);
+    padding: var(--e5) var(--pad-x) var(--e7);
     align-items: start;
+}
+
+@media (max-width: 900px) {
+    .conteudo { grid-template-columns: 1fr; }
 }
 
 .painel-lateral,
 .painel-principal {
-    background: var(--fundo-painel);
-    border: 1px solid var(--borda);
-    border-radius: 12px;
-    padding: 20px;
+    background: var(--painel);
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    padding: var(--e5);
 }
 
 .painel-lateral h2 {
-    font-size: 16px;
-    margin-bottom: 14px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-micro);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+    margin-bottom: var(--e3);
 }
 
-@media (max-width: 900px) {
-    .conteudo {
-        grid-template-columns: 1fr;
-        padding: 16px;
-    }
-}
-
-/* ---------- formulários ---------- */
+/* --------------------------------------------------------- formulários --- */
 
 .formulario {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 18px;
+    gap: var(--e1);
+    margin-bottom: var(--e5);
 }
 
 .formulario label {
-    font-size: 12px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: var(--texto-suave);
+    color: var(--tinta-media);
+    margin-top: var(--e2);
 }
 
 .formulario.em-linha {
     flex-direction: row;
     align-items: flex-end;
-    gap: 12px;
+    gap: var(--e3);
     flex-wrap: wrap;
 }
 
 .formulario.em-linha > div {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--e1);
 }
 
 input {
-    background: var(--fundo);
-    border: 1px solid var(--borda);
-    border-radius: 8px;
-    color: var(--texto);
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-radius: var(--r);
+    color: var(--tinta);
     padding: 9px 11px;
-    font-size: 14px;
+    font-size: var(--t-corpo);
     font-family: inherit;
     width: 100%;
+    transition: border-color 0.12s ease;
 }
+
+input::placeholder { color: var(--tinta-fraca); }
 
 input:focus {
     outline: none;
-    border-color: var(--verde);
+    border-color: var(--sinal);
 }
 
-/* ---------- botões ---------- */
+input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------- botões --- */
 
 .botao {
-    background: var(--fundo-painel-alt);
-    border: 1px solid var(--borda);
-    border-radius: 8px;
-    color: var(--texto);
+    background: var(--painel-alto);
+    border: 1px solid var(--regua-forte);
+    border-radius: var(--r);
+    color: var(--tinta);
     cursor: pointer;
-    font-size: 14px;
-    font-family: inherit;
-    padding: 9px 14px;
-    transition: filter 0.15s ease;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-corpo);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 9px 15px;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .botao:hover:not(:disabled) {
-    filter: brightness(1.25);
+    background: #2a2e34;
+    border-color: var(--tinta-fraca);
 }
 
 .botao:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
 .botao.primario {
-    background: var(--verde);
-    border-color: var(--verde-claro);
-    color: #fff;
-    font-weight: 600;
+    background: var(--sinal);
+    border-color: var(--sinal);
+    color: #14150f;
+    font-weight: 700;
+}
+
+.botao.primario:hover:not(:disabled) {
+    background: #ff7440;
+    border-color: #ff7440;
 }
 
 .botao.perigo {
     background: transparent;
-    border-color: var(--vermelho);
-    color: #ff7b72;
+    border-color: #5e2a2c;
+    color: #ff8a8e;
+}
+
+.botao.perigo:hover:not(:disabled) {
+    background: #2a1618;
+    border-color: var(--fim);
 }
 
 .botao.pequeno {
     padding: 5px 10px;
-    font-size: 13px;
+    font-size: var(--t-min);
 }
 
-/* ---------- lista de ligas ---------- */
+/* ------------------------------------------------------ lista de ligas --- */
 
 .lista-ligas {
     list-style: none;
@@ -188,122 +342,135 @@ input:focus {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--e1);
 }
 
 .cartao-liga {
-    background: var(--fundo-painel-alt);
-    border: 1px solid var(--borda);
-    border-left: 3px solid transparent;
-    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-left: 2px solid var(--regua);
+    border-radius: 0 var(--r) var(--r) 0;
     cursor: pointer;
-    padding: 11px 13px;
+    padding: var(--e2) var(--e3);
     text-align: left;
     width: 100%;
     color: inherit;
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--t-corpo);
+    transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .cartao-liga:hover {
-    border-color: var(--texto-suave);
+    background: var(--painel-alto);
+    border-left-color: var(--tinta-fraca);
 }
 
 .cartao-liga.selecionado {
-    border-left-color: var(--verde-claro);
-    background: #1e2a22;
+    background: var(--painel-alto);
+    border-left-color: var(--sinal);
 }
 
 .cartao-liga strong {
     display: block;
+    font-weight: 600;
 }
 
 .cartao-liga small {
-    color: var(--texto-suave);
+    color: var(--tinta-fraca);
+    font-size: var(--t-min);
 }
 
-/* ---------- cabeçalho da liga ---------- */
+/* --------------------------------------------------- cabeçalho da liga --- */
 
 .cabecalho-liga {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--e4);
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: var(--e4);
 }
 
 .cabecalho-liga h2 {
-    font-size: 20px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-grande);
+    font-weight: 700;
+    letter-spacing: 0;
 }
 
 .badges {
     display: flex;
-    gap: 8px;
+    gap: var(--e2);
     flex-wrap: wrap;
-    margin-top: 8px;
+    margin-top: var(--e2);
 }
 
+/* Etiqueta de estado: um ponto de cor e a palavra. Sozinha, a cor não diz
+   nada a quem não a distingue. */
 .badge {
-    background: var(--fundo-painel-alt);
-    border: 1px solid var(--borda);
-    border-radius: 999px;
-    color: var(--texto-suave);
-    font-size: 12px;
-    padding: 3px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--regua);
+    border-radius: var(--r);
+    color: var(--tinta-media);
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-micro);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    white-space: nowrap;
 }
 
-.badge.verde {
-    border-color: var(--verde);
-    color: var(--verde-claro);
+.badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
 }
 
-.badge.vermelho {
-    border-color: var(--vermelho);
-    color: #ff7b72;
-}
+.badge.verde { color: var(--ok); border-color: #244a35; }
+.badge.vermelho { color: var(--fim); border-color: #4d2628; }
+.badge.amarelo { color: var(--espera); border-color: #4a3c1c; }
+.badge.azul { color: var(--frio); border-color: #26404f; }
 
-.badge.amarelo {
-    border-color: var(--amarelo);
-    color: #e3b341;
-}
-
-.badge.azul {
-    border-color: var(--azul);
-    color: #79c0ff;
-}
-
-/* ---------- separadores ---------- */
+/* --------------------------------------------------------- separadores --- */
 
 .separadores {
     display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--borda);
-    margin-bottom: 18px;
+    gap: 0;
+    border-bottom: 1px solid var(--regua);
+    margin-bottom: var(--e5);
 }
 
 .separador {
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--texto-suave);
+    color: var(--tinta-fraca);
     cursor: pointer;
-    font-family: inherit;
-    font-size: 14px;
-    padding: 10px 14px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-min);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: var(--e3) var(--e4);
+    margin-bottom: -1px;
+    transition: color 0.12s ease, border-color 0.12s ease;
 }
 
-.separador:hover {
-    color: var(--texto);
-}
+.separador:hover { color: var(--tinta); }
 
 .separador.ativo {
-    border-bottom-color: var(--verde-claro);
-    color: var(--texto);
-    font-weight: 600;
+    border-bottom-color: var(--sinal);
+    color: var(--tinta);
 }
 
-/* ---------- tabelas ---------- */
+/* ------------------------------------------------------------- tabelas --- */
 
 table {
     border-collapse: collapse;
@@ -311,244 +478,296 @@ table {
 }
 
 th, td {
-    border-bottom: 1px solid var(--borda);
-    padding: 10px 12px;
+    border-bottom: 1px solid var(--regua);
+    padding: var(--e3);
     text-align: left;
 }
 
 th {
-    color: var(--texto-suave);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.4px;
+    font-family: "Archivo Narrow", sans-serif;
+    color: var(--tinta-fraca);
+    font-size: var(--t-micro);
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
+    border-bottom-color: var(--regua-forte);
 }
 
-tbody tr:hover {
-    background: var(--fundo-painel-alt);
+tbody tr { transition: background-color 0.12s ease; }
+tbody tr:hover { background: var(--painel-alto); }
+tbody tr:last-child td { border-bottom: none; }
+
+td.numero, th.numero { text-align: right; }
+
+.linha-desistente td { color: var(--tinta-fraca); }
+
+.linha-desistente strong,
+.linha-desistente .equipa {
+    text-decoration: line-through;
+    text-decoration-color: var(--tinta-fraca);
 }
 
-td.numero, th.numero {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+/* ---------------------------------------------------------- o marcador ---
+
+   A classificação é o coração da aplicação, e a única coisa nesta página
+   desenhada para se ler do outro lado da sala: posição e pontos em largura
+   estreita e corpo grande, o resto encolhido à volta. O primeiro lugar
+   leva a marca de sinal — é a única linha que a recebe, senão deixava de
+   querer dizer alguma coisa.                                             */
+
+.marcador .col-pos { width: 62px; }
+
+.marcador .pos {
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-marcador);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--tinta-fraca);
 }
 
-.posicao {
-    color: var(--texto-suave);
-    font-variant-numeric: tabular-nums;
-    width: 46px;
+.marcador .col-equipa .equipa {
+    display: block;
+    font-weight: 600;
+    font-size: var(--t-med);
 }
 
-.linha-desistente td {
-    opacity: 0.55;
+.marcador .col-equipa .treinador {
+    display: block;
+    color: var(--tinta-fraca);
+    font-size: var(--t-min);
 }
 
-/* ---------- jornadas ---------- */
+.marcador .col-pts { width: 90px; text-align: right; }
+
+.marcador .pts {
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-marcador);
+    font-weight: 700;
+    line-height: 1;
+}
+
+.marcador .lider {
+    background: linear-gradient(90deg, var(--sinal-fundo), transparent 55%);
+    box-shadow: inset 2px 0 0 var(--sinal);
+}
+
+.marcador .lider:hover {
+    background: linear-gradient(90deg, var(--sinal-fundo), transparent 40%);
+}
+
+.marcador .lider .pos { color: var(--sinal); }
+
+.marcador tr.linha-desistente .pos,
+.marcador tr.linha-desistente .pts { color: var(--tinta-fraca); }
+
+/* ------------------------------------------------------------ jornadas --- */
 
 .barra-acoes {
-    align-items: center;
     display: flex;
-    gap: 14px;
+    align-items: center;
+    gap: var(--e3);
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    margin-bottom: var(--e5);
 }
 
 .ajuda {
-    color: var(--texto-suave);
-    font-size: 13px;
+    color: var(--tinta-media);
+    font-size: var(--t-min);
 }
 
 .grelha-jornadas {
     display: grid;
-    grid-template-columns: 230px 1fr;
-    gap: 18px;
+    grid-template-columns: 220px 1fr;
+    gap: var(--e4);
     align-items: start;
 }
 
 @media (max-width: 780px) {
-    .grelha-jornadas {
-        grid-template-columns: 1fr;
-    }
+    .grelha-jornadas { grid-template-columns: 1fr; }
 }
 
 .lista-jornadas {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--e1);
 }
 
 .cartao-jornada {
-    background: var(--fundo-painel-alt);
-    border: 1px solid var(--borda);
-    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-left: 2px solid var(--regua);
+    border-radius: 0 var(--r) var(--r) 0;
     color: inherit;
     cursor: pointer;
     font-family: inherit;
-    font-size: 14px;
-    padding: 10px 12px;
+    font-size: var(--t-corpo);
+    font-weight: 600;
+    padding: var(--e2) var(--e3);
     text-align: left;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.cartao-jornada:hover {
+    background: var(--painel-alto);
+    border-left-color: var(--tinta-fraca);
 }
 
 .cartao-jornada.selecionado {
-    border-color: var(--verde-claro);
+    background: var(--painel-alto);
+    border-left-color: var(--sinal);
 }
 
 .cartao-jornada small {
-    color: var(--texto-suave);
+    color: var(--tinta-fraca);
     display: block;
+    font-weight: 400;
+    font-size: var(--t-min);
 }
 
 .detalhe-jornada {
-    background: var(--fundo-painel-alt);
-    border: 1px solid var(--borda);
-    border-radius: 10px;
-    padding: 16px;
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    padding: var(--e4);
     min-height: 120px;
 }
 
 .detalhe-jornada h3 {
-    font-size: 16px;
-    margin-bottom: 4px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-med);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: var(--e1);
 }
 
-.detalhe-jornada input[type="number"] {
-    width: 90px;
-}
+.detalhe-jornada input[type="number"] { width: 84px; }
 
-/* ---------- estados vazios e alertas ---------- */
+/* --------------------------------------------------- vazios e alertas --- */
 
 .vazio {
-    color: var(--texto-suave);
-    padding: 50px 20px;
+    color: var(--tinta-media);
+    padding: var(--e7) var(--e5);
     text-align: center;
 }
 
 .vazio h2 {
-    font-size: 17px;
-    margin: 10px 0 4px;
-    color: var(--texto);
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-med);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: var(--e3) 0 var(--e1);
+    color: var(--tinta);
 }
 
+.vazio p { margin: 0; font-size: var(--t-min); }
+
+/* O alerta acompanha a margem da página. Antes tinha 28px fixos e, no
+   telemóvel, ficava desalinhado de tudo o resto. */
 .alerta {
-    background: #3d1d1d;
-    border: 1px solid var(--vermelho);
-    border-radius: 8px;
-    color: #ffb3ae;
-    margin: 14px 28px 0;
-    padding: 11px 15px;
+    background: #2a1618;
+    border: 1px solid #5e2a2c;
+    border-left: 2px solid var(--fim);
+    border-radius: var(--r);
+    color: #ff9ea1;
+    margin: var(--e4) var(--pad-x) 0;
+    padding: var(--e3) var(--e4);
+    font-size: var(--t-corpo);
 }
 
 .alerta.sucesso {
-    background: #12261a;
-    border-color: var(--verde);
-    color: #7ee787;
+    background: #10241a;
+    border-color: #244a35;
+    border-left-color: var(--ok);
+    color: #7fd6a2;
 }
 
-.oculto {
-    display: none;
-}
+.oculto { display: none; }
 
-
-/* ---------- sessão ---------- */
-
-.topo {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.sessao {
-    align-items: center;
-    display: flex;
-    gap: 12px;
-}
-
-.sessao span {
-    color: var(--texto-suave);
-    font-size: 14px;
-}
-
-/* ---------- páginas de autenticação ---------- */
+/* -------------------------------------------------- páginas de entrada --- */
 
 .pagina-auth {
     align-items: center;
     display: flex;
     justify-content: center;
     min-height: 100vh;
-    padding: 24px;
+    padding: var(--e5);
 }
 
 .cartao-auth {
-    background: var(--fundo-painel);
-    border: 1px solid var(--borda);
-    border-radius: 12px;
-    max-width: 400px;
-    padding: 30px;
+    background: var(--painel);
+    border: 1px solid var(--regua);
+    border-top: 2px solid var(--sinal);
+    border-radius: var(--r-g);
+    max-width: 380px;
+    padding: var(--e6);
     width: 100%;
 }
+
+.pagina-auth .alerta { margin: var(--e4) 0 0; }
 
 .marca-auth {
     align-items: center;
     display: flex;
-    gap: 12px;
-    margin-bottom: 6px;
+    gap: var(--e3);
+    margin-bottom: var(--e2);
 }
 
 .marca-auth h1 {
-    font-size: 20px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-titulo);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
-.cartao-auth .formulario {
-    margin: 18px 0 14px;
-}
+.cartao-auth .formulario { margin: var(--e4) 0 var(--e3); }
+.cartao-auth .botao { margin-top: var(--e3); width: 100%; }
+.cartao-auth a { color: var(--sinal); }
 
-.cartao-auth .botao {
-    margin-top: 10px;
-}
-
-.cartao-auth a {
-    color: var(--verde-claro);
-}
-
-
-/* ---------- administração ---------- */
+/* ------------------------------------------------------- administração --- */
 
 .conteudo-admin {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding: 22px 28px 60px;
-}
-
-@media (max-width: 900px) {
-    .conteudo-admin { padding: 16px; }
+    gap: var(--e5);
+    padding: var(--e5) var(--pad-x) var(--e7);
 }
 
 .titulo-seccao {
-    font-size: 17px;
-    margin-bottom: 4px;
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-med);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: var(--e1);
 }
 
 .conteudo-admin .ajuda {
     display: block;
-    margin-bottom: 16px;
+    margin-bottom: var(--e4);
     max-width: 70ch;
 }
 
 .codigo {
-    background: var(--fundo);
-    border: 1px solid var(--borda);
-    border-radius: 5px;
-    color: var(--verde-claro);
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 12.5px;
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-radius: var(--r);
+    color: var(--sinal);
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+    font-size: var(--t-min);
     padding: 3px 7px;
-    margin-right: 6px;
+    margin-right: var(--e1);
     word-break: break-all;
 }
 
-.sessao a.botao {
-    text-decoration: none;
+/* ------------------------------------------------------------------------
+   Quem pediu menos movimento ao sistema operativo pediu-o a sério.
+   ------------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

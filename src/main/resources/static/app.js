@@ -168,25 +168,29 @@ function desenharClassificacao(classificacao) {
         return;
     }
 
+    // O treinador vive dentro da célula da equipa: é um atributo dela, não um
+    // eixo independente. Assim a tabela passa de cinco colunas a quatro e
+    // sobra largura para o que interessa — a posição e os pontos.
     $("#tabela-classificacao").innerHTML = `
-        <table>
+        <table class="marcador">
             <thead>
                 <tr>
-                    <th class="posicao">#</th>
+                    <th class="col-pos">Pos</th>
                     <th>Equipa</th>
-                    <th>Treinador</th>
                     <th>Estado</th>
-                    <th class="numero">Pontos</th>
+                    <th class="col-pts">Pts</th>
                 </tr>
             </thead>
             <tbody>
                 ${classificacao.map((linha) => `
-                    <tr class="${linha.estado === "DESISTENTE" ? "linha-desistente" : ""}">
-                        <td class="posicao">${linha.posicao}</td>
-                        <td><strong>${texto(linha.equipa)}</strong></td>
-                        <td>${texto(linha.treinador)}</td>
+                    <tr class="${linha.posicao === 1 && linha.estado !== "DESISTENTE" ? "lider" : ""}${linha.estado === "DESISTENTE" ? " linha-desistente" : ""}">
+                        <td class="col-pos"><span class="pos">${linha.posicao}</span></td>
+                        <td class="col-equipa">
+                            <span class="equipa">${texto(linha.equipa)}</span>
+                            <span class="treinador">${texto(linha.treinador)}</span>
+                        </td>
                         <td>${badgeEstado(linha.estado)}</td>
-                        <td class="numero">${linha.pontos}</td>
+                        <td class="col-pts"><span class="pts">${linha.pontos}</span></td>
                     </tr>
                 `).join("")}
             </tbody>

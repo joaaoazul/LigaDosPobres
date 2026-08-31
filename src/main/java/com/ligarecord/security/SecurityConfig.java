@@ -61,6 +61,11 @@ public class SecurityConfig {
                     .requestMatchers("/login.html", "/registo.html", "/styles.css",
                                      "/auth.js", "/login.js", "/registo.js",
                                      "/favicon.ico").permitAll()
+                    // Os tipos de letra são servidos pela própria aplicação, para a
+                    // CSP poder continuar a ser default-src 'self'. Sem esta linha,
+                    // o pedido do .woff2 na página de login seria reencaminhado para
+                    // o login e a página caía no tipo de letra do sistema.
+                    .requestMatchers("/fontes/**").permitAll()
                     .requestMatchers("/api/auth/registo", "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;
