@@ -161,17 +161,16 @@ h1, h2, h3 {
     font-size: var(--t-min);
 }
 
-/* O símbolo: uma bola reduzida ao essencial — uma circunferência e uma só
-   placa. Desenhado, não um emoji: o emoji muda de forma em cada sistema
-   operativo, e é o sinal mais claro de que ninguém pensou no assunto. */
-.simbolo {
-    width: 30px;
-    height: 30px;
+/* O logo da marca: um emblema próprio. O ficheiro tem fundo preto, por isso é
+   emoldurado com uma régua fina e cantos arredondados para assentar de
+   propósito sobre o grafite do painel, e não parecer um rectângulo perdido. */
+.logo-marca {
+    height: 40px;
+    width: auto;
     flex: none;
-    color: var(--tinta);
+    border-radius: var(--r-g);
+    border: 1px solid var(--regua);
 }
-
-.simbolo .placa { fill: var(--sinal); }
 
 .bola-grande {
     width: 44px;
@@ -724,8 +723,16 @@ td.numero, th.numero { text-align: right; }
 .marca-auth {
     align-items: center;
     display: flex;
+    flex-direction: column;
     gap: var(--e3);
     margin-bottom: var(--e2);
+    text-align: center;
+}
+
+/* No cartão de entrada o logo é o protagonista, não um ícone ao lado do
+   título — sobe para 120px e o bloco passa a empilhar-se ao centro. */
+.marca-auth .logo-marca {
+    height: 120px;
 }
 
 .marca-auth h1 {
