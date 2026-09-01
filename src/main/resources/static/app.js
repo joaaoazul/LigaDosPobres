@@ -12,8 +12,9 @@ const estado = {
 };
 
 /* Emblema neutro para uma liga ainda sem logo — o mesmo anel+arco da marca,
-   mas aqui é só um espaço reservado que convida a carregar um. */
-const EMBLEMA_LIGA = `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.5"/><path d="M16 4a12 12 0 0 1 10.392 6" fill="none" stroke="#ff5a1f" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+   com as mesmas classes: a cor do acento é do CSS (--sinal), não repetida aqui,
+   senão este era o único sinal da aplicação que não seguia o tema. */
+const EMBLEMA_LIGA = `<svg class="emblema" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.28"/><path class="arco" d="M16 4a12 12 0 0 1 10.392 6" fill="none" stroke-width="2.5" stroke-linecap="round"/></svg>`;
 
 /* ---------------------------------------------------------------- API ---- */
 
@@ -23,7 +24,9 @@ function tokenCsrf() {
 }
 
 async function api(caminho, opcoes = {}) {
-    const cabecalhos = { "Content-Type": "application/json" };
+    // Num envio multipart é o browser que tem de definir o Content-Type, porque
+    // só ele sabe o boundary; defini-lo aqui partia o upload.
+    const cabecalhos = opcoes.body instanceof FormData ? {} : { "Content-Type": "application/json" };
     const token = tokenCsrf();
     if (token) {
         cabecalhos["X-XSRF-TOKEN"] = token;
@@ -151,7 +154,7 @@ function desenharDetalhe() {
     const liga = detalhe.liga;
     const desativada = liga.estado !== "ATIVA";
 
-    desenharLogo(liga);
+    desenharLogo(liga, desativada);
 
     $("#liga-titulo").textContent = liga.nome;
     $("#liga-badges").innerHTML = [
@@ -170,47 +173,21 @@ function desenharDetalhe() {
     desenharJornadaSelecionada();
 }
 
-/* O logo é a identidade da liga (do gestor), mostrada aqui, no seu espaço. */
-function desenharLogo(liga) {
+/* O logo é a identidade da liga (do gestor), mostrada aqui, no seu espaço.
+   Numa liga desativada não se mexe — como em tudo o resto. A imagem leva
+   alt="" porque quem a nomeia é o aria-label do botão que a contém. */
+function desenharLogo(liga, desativada) {
     const alvo = $("#liga-logo");
     const remover = $("#btn-logo-remover");
+
+    alvo.disabled = desativada;
     if (liga.temLogo) {
-        alvo.innerHTML = `<img src="/api/ligas/${liga.id}/logo?v=${estado.logoV}" alt="Logo de ${texto(liga.nome)}">`;
-        remover.classList.remove("oculto");
+        alvo.innerHTML = `<img src="/api/ligas/${liga.id}/logo?v=${estado.logoV}" alt="">`;
+        remover.classList.toggle("oculto", desativada);
     } else {
         alvo.innerHTML = EMBLEMA_LIGA;
         remover.classList.add("oculto");
     }
-}
-
-/* Upload do logo: multipart, e por isso à parte do api() — aqui o Content-Type
-   é o browser que o define (com o boundary), não nós. */
-async function enviarLogo(ficheiro) {
-    const dados = new FormData();
-    dados.append("ficheiro", ficheiro);
-
-    const cabecalhos = {};
-    const token = tokenCsrf();
-    if (token) {
-        cabecalhos["X-XSRF-TOKEN"] = token;
-    }
-
-    const resposta = await fetch(`/api/ligas/${estado.ligaId}/logo`, {
-        method: "POST",
-        headers: cabecalhos,
-        body: dados
-    });
-
-    if (resposta.status === 401) {
-        window.location.href = "/login.html";
-        throw new Error("Sessão terminada.");
-    }
-
-    const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok) {
-        throw new Error((corpo && corpo.mensagem) || `Erro ${resposta.status}`);
-    }
-    return corpo;
 }
 
 function desenharClassificacao(classificacao) {
@@ -429,7 +406,9 @@ $("#input-logo").addEventListener("change", (evento) => {
         return;
     }
     executar(async () => {
-        await enviarLogo(ficheiro);
+        const dados = new FormData();
+        dados.append("ficheiro", ficheiro);
+        await api(`/api/ligas/${estado.ligaId}/logo`, { method: "POST", body: dados });
         estado.logoV = Date.now();
         await carregarDetalhe();
         mostrarAlerta("Logo da liga atualizado.", "sucesso");

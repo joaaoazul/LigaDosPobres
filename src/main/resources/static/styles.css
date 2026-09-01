@@ -458,8 +458,10 @@ input:disabled {
 
 .liga-logo:hover { border-color: var(--regua-forte); }
 .liga-logo:focus-visible { outline: 2px solid var(--sinal); outline-offset: 2px; }
-.liga-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.liga-logo svg { width: 30px; height: 30px; }
+/* contain, não cover: um logo em faixa (o formato que a maioria dos clubes
+   tem) ficaria com as pontas cortadas e sem aviso nenhum. */
+.liga-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.liga-logo .emblema { color: var(--tinta-fraca); }
 
 /* O "remover", só quando há logo: um alvo pequeno sobreposto ao canto. */
 .logo-remover {

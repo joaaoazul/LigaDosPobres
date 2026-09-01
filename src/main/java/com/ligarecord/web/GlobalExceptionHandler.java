@@ -87,11 +87,13 @@ public class GlobalExceptionHandler {
 
     /**
      * Ficheiro acima do limite do multipart (ex.: um logo grande de mais). É
-     * culpa de quem enviou; um 500 mandava-o tentar outra vez em vão.
+     * culpa de quem enviou; um 500 mandava-o tentar outra vez em vão. Fica
+     * registado: sem registo, nunca se sabe se o limite está a apertar demais.
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErroDto> ficheiroGrande(MaxUploadSizeExceededException ex) {
-        return resposta(HttpStatus.BAD_REQUEST, "A imagem é demasiado grande.");
+        log.warn("Upload recusado por exceder o limite do multipart: {}", ex.getMessage());
+        return resposta(HttpStatus.PAYLOAD_TOO_LARGE, "A imagem é demasiado grande.");
     }
 
     /**

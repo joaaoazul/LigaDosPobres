@@ -66,10 +66,6 @@ public class SecurityConfig {
                     // o pedido do .woff2 na página de login seria reencaminhado para
                     // o login e a página caía no tipo de letra do sistema.
                     .requestMatchers("/fontes/**").permitAll()
-                    // O logo da marca aparece na página de login (pública). Sem
-                    // esta linha o pedido da imagem era reencaminhado para o
-                    // login e o cabeçalho ficava sem logo, sem erro visível.
-                    .requestMatchers("/imagens/**").permitAll()
                     .requestMatchers("/api/auth/registo", "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;

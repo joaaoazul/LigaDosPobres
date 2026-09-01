@@ -65,8 +65,7 @@ public final class RepositoriosJpa {
 
         @Override
         public void guardar(UUID ligaId, byte[] dados) {
-            // save() faz merge: grava se não existir, substitui se já existir.
-            jpa.save(new LigaLogo(ligaId, dados));
+            jpa.guardar(ligaId, dados);
         }
 
         @Override
@@ -76,10 +75,8 @@ public final class RepositoriosJpa {
 
         @Override
         public void apagar(UUID ligaId) {
-            // deleteById lança se a linha não existir; apagar sem logo é inócuo.
-            if (jpa.existsById(ligaId)) {
-                jpa.deleteById(ligaId);
-            }
+            // Apagar uma liga sem logo é inócuo: o delete não afecta linha nenhuma.
+            jpa.apagarPorLiga(ligaId);
         }
     }
 

@@ -5,6 +5,7 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
+import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.LigaLogoRepository;
@@ -35,19 +36,24 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ligas")
 public class LigaController {
 
-    /** O logo de uma liga tem de ser uma imagem, e não uma imagem qualquer:
-     *  SVG fica de fora de propósito — servido do nosso domínio, um SVG do
-     *  utilizador podia trazer scripts (XSS). */
-    private static final Set<String> TIPOS_LOGO = Set.of("image/png", "image/jpeg", "image/webp");
+    /** O formato é decidido pelos bytes ({@link ImagemSuportada}), não pelo
+     *  cabeçalho do cliente. SVG fica de fora de propósito — servido do nosso
+     *  domínio, um SVG do utilizador podia trazer scripts (XSS). */
     private static final long LOGO_MAX_BYTES = 1_000_000L;
+
+    /** O logo muda raramente e o endereço leva um ?v= que muda quando ele muda,
+     *  por isso o browser pode guardá-lo em vez de o voltar a puxar a cada
+     *  redesenho do detalhe da liga. */
+    private static final Duration LOGO_CACHE = Duration.ofDays(7);
 
     private final LigaService ligaService;
     private final ClassificacaoService classificacaoService;
@@ -157,23 +163,30 @@ public class LigaController {
     public LigaDto carregarLogo(@AuthenticationPrincipal GestorAutenticado autenticado,
                                 @PathVariable UUID ligaId,
                                 @RequestParam("ficheiro") MultipartFile ficheiro) {
-        Liga liga = liga(autenticado, ligaId);
+        Liga liga = exigirAtiva(liga(autenticado, ligaId));
         if (ficheiro == null || ficheiro.isEmpty()) {
             throw new IllegalArgumentException("Escolhe uma imagem.");
-        }
-        String tipo = ficheiro.getContentType();
-        if (tipo == null || !TIPOS_LOGO.contains(tipo)) {
-            throw new IllegalArgumentException("O logo tem de ser PNG, JPEG ou WEBP.");
         }
         if (ficheiro.getSize() > LOGO_MAX_BYTES) {
             throw new IllegalArgumentException("A imagem é demasiado grande (máx. 1 MB).");
         }
+
         byte[] dados;
         try {
             dados = ficheiro.getBytes();
         } catch (IOException e) {
-            throw new IllegalStateException("Não foi possível ler a imagem.");
+            // Ler o ficheiro temporário do multipart falhou: disco cheio ou sem
+            // permissões. É avaria do servidor, não do pedido — tem de chegar ao
+            // log e devolver 500, senão o gestor repete para sempre um pedido
+            // que nunca vai funcionar e o log não regista a avaria.
+            throw new UncheckedIOException("Falha a ler o ficheiro do logo da liga " + ligaId, e);
         }
+
+        String tipo = ImagemSuportada.tipoDe(dados);
+        if (tipo == null) {
+            throw new IllegalArgumentException("O logo tem de ser PNG, JPEG ou WEBP.");
+        }
+
         ligaLogoRepository.guardar(ligaId, dados);
         liga.setLogoTipo(tipo);
         ligaRepository.guardarLiga(liga);
@@ -189,7 +202,7 @@ public class LigaController {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Esta liga não tem logo."));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(liga.getLogoTipo()))
-                .cacheControl(CacheControl.noCache())
+                .cacheControl(CacheControl.maxAge(LOGO_CACHE).cachePrivate())
                 .body(dados);
     }
 
@@ -197,7 +210,7 @@ public class LigaController {
     @Transactional
     public LigaDto removerLogo(@AuthenticationPrincipal GestorAutenticado autenticado,
                                @PathVariable UUID ligaId) {
-        Liga liga = liga(autenticado, ligaId);
+        Liga liga = exigirAtiva(liga(autenticado, ligaId));
         ligaLogoRepository.apagar(ligaId);
         liga.setLogoTipo(null);
         ligaRepository.guardarLiga(liga);
@@ -206,6 +219,18 @@ public class LigaController {
 
     private List<ClassificacaoDto> classificacao(Liga liga) {
         return classificacaoService.calcularClassificacao(liga).stream().map(ClassificacaoDto::de).toList();
+    }
+
+    /**
+     * Uma liga desativada é só de leitura — é a regra que o LigaService impõe a
+     * todas as outras alterações (equipas, desistências, jornadas). O logo não
+     * é excepção: sem isto, era a única coisa ainda editável numa liga fechada.
+     */
+    private Liga exigirAtiva(Liga liga) {
+        if (liga.getEstado() != EstadoLiga.ATIVA) {
+            throw new IllegalStateException("Não é possível alterar o logo de uma liga desativada.");
+        }
+        return liga;
     }
 
     private Liga liga(GestorAutenticado autenticado, UUID ligaId) {
