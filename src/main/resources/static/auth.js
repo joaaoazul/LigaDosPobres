@@ -12,8 +12,11 @@ function mostrarErro(mensagem) {
     alerta.className = "alerta";
 }
 
-async function submeter(caminho, corpo) {
-    const botao = document.querySelector("button[type=submit]");
+async function submeter(caminho, corpo, form) {
+    // O botão é sempre o da forma que disparou o envio — não o primeiro da
+    // página — para uma página com mais do que um formulário não desativar
+    // o botão errado.
+    const botao = (form || document.querySelector("form")).querySelector("button[type=submit]");
     botao.disabled = true;
     try {
         const cabecalhos = { "Content-Type": "application/json" };

@@ -236,7 +236,8 @@ h1, h2, h3 {
 #tabela-classificacao,
 #tabela-equipas,
 #tabela-convites,
-#tabela-gestores {
+#tabela-gestores,
+.tabela-rolavel {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }

@@ -8,7 +8,12 @@ const estado = {
     jornadaId: null,
     tab: "classificacao",
     // Muda a cada gravação/remoção de logo, para rebentar a cache da <img>.
-    logoV: 0
+    logoV: 0,
+    // Dívidas: regra da liga (null se ainda não definida) e a dívida de cada
+    // equipa, por id — carregadas só quando o separador é aberto.
+    regraDivida: null,
+    dividas: new Map(),
+    equipaDividaId: null
 };
 
 /* Emblema neutro para uma liga ainda sem logo — o mesmo anel+arco da marca,
@@ -93,9 +98,22 @@ function badgeEstado(estadoTexto) {
         FECHADA: "azul",
         DESEMPATE: "amarelo",
         TREINO: "amarelo",
-        OFICIAL: "azul"
+        OFICIAL: "azul",
+        PENDENTE: "amarelo",
+        RESOLVIDA: "verde"
     };
-    return `<span class="badge ${cores[estadoTexto] || ""}">${texto(estadoTexto)}</span>`;
+    const nomes = { SEM_DIVIDA: "Sem dívida" };
+    return `<span class="badge ${cores[estadoTexto] || ""}">${texto(nomes[estadoTexto] || estadoTexto)}</span>`;
+}
+
+function badgeTipoBloco(tipo) {
+    return tipo === "INSCRICAO"
+        ? `<span class="badge azul">Inscrição</span>`
+        : `<span class="badge">Período</span>`;
+}
+
+function formatoMoeda(valor) {
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(valor ?? 0);
 }
 
 /* ------------------------------------------------------------- carregar --- */
@@ -251,6 +269,10 @@ function desenharEquipas(equipas, desativada) {
                         <td>${texto(equipa.treinador)}</td>
                         <td>${badgeEstado(equipa.estado)}</td>
                         <td class="numero">
+                            <button class="botao pequeno" data-convidar-treinador="${equipa.id}"
+                                ${desativada ? "disabled" : ""}>
+                                Convidar treinador
+                            </button>
                             <button class="botao pequeno perigo" data-desistencia="${equipa.id}"
                                 ${equipa.estado !== "ATIVA" || desativada ? "disabled" : ""}>
                                 Desistência
@@ -338,6 +360,126 @@ function desenharJornadaSelecionada() {
             </div>`}`;
 }
 
+/* -------------------------------------------------------------- dívidas --- */
+
+/* Carregada só quando o separador abre: a dívida de cada equipa vive no seu
+   próprio recurso (DividaController), não no detalhe da liga. */
+async function carregarDividas() {
+    if (!estado.ligaId || !estado.detalhe) {
+        return;
+    }
+
+    // Sem regra definida o pedido dá 404 — não é um erro, é o estado normal
+    // de uma liga que ainda cobra tudo à mão.
+    estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`).catch(() => null);
+
+    const equipas = estado.detalhe.equipas;
+    const dividas = await Promise.all(
+        equipas.map((equipa) => api(`/api/ligas/${estado.ligaId}/equipas/${equipa.id}/divida`))
+    );
+    estado.dividas = new Map(equipas.map((equipa, i) => [equipa.id, dividas[i]]));
+
+    if (!equipas.some((equipa) => equipa.id === estado.equipaDividaId)) {
+        estado.equipaDividaId = equipas.length ? equipas[0].id : null;
+    }
+
+    desenharRegraDivida();
+    desenharListaEquipasDivida();
+    desenharDetalheDivida();
+}
+
+/* Recarrega as dívidas só se o separador estiver aberto — para não gastar
+   pedidos a mais sempre que uma equipa é criada ou uma jornada fecha. */
+async function atualizarDividasSeAbertas() {
+    if (estado.tab === "dividas") {
+        await carregarDividas();
+    }
+}
+
+function desenharRegraDivida() {
+    const r = estado.regraDivida;
+    $("#regra-divida-ajuda").textContent = r
+        ? "Os blocos de período fecham sozinhos quando a jornada certa fecha; a inscrição é cobrada ao adicionar a equipa."
+        : "Sem regra definida: os blocos e a inscrição são cobrados à mão.";
+    $("#regra-inscricao").value = r ? r.valorInscricao : "";
+    $("#regra-inicial").value = r ? r.valorInicial : "";
+    $("#regra-incremento").value = r ? r.incremento : "";
+    $("#regra-escalao").value = r ? r.equipasPorEscalao : "";
+    $("#regra-maximo").value = r ? r.valorMaximo : "";
+    $("#regra-jornadas").value = r ? r.jornadasPorBloco : "";
+}
+
+function desenharListaEquipasDivida() {
+    const lista = $("#lista-equipas-divida");
+    const equipas = estado.detalhe.equipas;
+
+    if (!equipas.length) {
+        lista.innerHTML = `<p class="ajuda">Ainda não há equipas nesta liga.</p>`;
+        return;
+    }
+
+    lista.innerHTML = equipas.map((equipa) => {
+        const divida = estado.dividas.get(equipa.id);
+        return `
+        <button class="cartao-jornada ${equipa.id === estado.equipaDividaId ? "selecionado" : ""}" data-equipa-divida="${equipa.id}">
+            <strong>${texto(equipa.nome)}</strong>
+            <small>${divida ? formatoMoeda(divida.totalPendente) : ""}</small>
+            ${divida ? badgeEstado(divida.estado) : ""}
+        </button>`;
+    }).join("");
+}
+
+function desenharDetalheDivida() {
+    const painel = $("#detalhe-divida");
+    const equipa = estado.detalhe.equipas.find((e) => e.id === estado.equipaDividaId);
+    const divida = estado.dividas.get(estado.equipaDividaId);
+
+    if (!equipa || !divida) {
+        painel.innerHTML = `<p class="ajuda">Escolhe uma equipa para gerir a dívida.</p>`;
+        return;
+    }
+
+    const temPendente = divida.blocos.some((bloco) => bloco.estado === "PENDENTE");
+
+    const linhasBlocos = divida.blocos.map((bloco) => `
+        <tr>
+            <td class="numero">${bloco.numeroBloco}</td>
+            <td>${badgeTipoBloco(bloco.tipo)}</td>
+            <td class="numero">${formatoMoeda(bloco.valor)}</td>
+            <td>${badgeEstado(bloco.estado)}</td>
+            <td class="numero">${bloco.estado === "PENDENTE"
+                ? `<button class="botao pequeno" data-pagar-bloco="${bloco.id}">Marcar pago</button>`
+                : ""}</td>
+        </tr>`).join("");
+
+    painel.innerHTML = `
+        <h3>${texto(equipa.nome)} ${badgeEstado(divida.estado)}</h3>
+        <p class="ajuda">Total pendente: <strong>${formatoMoeda(divida.totalPendente)}</strong></p>
+
+        <form class="formulario em-linha" data-form-bloco="${equipa.id}">
+            <div>
+                <label for="bloco-valor">Novo bloco (valor)</label>
+                <input id="bloco-valor" type="number" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+            <button type="submit" class="botao">Fechar bloco</button>
+        </form>
+
+        ${divida.blocos.length ? `
+            <div class="tabela-rolavel">
+                <table>
+                    <thead>
+                        <tr><th class="numero">Nº</th><th>Tipo</th><th class="numero">Valor</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>${linhasBlocos}</tbody>
+                </table>
+            </div>
+            <div class="barra-acoes" style="margin-top:16px">
+                <button class="botao primario" data-pagar-tudo="${equipa.id}" ${temPendente ? "" : "disabled"}>
+                    Marcar tudo pago
+                </button>
+            </div>` : `<p class="ajuda">Ainda não há blocos registados.</p>`}`;
+}
+
 /* --------------------------------------------------------------- ações ---- */
 
 function selecionarTab(tab) {
@@ -346,7 +488,52 @@ function selecionarTab(tab) {
         .forEach((botao) => botao.classList.toggle("ativo", botao.dataset.tab === tab));
     document.querySelectorAll(".tab")
         .forEach((seccao) => seccao.classList.toggle("oculto", seccao.id !== `tab-${tab}`));
+    if (tab === "dividas" && estado.ligaId) {
+        executar(carregarDividas);
+    }
 }
+
+$("#form-regra-divida").addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    executar(async () => {
+        estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`, {
+            method: "PUT",
+            body: JSON.stringify({
+                valorInscricao: Number($("#regra-inscricao").value || 0),
+                valorInicial: Number($("#regra-inicial").value || 0),
+                incremento: Number($("#regra-incremento").value || 0),
+                equipasPorEscalao: Number($("#regra-escalao").value || 1),
+                valorMaximo: Number($("#regra-maximo").value || 0),
+                jornadasPorBloco: Number($("#regra-jornadas").value || 1)
+            })
+        });
+        desenharRegraDivida();
+        mostrarAlerta("Regra de dívida guardada.", "sucesso");
+    });
+});
+
+// O formulário de "novo bloco" nasce dentro do detalhe da dívida, criado de
+// novo a cada equipa escolhida — por isso o envio é delegado, como os
+// cliques mais abaixo, em vez de um listener preso a um elemento fixo.
+document.addEventListener("submit", (evento) => {
+    const form = evento.target.closest("[data-form-bloco]");
+    if (!form) {
+        return;
+    }
+    evento.preventDefault();
+    executar(async () => {
+        const equipaId = form.dataset.formBloco;
+        const valor = form.querySelector("#bloco-valor").value;
+        await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/blocos`, {
+            method: "POST",
+            body: JSON.stringify({ valor: Number(valor) })
+        });
+        estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+        desenharListaEquipasDivida();
+        desenharDetalheDivida();
+        mostrarAlerta("Bloco registado.", "sucesso");
+    });
+});
 
 $("#form-liga").addEventListener("submit", (evento) => {
     evento.preventDefault();
@@ -381,6 +568,8 @@ $("#form-equipa").addEventListener("submit", (evento) => {
         $("#equipa-treinador").value = "";
         await carregarDetalhe();
         await carregarLigas();
+        // A equipa pode ter sido logo cobrada a inscrição, se a liga tiver regra.
+        await atualizarDividasSeAbertas();
         mostrarAlerta("Equipa adicionada.", "sucesso");
     });
 });
@@ -441,7 +630,10 @@ document.querySelectorAll(".separador")
     .forEach((botao) => botao.addEventListener("click", () => selecionarTab(botao.dataset.tab)));
 
 document.addEventListener("click", (evento) => {
-    const alvo = evento.target.closest("[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar]");
+    const alvo = evento.target.closest(
+        "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], " +
+        "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador]"
+    );
     if (!alvo) {
         return;
     }
@@ -449,9 +641,11 @@ document.addEventListener("click", (evento) => {
     if (alvo.dataset.liga) {
         estado.ligaId = alvo.dataset.liga;
         estado.jornadaId = null;
+        estado.equipaDividaId = null;
         executar(async () => {
             await carregarDetalhe();
             desenharLigas();
+            await atualizarDividasSeAbertas();
         });
         return;
     }
@@ -504,7 +698,60 @@ document.addEventListener("click", (evento) => {
             await api(`/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
             await carregarDetalhe();
             await carregarLigas();
+            // Pode ter fechado um bloco de dívida sozinha, se a liga tiver regra.
+            await atualizarDividasSeAbertas();
             mostrarAlerta("Jornada fechada.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.equipaDivida) {
+        estado.equipaDividaId = alvo.dataset.equipaDivida;
+        desenharListaEquipasDivida();
+        desenharDetalheDivida();
+        return;
+    }
+
+    if (alvo.dataset.pagarBloco) {
+        if (!confirm("Marcar este bloco como pago?")) {
+            return;
+        }
+        executar(async () => {
+            const equipaId = estado.equipaDividaId;
+            await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/blocos/${alvo.dataset.pagarBloco}/pagar`,
+                { method: "POST" });
+            estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+            desenharListaEquipasDivida();
+            desenharDetalheDivida();
+            mostrarAlerta("Bloco marcado como pago.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.pagarTudo) {
+        if (!confirm("Marcar toda a dívida desta equipa como paga?")) {
+            return;
+        }
+        executar(async () => {
+            const equipaId = alvo.dataset.pagarTudo;
+            await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/pagar`, { method: "POST" });
+            estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+            desenharListaEquipasDivida();
+            desenharDetalheDivida();
+            mostrarAlerta("Dívida paga.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.convidarTreinador) {
+        executar(async () => {
+            const equipaId = alvo.dataset.convidarTreinador;
+            const convite = await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/convites-treinador`, {
+                method: "POST",
+                body: JSON.stringify({ diasValidade: null })
+            });
+            navigator.clipboard?.writeText(convite.codigo).catch(() => {});
+            mostrarAlerta(`Convite criado e copiado: ${convite.codigo}`, "sucesso");
         });
     }
 });

@@ -20,6 +20,7 @@
 
     <div id="barra-sessao" class="sessao oculto">
         <a id="link-admin" href="/admin.html" class="botao pequeno oculto">Administração</a>
+        <a href="/minhas-dividas.html" class="botao pequeno">As minhas dívidas</a>
         <span id="gestor-nome"></span>
         <a href="/conta.html" class="botao pequeno">Password</a>
         <button id="btn-sair" class="botao pequeno">Sair</button>
@@ -75,6 +76,7 @@
                 <button class="separador ativo" data-tab="classificacao">Classificação</button>
                 <button class="separador" data-tab="equipas">Equipas</button>
                 <button class="separador" data-tab="jornadas">Jornadas</button>
+                <button class="separador" data-tab="dividas">Dívidas</button>
             </nav>
 
             <section id="tab-classificacao" class="tab">
@@ -104,6 +106,45 @@
                 <div class="grelha-jornadas">
                     <div id="lista-jornadas" class="lista-jornadas"></div>
                     <div id="detalhe-jornada" class="detalhe-jornada"></div>
+                </div>
+            </section>
+
+            <section id="tab-dividas" class="tab oculto">
+                <div class="painel-regra-divida">
+                    <h3 class="titulo-seccao">Regra de dívida</h3>
+                    <p class="ajuda" id="regra-divida-ajuda">Sem regra definida: os blocos e a inscrição são cobrados à mão.</p>
+                    <form id="form-regra-divida" class="formulario em-linha">
+                        <div>
+                            <label for="regra-inscricao">Inscrição</label>
+                            <input id="regra-inscricao" type="number" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="regra-inicial">Valor inicial</label>
+                            <input id="regra-inicial" type="number" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="regra-incremento">Incremento</label>
+                            <input id="regra-incremento" type="number" min="0" step="0.01" placeholder="0.50">
+                        </div>
+                        <div>
+                            <label for="regra-escalao">Equipas por escalão</label>
+                            <input id="regra-escalao" type="number" min="1" step="1" placeholder="5">
+                        </div>
+                        <div>
+                            <label for="regra-maximo">Valor máximo</label>
+                            <input id="regra-maximo" type="number" min="0" step="0.01" placeholder="2.50">
+                        </div>
+                        <div>
+                            <label for="regra-jornadas">Jornadas por bloco</label>
+                            <input id="regra-jornadas" type="number" min="1" step="1" placeholder="5">
+                        </div>
+                        <button type="submit" class="botao primario">Guardar regra</button>
+                    </form>
+                </div>
+
+                <div class="grelha-jornadas">
+                    <div id="lista-equipas-divida" class="lista-jornadas"></div>
+                    <div id="detalhe-divida" class="detalhe-jornada"></div>
                 </div>
             </section>
 

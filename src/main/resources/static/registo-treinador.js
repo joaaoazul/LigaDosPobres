@@ -2,7 +2,7 @@
 
 document.getElementById("form-registo").addEventListener("submit", (evento) => {
     evento.preventDefault();
-    submeter("/api/auth/registo", {
+    submeter("/api/auth/registo-treinador", {
         codigo: document.getElementById("codigo").value.trim(),
         nome: document.getElementById("nome").value.trim(),
         email: document.getElementById("email").value.trim(),

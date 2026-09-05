@@ -58,8 +58,8 @@ public class SecurityConfig {
                     .csrfTokenRequestHandler(manipuladorCsrf))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(a -> a
-                    .requestMatchers("/login.html", "/registo.html", "/styles.css",
-                                     "/auth.js", "/login.js", "/registo.js",
+                    .requestMatchers("/login.html", "/registo.html", "/registo-treinador.html", "/styles.css",
+                                     "/auth.js", "/login.js", "/registo.js", "/registo-treinador.js",
                                      "/favicon.ico").permitAll()
                     // Os tipos de letra são servidos pela própria aplicação, para a
                     // CSP poder continuar a ser default-src 'self'. Sem esta linha,
