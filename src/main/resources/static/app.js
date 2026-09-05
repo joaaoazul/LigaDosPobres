@@ -116,6 +116,15 @@ function formatoMoeda(valor) {
     return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(valor ?? 0);
 }
 
+/* Espelha ClassificacaoService.calcularValor no backend: o valor do escalão
+   para esta posição, segundo a regra da liga. Usado só para mostrar uma
+   prévia (a cobrança a sério continua a ser feita no servidor). */
+function calcularValorEscalao(regra, posicao) {
+    const escalao = Math.floor((posicao - 1) / regra.equipasPorEscalao);
+    const valor = regra.valorInicial + regra.incremento * escalao;
+    return Math.min(valor, regra.valorMaximo);
+}
+
 /* ------------------------------------------------------------- carregar --- */
 
 async function carregarLigas() {
@@ -134,6 +143,12 @@ async function carregarDetalhe() {
         const aberta = jornadas.find((j) => j.estado !== "FECHADA");
         estado.jornadaId = aberta ? aberta.id : (jornadas.length ? jornadas[jornadas.length - 1].id : null);
     }
+
+    // A regra de dívida é usada tanto na tab Jornadas (coluna de valor) como
+    // na tab Dívidas, por isso carrega-se aqui, uma vez só. Sem regra
+    // definida o pedido dá 404 — não é um erro, é o estado normal de uma
+    // liga que ainda cobra tudo à mão.
+    estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`).catch(() => null);
 
     desenharDetalhe();
 }
@@ -312,12 +327,31 @@ function desenharJornadaSelecionada() {
 
     const fechada = jornada.estado === "FECHADA";
     const pontosPorEquipa = new Map(jornada.resultados.map((r) => [r.equipaId, r]));
+    // A coluna de valor usa a classificação GERAL actual (a mesma da tab
+    // Classificação), não a desta jornada em concreto: é o que essa posição
+    // pagaria hoje segundo a regra da liga, não um valor histórico.
+    const posicaoGeralPorEquipa = new Map(estado.detalhe.classificacao.map((c) => [c.equipaId, c.posicao]));
+    const regra = estado.regraDivida;
 
     const linhas = estado.detalhe.equipas
         .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
+        .slice()
+        .sort((a, b) => {
+            // Fechada: ordena pela posição atribuída. Aberta: pelas pontuações
+            // já inseridas, como prévia de como fecharia se fechasse agora.
+            const ra = pontosPorEquipa.get(a.id);
+            const rb = pontosPorEquipa.get(b.id);
+            const va = fechada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
+            const vb = fechada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
+            return va - vb;
+        })
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);
             const podeEditar = !fechada && equipa.estado === "ATIVA";
+            const posicaoGeral = posicaoGeralPorEquipa.get(equipa.id);
+            const valor = (regra && equipa.estado === "ATIVA" && posicaoGeral)
+                ? formatoMoeda(calcularValorEscalao(regra, posicaoGeral))
+                : "-";
             return `
                 <tr>
                     <td class="posicao">${resultado && resultado.posicao ? resultado.posicao : "&ndash;"}</td>
@@ -328,6 +362,7 @@ function desenharJornadaSelecionada() {
                                    data-pontuacao="${equipa.id}" placeholder="0">`
                             : (resultado ? resultado.pontuacao : "&ndash;")}
                     </td>
+                    <td class="numero">${valor}</td>
                     <td class="numero">
                         ${podeEditar
                             ? `<button class="botao pequeno" data-guardar="${equipa.id}">Guardar</button>`
@@ -341,17 +376,21 @@ function desenharJornadaSelecionada() {
         <p class="ajuda">${fechada
             ? "Jornada fechada — posições atribuídas por pontuação."
             : "Insere a pontuação de cada equipa ativa e fecha a jornada no fim."}</p>
-        <table>
-            <thead>
-                <tr>
-                    <th class="posicao">Pos</th>
-                    <th>Equipa</th>
-                    <th class="numero">Pontos</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>${linhas || `<tr><td colspan="4" class="ajuda">Sem equipas ativas.</td></tr>`}</tbody>
-        </table>
+        <p class="ajuda">A coluna Valor é o escalão da classificação geral actual (${regra ? "regra definida" : "sem regra definida nesta liga"}), não um valor cobrado nesta jornada em concreto.</p>
+        <div class="tabela-rolavel">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="posicao">Pos</th>
+                        <th>Equipa</th>
+                        <th class="numero">Pontos</th>
+                        <th class="numero">Valor</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>${linhas || `<tr><td colspan="5" class="ajuda">Sem equipas ativas.</td></tr>`}</tbody>
+            </table>
+        </div>
         ${fechada ? "" : `
             <div class="barra-acoes" style="margin-top:16px">
                 <button class="botao primario" data-fechar="${jornada.id}"
@@ -363,15 +402,13 @@ function desenharJornadaSelecionada() {
 /* -------------------------------------------------------------- dívidas --- */
 
 /* Carregada só quando o separador abre: a dívida de cada equipa vive no seu
-   próprio recurso (DividaController), não no detalhe da liga. */
+   próprio recurso (DividaController), não no detalhe da liga. A regra em si
+   (estado.regraDivida) já vem de carregarDetalhe(), partilhada com a tab
+   Jornadas. */
 async function carregarDividas() {
     if (!estado.ligaId || !estado.detalhe) {
         return;
     }
-
-    // Sem regra definida o pedido dá 404 — não é um erro, é o estado normal
-    // de uma liga que ainda cobra tudo à mão.
-    estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`).catch(() => null);
 
     const equipas = estado.detalhe.equipas;
     const dividas = await Promise.all(
@@ -508,6 +545,8 @@ $("#form-regra-divida").addEventListener("submit", (evento) => {
             })
         });
         desenharRegraDivida();
+        // A coluna de valor na tab Jornadas também depende da regra.
+        desenharJornadaSelecionada();
         mostrarAlerta("Regra de dívida guardada.", "sucesso");
     });
 });
