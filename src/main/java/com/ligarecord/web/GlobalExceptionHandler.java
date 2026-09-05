@@ -1,9 +1,11 @@
 package com.ligarecord.web;
 
 import com.ligarecord.web.dto.ErroDto;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -83,6 +85,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErroDto> conflito(IllegalStateException ex) {
         return resposta(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
+     * Duas transacções a mexer na mesma dívida ao mesmo tempo (ex.: dois
+     * pedidos a fechar um bloco da mesma equipa em simultâneo): o optimistic
+     * locking em {@code Divida.versao} apanha-o, mas só aqui a queixa vira um
+     * 409 claro em vez de um 500. Sem isto, o pedido perdedor da corrida
+     * parecia uma avaria do servidor, quando é só "outro pedido chegou primeiro".
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErroDto> conflitoDeConcorrencia(ObjectOptimisticLockingFailureException ex) {
+        log.warn("Conflito de concorrência: {}", ex.getMessage());
+        return resposta(HttpStatus.CONFLICT, "Isto foi alterado por outro pedido ao mesmo tempo. Tenta outra vez.");
+    }
+
+    /**
+     * A mesma corrida que o optimistic locking acima trata, mas apanhada de
+     * outro lado: o Hibernate grava inserções antes de actualizações no
+     * mesmo commit, por isso um bloco novo pode ir à base de dados antes da
+     * verificação de versão da dívida — e quem perde a corrida esbarra na
+     * restrição de unicidade do número do bloco, não na versão. Sob teste de
+     * carga a sério isto acontece mais vezes do que o caminho do optimistic
+     * lock; sem este handler cada perdedor via um 500 em vez de um 409.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroDto> conflitoDeIntegridade(DataIntegrityViolationException ex) {
+        log.warn("Conflito de integridade (provável corrida): {}", ex.getMessage());
+        return resposta(HttpStatus.CONFLICT, "Isto foi alterado por outro pedido ao mesmo tempo. Tenta outra vez.");
     }
 
     /**

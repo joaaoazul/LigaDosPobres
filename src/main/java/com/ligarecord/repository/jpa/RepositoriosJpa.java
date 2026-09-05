@@ -186,6 +186,11 @@ public final class RepositoriosJpa {
         public Treinador guardar(Treinador treinador) {
             return jpa.save(treinador);
         }
+
+        @Override
+        public List<Treinador> buscarPorConta(Gestor conta) {
+            return jpa.findByContaId(conta.getId());
+        }
     }
 
     @Repository

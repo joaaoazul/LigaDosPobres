@@ -154,7 +154,12 @@ public class DividaService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /** As dívidas de todas as equipas que esta conta treina, por equipa e liga. */
+    /**
+     * As dívidas já registadas (com pelo menos um bloco) das equipas que esta
+     * conta treina. Uma equipa sem nenhum bloco ainda não aparece aqui — para
+     * a lista completa, incluindo essas, ver como {@code MinhasDividasController}
+     * percorre antes o Treinador da conta, não a Divida.
+     */
     @Transactional(readOnly = true)
     public List<Divida> listarPorTreinador(Gestor conta) {
         return dividaRepository.buscarPorTreinador(conta);
