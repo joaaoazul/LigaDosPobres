@@ -114,25 +114,25 @@ class JornadaServiceTest {
     }
 
     /**
-     * O valor cobrado no fecho do bloco usa só a posição desta jornada, não a
-     * classificação geral acumulada: a primeira ganhou a 1ª jornada mas foi a
-     * pior na 2ª (a que fecha o bloco), por isso é ela que paga mais, mesmo
-     * tendo mais pontos ao todo (1+3=4 contra os 2+2=4 da segunda).
+     * O valor cobrado no fecho do bloco é a soma do valor de cada jornada que
+     * o compõe, não a classificação geral acumulada nem só a última jornada:
+     * a primeira fica em último em ambas as jornadas do bloco, por isso paga
+     * o dobro de uma equipa que só ficou mal classificada uma vez.
      */
     @Test
-    void oValorDoBlocoUsaAPosicaoDaJornadaQueFechaOBlocoNaoAGeral() {
+    void oValorDoBlocoSomaOValorDeCadaJornadaDoBlocoNaoAGeral() {
         regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
                 new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 2);
 
-        Jornada primeiraJornada = abrirEPontuar(3, 2, 1);
+        Jornada primeiraJornada = abrirEPontuar(1, 2, 3);
         jornadaService.fecharJornada(primeiraJornada);
 
-        Jornada segundaJornada = abrirEPontuar(1, 2, 3);
+        Jornada segundaJornada = abrirEPontuar(1, 3, 2);
         jornadaService.fecharJornada(segundaJornada);
 
-        assertEquals(new BigDecimal("1.00"), totalDe(primeira));
+        assertEquals(new BigDecimal("2.00"), totalDe(primeira));
         assertEquals(new BigDecimal("0.50"), totalDe(segunda));
-        assertEquals(new BigDecimal("0.00"), totalDe(terceira));
+        assertEquals(new BigDecimal("0.50"), totalDe(terceira));
     }
 
     /** Uma equipa que já desistiu não volta a ser cobrada no fecho automático. */

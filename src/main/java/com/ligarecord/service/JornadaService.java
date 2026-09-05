@@ -178,9 +178,18 @@ public class JornadaService {
         Liga liga = jornada.getLiga();
         regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {
             if (dividaService.jornadaFechaBloco(jornada, regra)) {
-                dividaService.processarFechoBloco(liga, regra, jornada.getResultadoJ());
+                List<Jornada> jornadasDoBloco = ultimasFechadas(liga, regra.getJornadasPorBloco());
+                dividaService.processarFechoBloco(liga, regra, jornadasDoBloco);
             }
         });
+    }
+
+    /** As últimas {@code quantas} jornadas fechadas da liga — as que compõem o bloco que acabou de fechar. */
+    private List<Jornada> ultimasFechadas(Liga liga, int quantas) {
+        List<Jornada> fechadas = liga.getJornadas().stream()
+                .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA)
+                .toList();
+        return fechadas.subList(Math.max(0, fechadas.size() - quantas), fechadas.size());
     }
 
     public boolean verificaSeTreino(Jornada jornada){

@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -88,22 +90,27 @@ public class DividaService {
     }
 
     /**
-     * Fecha um bloco de período para a liga inteira: cada equipa ainda ativa
-     * paga o valor do seu escalão nesta jornada — a que fechou o bloco — e
-     * não na classificação geral acumulada desde o início da liga. Uma
-     * equipa que jogou mal agora paga mais agora, mesmo que tenha ido bem em
-     * jornadas anteriores. Equipas desistentes não voltam a ser cobradas.
+     * Fecha um bloco de período para a liga inteira: cada jornada do bloco
+     * tem a sua própria classificação e o seu próprio valor por escalão —
+     * não é a classificação geral acumulada desde o início da liga. O que
+     * cada equipa ainda ativa paga no bloco é a soma dos valores de cada uma
+     * das jornadas que o compõem. Equipas desistentes não voltam a ser
+     * cobradas.
      */
     @Transactional
-    public void processarFechoBloco(Liga liga, RegraDivida regra, List<ResultadoJornada> resultados) {
-        for (ResultadoJornada resultado : resultados) {
-            Equipa equipa = resultado.getEquipa();
-            if (equipa.getEstado() != EstadoEquipa.ATIVA) {
-                continue;
+    public void processarFechoBloco(Liga liga, RegraDivida regra, List<Jornada> jornadasDoBloco) {
+        Map<Equipa, BigDecimal> totalPorEquipa = new HashMap<>();
+        for (Jornada jornada : jornadasDoBloco) {
+            for (ResultadoJornada resultado : jornada.getResultadoJ()) {
+                Equipa equipa = resultado.getEquipa();
+                if (equipa.getEstado() != EstadoEquipa.ATIVA) {
+                    continue;
+                }
+                BigDecimal valor = classificacaoService.calcularValor(regra, resultado.getPosicao());
+                totalPorEquipa.merge(equipa, valor, BigDecimal::add);
             }
-            BigDecimal valor = classificacaoService.calcularValor(regra, resultado.getPosicao());
-            registarBloco(equipa, valor);
         }
+        totalPorEquipa.forEach(this::registarBloco);
     }
 
     /**
