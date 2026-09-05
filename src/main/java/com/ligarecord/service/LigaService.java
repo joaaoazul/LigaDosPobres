@@ -3,6 +3,7 @@ package com.ligarecord.service;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.EquipaRepository;
@@ -18,10 +19,17 @@ import java.util.UUID;
 public class LigaService {
     private LigaRepository ligaRepository;
     private EquipaRepository equipaRepository;
+    private final RegraDividaService regraDividaService;
+    private final DividaService dividaService;
 
-    public LigaService(LigaRepository ligaRepository, EquipaRepository equipaRepository){
+    public LigaService(LigaRepository ligaRepository,
+                       EquipaRepository equipaRepository,
+                       RegraDividaService regraDividaService,
+                       DividaService dividaService){
         this.ligaRepository = ligaRepository;
         this.equipaRepository = equipaRepository;
+        this.regraDividaService = regraDividaService;
+        this.dividaService = dividaService;
     }
 
     //esta func vai ver se o nr de equipas e o nome são validos
@@ -88,6 +96,10 @@ public class LigaService {
         equipa.setEstado(EstadoEquipa.ATIVA);
         equipaRepository.guardar(equipa);
         ligaRepository.guardarLiga(liga);
+
+        regraDividaService.buscarPorLiga(liga)
+                .map(RegraDivida::getValorInscricao)
+                .ifPresent(valorInscricao -> dividaService.registarInscricao(equipa, valorInscricao));
 
         return equipa;
 

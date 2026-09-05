@@ -1,11 +1,16 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.BlocoDivida;
+import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Divida;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.enums.EstadoDivida;
+import com.ligarecord.domain.enums.EstadoEquipa;
+import com.ligarecord.domain.enums.EstadoJornada;
 import com.ligarecord.repository.DividaRepository;
 import com.ligarecord.web.RecursoNaoEncontradoException;
 import org.springframework.stereotype.Service;
@@ -17,22 +22,25 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Dívidas de equipas, acumuladas em blocos. O valor de cada bloco é hoje
- * escrito à mão pelo gestor ao fechá-lo — não há (ainda) cálculo automático a
- * partir da classificação da liga.
+ * Dívidas de equipas, acumuladas em blocos. Sem {@link RegraDivida} definida
+ * para a liga, o valor de cada bloco é escrito à mão pelo gestor; com regra,
+ * fechar jornadas suficientes fecha um bloco automaticamente, com o valor
+ * calculado por escalão de classificação (ver {@link ClassificacaoService}).
  */
 @Service
 public class DividaService {
 
     private final DividaRepository dividaRepository;
+    private final ClassificacaoService classificacaoService;
 
-    public DividaService(DividaRepository dividaRepository) {
+    public DividaService(DividaRepository dividaRepository, ClassificacaoService classificacaoService) {
         this.dividaRepository = dividaRepository;
+        this.classificacaoService = classificacaoService;
     }
 
     /**
-     * Acrescenta um novo bloco à dívida da equipa, criando a dívida se for o
-     * primeiro bloco desta equipa.
+     * Acrescenta um novo bloco de período à dívida da equipa, criando a
+     * dívida se for o primeiro bloco desta equipa.
      */
     @Transactional
     public BlocoDivida registarBloco(Equipa equipa, BigDecimal valor) {
@@ -40,12 +48,60 @@ public class DividaService {
             throw new IllegalArgumentException("O valor do bloco não pode ser negativo.");
         }
 
-        Divida divida = dividaRepository.buscarPorEquipa(equipa)
-                .orElseGet(() -> new Divida(UUID.randomUUID(), equipa, EstadoDivida.PENDENTE));
-
+        Divida divida = dividaOuNova(equipa);
         BlocoDivida bloco = divida.registarBloco(valor);
         dividaRepository.guardarDivida(divida);
         return bloco;
+    }
+
+    /**
+     * Cobra a inscrição da equipa na liga — uma vez, tipicamente ao ser
+     * adicionada. Isolada dos blocos de período (ver {@link BlocoDivida}),
+     * mas soma para o mesmo total em dívida da equipa.
+     */
+    @Transactional
+    public BlocoDivida registarInscricao(Equipa equipa, BigDecimal valor) {
+        if (valor == null || valor.signum() < 0) {
+            throw new IllegalArgumentException("O valor da inscrição não pode ser negativo.");
+        }
+
+        Divida divida = dividaOuNova(equipa);
+        BlocoDivida bloco = divida.registarInscricao(valor);
+        dividaRepository.guardarDivida(divida);
+        return bloco;
+    }
+
+    /**
+     * Diz se fechar esta jornada fecha também um bloco de período, segundo a
+     * periodicidade da regra da liga. Sem regra definida, nunca — a liga não
+     * tem cobrança automática. Chamado depois de a jornada já estar fechada.
+     */
+    @Transactional(readOnly = true)
+    public boolean jornadaFechaBloco(Jornada jornada, RegraDivida regra) {
+        if (regra == null) {
+            return false;
+        }
+        long fechadas = jornada.getLiga().getJornadas().stream()
+                .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA)
+                .count();
+        return fechadas % regra.getJornadasPorBloco() == 0;
+    }
+
+    /**
+     * Fecha um bloco de período para a liga inteira: cada equipa ainda ativa
+     * paga o valor do seu escalão na classificação dada. Equipas desistentes
+     * não voltam a ser cobradas.
+     */
+    @Transactional
+    public void processarFechoBloco(Liga liga, RegraDivida regra, List<ClassificacaoGeral> classificacao) {
+        for (ClassificacaoGeral posicao : classificacao) {
+            Equipa equipa = posicao.getEquipa();
+            if (equipa.getEstado() != EstadoEquipa.ATIVA) {
+                continue;
+            }
+            BigDecimal valor = classificacaoService.calcularValor(regra, posicao.getPosicao());
+            registarBloco(equipa, valor);
+        }
     }
 
     /**
@@ -112,6 +168,11 @@ public class DividaService {
     @Transactional(readOnly = true)
     public Optional<Divida> buscarPorEquipa(Equipa equipa) {
         return dividaRepository.buscarPorEquipa(equipa);
+    }
+
+    private Divida dividaOuNova(Equipa equipa) {
+        return dividaRepository.buscarPorEquipa(equipa)
+                .orElseGet(() -> new Divida(UUID.randomUUID(), equipa, EstadoDivida.PENDENTE));
     }
 
     private Divida buscarDividaOuFalhar(Equipa equipa) {

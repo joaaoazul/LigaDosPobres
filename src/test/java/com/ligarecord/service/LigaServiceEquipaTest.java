@@ -5,10 +5,12 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
+import com.ligarecord.repository.DividaRepositoryImpl;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.EquipaRepositoryImpl;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.repository.LigaRepositoryImpl;
+import com.ligarecord.repository.RegraDividaRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +32,9 @@ class LigaServiceEquipaTest {
 
         ligaService = new LigaService(
                 ligaRepository,
-                equipaRepository
+                equipaRepository,
+                new RegraDividaService(new RegraDividaRepositoryImpl()),
+                new DividaService(new DividaRepositoryImpl(), new ClassificacaoService())
         );
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");

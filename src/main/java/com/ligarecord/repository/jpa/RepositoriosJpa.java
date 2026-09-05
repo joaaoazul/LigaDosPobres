@@ -8,6 +8,7 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
+import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoDivida;
 import com.ligarecord.repository.ConviteRepository;
@@ -18,6 +19,7 @@ import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
+import com.ligarecord.repository.RegraDividaRepository;
 import com.ligarecord.repository.TreinadorRepository;
 import org.springframework.stereotype.Repository;
 
@@ -213,6 +215,26 @@ public final class RepositoriosJpa {
         @Override
         public List<Divida> buscarPorTreinador(Gestor conta) {
             return jpa.findByEquipaTreinadorContaIdOrderByEquipaLigaNomeAscEquipaNomeAsc(conta.getId());
+        }
+    }
+
+    @Repository
+    public static class RegrasDivida implements RegraDividaRepository {
+
+        private final RegraDividaJpaRepository jpa;
+
+        public RegrasDivida(RegraDividaJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public RegraDivida guardar(RegraDivida regra) {
+            return jpa.save(regra);
+        }
+
+        @Override
+        public Optional<RegraDivida> buscarPorLiga(Liga liga) {
+            return jpa.findByLigaId(liga.getId());
         }
     }
 

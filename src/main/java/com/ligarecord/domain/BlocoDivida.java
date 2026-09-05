@@ -1,6 +1,7 @@
 package com.ligarecord.domain;
 
 import com.ligarecord.domain.enums.EstadoDivida;
+import com.ligarecord.domain.enums.TipoBloco;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,12 +17,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Um encargo de um período (bloco de jornadas) sobre a dívida de uma equipa.
- *
- * <p>O valor é hoje escrito à mão pelo gestor ao fechar o bloco. O cálculo
- * automático a partir da classificação — por escalões de equipas, configurável
- * por liga — fica para depois; nada aqui o impede de vir a substituir esta
- * escrita manual mais tarde sem mudar o esquema.
+ * Um encargo sobre a dívida de uma equipa: a inscrição na liga (uma vez) ou
+ * um período de jornadas (recorrente, por escalão de classificação — ver
+ * {@link RegraDivida}). O valor de um bloco de período é hoje escrito à mão
+ * pelo gestor quando não há {@link RegraDivida} definida para a liga.
  */
 @Entity
 @Table(name = "bloco_divida")
@@ -36,6 +35,10 @@ public class BlocoDivida extends EntidadeBase {
 
     @Column(name = "numero_bloco", nullable = false)
     private int numeroBloco;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoBloco tipo;
 
     @Column(nullable = false)
     private BigDecimal valor;
@@ -54,9 +57,10 @@ public class BlocoDivida extends EntidadeBase {
         // exigido pelo Hibernate
     }
 
-    public BlocoDivida(UUID id, int numeroBloco, BigDecimal valor) {
+    public BlocoDivida(UUID id, int numeroBloco, TipoBloco tipo, BigDecimal valor) {
         this.id = id;
         this.numeroBloco = numeroBloco;
+        this.tipo = tipo;
         this.valor = valor;
         this.estado = EstadoDivida.PENDENTE;
         this.criadoEm = Instant.now();
@@ -77,6 +81,10 @@ public class BlocoDivida extends EntidadeBase {
 
     public int getNumeroBloco() {
         return numeroBloco;
+    }
+
+    public TipoBloco getTipo() {
+        return tipo;
     }
 
     public BigDecimal getValor() {

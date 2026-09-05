@@ -1,6 +1,7 @@
 package com.ligarecord.domain;
 
 import com.ligarecord.domain.enums.EstadoDivida;
+import com.ligarecord.domain.enums.TipoBloco;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -91,9 +92,21 @@ public class Divida extends EntidadeBase {
         this.estado = estado;
     }
 
-    /** Acrescenta um novo bloco, numerado sequencialmente. */
+    /** Acrescenta um bloco de período (recorrente), numerado sequencialmente. */
     public BlocoDivida registarBloco(BigDecimal valor) {
-        BlocoDivida bloco = new BlocoDivida(UUID.randomUUID(), proximoNumeroBloco, valor);
+        return registarBloco(TipoBloco.PERIODO, valor);
+    }
+
+    /**
+     * Acrescenta o bloco de inscrição na liga — cobrado uma vez, isolado dos
+     * blocos de período mas contando para o mesmo total em dívida.
+     */
+    public BlocoDivida registarInscricao(BigDecimal valor) {
+        return registarBloco(TipoBloco.INSCRICAO, valor);
+    }
+
+    private BlocoDivida registarBloco(TipoBloco tipo, BigDecimal valor) {
+        BlocoDivida bloco = new BlocoDivida(UUID.randomUUID(), proximoNumeroBloco, tipo, valor);
         proximoNumeroBloco++;
         bloco.setDivida(this);
         blocos.add(bloco);

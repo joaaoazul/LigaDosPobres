@@ -1,8 +1,10 @@
 package com.ligarecord.service;
 
+import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.ResultadoJornada;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoJornada;
@@ -24,9 +26,18 @@ public class JornadaService {
     private static final int NUMERO_JORNADAS_TREINO = 5;
 
     private JornadaRepository jornadaRepository;
+    private final RegraDividaService regraDividaService;
+    private final ClassificacaoService classificacaoService;
+    private final DividaService dividaService;
 
-    public JornadaService(JornadaRepository jornadaRepository){
+    public JornadaService(JornadaRepository jornadaRepository,
+                          RegraDividaService regraDividaService,
+                          ClassificacaoService classificacaoService,
+                          DividaService dividaService){
         this.jornadaRepository = jornadaRepository;
+        this.regraDividaService = regraDividaService;
+        this.classificacaoService = classificacaoService;
+        this.dividaService = dividaService;
     }
 
     /**
@@ -158,7 +169,23 @@ public class JornadaService {
         jornada.setEstadoJ(EstadoJornada.FECHADA);
         jornadaRepository.guardar(jornada);
 
+        fecharBlocoSeForACaso(jornada);
+
         return jornada;
+    }
+
+    /**
+     * Sem regra de dívida definida para a liga, não há cobrança automática
+     * nenhuma — o gestor continua a fechar blocos à mão.
+     */
+    private void fecharBlocoSeForACaso(Jornada jornada) {
+        Liga liga = jornada.getLiga();
+        regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {
+            if (dividaService.jornadaFechaBloco(jornada, regra)) {
+                List<ClassificacaoGeral> classificacao = classificacaoService.calcularClassificacao(liga);
+                dividaService.processarFechoBloco(liga, regra, classificacao);
+            }
+        });
     }
 
     public boolean verificaSeTreino(Jornada jornada){

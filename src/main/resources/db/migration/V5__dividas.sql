@@ -18,6 +18,9 @@ create table bloco_divida (
     id           uuid primary key,
     divida_id    uuid not null references divida (id),
     numero_bloco int not null,
+    -- INSCRICAO (uma vez, ao entrar na liga) ou PERIODO (recorrente, por
+    -- escalão de classificação) — ver regra_divida.
+    tipo         varchar(20) not null,
     valor        numeric(10,2) not null,
     estado       varchar(20) not null,
     criado_em    timestamptz not null,
@@ -28,3 +31,18 @@ create table bloco_divida (
 );
 
 create index idx_bloco_divida_divida on bloco_divida (divida_id);
+
+-- Como uma liga cobra as suas equipas: uma inscrição única na entrada, e um
+-- valor por período de jornadas que sobe por escalão de classificação (quem
+-- vai melhor paga menos). Sem esta regra, a liga não tem cobrança
+-- automática nenhuma: o gestor fecha blocos e cobra a inscrição à mão.
+create table regra_divida (
+    id                   uuid primary key,
+    liga_id              uuid not null unique references liga (id),
+    valor_inscricao      numeric(10,2) not null,
+    valor_inicial        numeric(10,2) not null,
+    incremento           numeric(10,2) not null,
+    equipas_por_escalao  int not null,
+    valor_maximo         numeric(10,2) not null,
+    jornadas_por_bloco   int not null
+);

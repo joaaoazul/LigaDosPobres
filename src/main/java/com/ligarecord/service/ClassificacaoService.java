@@ -4,6 +4,7 @@ import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.ResultadoJornada;
 import com.ligarecord.domain.enums.EstadoEquipa;
 
@@ -17,9 +18,6 @@ import java.util.UUID;
 
 @org.springframework.stereotype.Service
 public class ClassificacaoService {
-
-    private static final int TAMANHO_ESCALAO = 5;
-    private static final BigDecimal VALOR_POR_ESCALAO = new BigDecimal("0.5");
 
     /**
      * Soma os pontos de todas as jornadas da liga e ordena as equipas por pontos
@@ -75,9 +73,16 @@ public class ClassificacaoService {
                 .toList();
     }
 
-    public BigDecimal calcularValor (int numEquipasAtivas, int posicao){
-        int escalao = (posicao - 1) / TAMANHO_ESCALAO;
-        return VALOR_POR_ESCALAO.multiply(BigDecimal.valueOf(escalao));
+    /**
+     * O valor do período para quem está nesta posição, segundo a regra da
+     * liga: sobe {@code incremento} a cada {@code equipasPorEscalao}
+     * posições, a partir de {@code valorInicial}, sem nunca passar de
+     * {@code valorMaximo}.
+     */
+    public BigDecimal calcularValor(RegraDivida regra, int posicao) {
+        int escalao = (posicao - 1) / regra.getEquipasPorEscalao();
+        BigDecimal valor = regra.getValorInicial().add(regra.getIncremento().multiply(BigDecimal.valueOf(escalao)));
+        return valor.min(regra.getValorMaximo());
     }
 
 

@@ -35,7 +35,7 @@ class DividaServiceTest {
     @BeforeEach
     void setUp() {
         dividaRepository = new DividaRepositoryImpl();
-        dividaService = new DividaService(dividaRepository);
+        dividaService = new DividaService(dividaRepository, new ClassificacaoService());
 
         dono = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
         liga = new Liga(UUID.randomUUID(), "Liga de Teste", 10, EstadoLiga.ATIVA, dono);

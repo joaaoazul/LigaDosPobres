@@ -9,6 +9,7 @@ import java.util.UUID;
 public record BlocoDividaDto(
         UUID id,
         int numeroBloco,
+        String tipo,
         BigDecimal valor,
         String estado,
         Instant criadoEm,
@@ -18,6 +19,7 @@ public record BlocoDividaDto(
         return new BlocoDividaDto(
                 bloco.getId(),
                 bloco.getNumeroBloco(),
+                bloco.getTipo().name(),
                 bloco.getValor(),
                 bloco.getEstado().name(),
                 bloco.getCriadoEm(),

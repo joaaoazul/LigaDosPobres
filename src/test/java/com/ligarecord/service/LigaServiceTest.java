@@ -1,15 +1,23 @@
 package com.ligarecord.service;
 
+import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.Treinador;
+import com.ligarecord.repository.DividaRepository;
+import com.ligarecord.repository.DividaRepositoryImpl;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.EquipaRepositoryImpl;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.repository.LigaRepositoryImpl;
+import com.ligarecord.repository.RegraDividaRepository;
+import com.ligarecord.repository.RegraDividaRepositoryImpl;
+import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,16 +27,25 @@ class LigaServiceTest {
     private LigaService ligaService;
     private LigaRepository ligaRepository;
     private EquipaRepository equipaRepository;
+    private RegraDividaRepository regraDividaRepository;
+    private RegraDividaService regraDividaService;
+    private DividaService dividaService;
     private Gestor gestor;
 
     @BeforeEach
     void setUp() {
         ligaRepository = new LigaRepositoryImpl();
         equipaRepository = new EquipaRepositoryImpl();
+        regraDividaRepository = new RegraDividaRepositoryImpl();
+        regraDividaService = new RegraDividaService(regraDividaRepository);
+        DividaRepository dividaRepository = new DividaRepositoryImpl();
+        dividaService = new DividaService(dividaRepository, new ClassificacaoService());
 
         ligaService = new LigaService(
                 ligaRepository,
-                equipaRepository
+                equipaRepository,
+                regraDividaService,
+                dividaService
         );
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
@@ -111,5 +128,30 @@ class LigaServiceTest {
                 IllegalArgumentException.class,
                 () -> ligaService.terminarLiga(null)
         );
+    }
+
+    @Test
+    void cobraAInscricaoQuandoALigaTemRegraDeDivida() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+        regraDividaService.definir(liga, new BigDecimal("5.00"), BigDecimal.ZERO,
+                new BigDecimal("0.50"), 5, new BigDecimal("2.50"), 5);
+
+        Equipa equipa = new Equipa(UUID.randomUUID(), "Equipa de Teste",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipa);
+
+        var divida = dividaService.buscarPorEquipa(equipa).orElseThrow();
+        assertEquals(new BigDecimal("5.00"), dividaService.calcularTotalDivida(divida));
+    }
+
+    @Test
+    void naoCobraInscricaoSemRegraDeDivida() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+
+        Equipa equipa = new Equipa(UUID.randomUUID(), "Equipa de Teste",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipa);
+
+        assertTrue(dividaService.buscarPorEquipa(equipa).isEmpty());
     }
 }
