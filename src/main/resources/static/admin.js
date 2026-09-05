@@ -114,7 +114,7 @@ function desenharGestores() {
     $("#tabela-gestores").innerHTML = `
         <table>
             <thead>
-                <tr><th>Nome</th><th>Email</th><th>Papel</th><th>Estado</th><th>Desde</th><th></th></tr>
+                <tr><th>Nome</th><th>Email</th><th>Papel</th><th>Estado</th><th>Cria ligas</th><th>Desde</th><th></th></tr>
             </thead>
             <tbody>
                 ${estado.gestores.map((g) => {
@@ -125,6 +125,7 @@ function desenharGestores() {
                         <td>${texto(g.email)}</td>
                         <td>${badge(g.papel)}</td>
                         <td>${g.ativo ? badge("ATIVO") : badge("DESATIVADO")}</td>
+                        <td>${g.podeCriarLigas ? badge("SIM") : `<span class="ajuda">não</span>`}</td>
                         <td>${data(g.criadoEm)}</td>
                         <td class="numero">
                             ${proprio ? `<span class="ajuda">a tua conta</span>` : `
@@ -135,6 +136,10 @@ function desenharGestores() {
                                 <button class="botao pequeno ${g.ativo ? "perigo" : ""}"
                                         data-estado="${g.id}" data-ativo="${!g.ativo}">
                                     ${g.ativo ? "Desativar" : "Reativar"}
+                                </button>
+                                <button class="botao pequeno" data-cria-ligas="${g.id}"
+                                        data-novo-cria-ligas="${!g.podeCriarLigas}">
+                                    ${g.podeCriarLigas ? "Bloquear criar ligas" : "Permitir criar ligas"}
                                 </button>`}
                         </td>
                     </tr>`;
@@ -180,7 +185,7 @@ $("#btn-sair").addEventListener("click", () => {
 });
 
 document.addEventListener("click", (evento) => {
-    const alvo = evento.target.closest("[data-revogar], [data-copiar], [data-estado], [data-papel]");
+    const alvo = evento.target.closest("[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas]");
     if (!alvo) {
         return;
     }
@@ -226,6 +231,20 @@ document.addEventListener("click", (evento) => {
             });
             await carregar();
             mostrarAlerta("Papel alterado.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.criaLigas) {
+        const permitir = alvo.dataset.novoCriaLigas === "true";
+        if (!confirm(permitir ? "Permitir a esta conta criar as suas próprias ligas?" : "Bloquear a criação de ligas nesta conta?")) return;
+        executar(async () => {
+            await api(`/api/admin/gestores/${alvo.dataset.criaLigas}`, {
+                method: "PATCH",
+                body: JSON.stringify({ podeCriarLigas: permitir })
+            });
+            await carregar();
+            mostrarAlerta(permitir ? "Passa a poder criar ligas." : "Deixa de poder criar ligas.", "sucesso");
         });
     }
 });

@@ -52,6 +52,8 @@ class GestorServiceTest {
         assertEquals("joao@exemplo.pt", gestor.getEmail());
         assertEquals(PapelGestor.GESTOR, gestor.getPapel());
         assertTrue(gestor.isAtivo());
+        // o caminho normal de convite de gestor já nasce a poder criar ligas
+        assertTrue(gestor.isPodeCriarLigas());
     }
 
     @Test

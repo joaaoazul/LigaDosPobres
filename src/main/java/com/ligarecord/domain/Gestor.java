@@ -44,6 +44,16 @@ public class Gestor extends EntidadeBase {
     @Column(nullable = false)
     private boolean ativo;
 
+    /**
+     * Só uma conta com isto a {@code true} cria (e portanto gere) as suas
+     * próprias ligas. Por omissão {@code true} — o caminho normal de convite
+     * de gestor. {@link com.ligarecord.service.TreinadorContaService#registar}
+     * põe-o a {@code false} explicitamente: quem só foi convidado para
+     * treinar uma equipa não fica, de brinde, a poder criar ligas próprias.
+     */
+    @Column(name = "pode_criar_ligas", nullable = false)
+    private boolean podeCriarLigas = true;
+
     protected Gestor() {
         // exigido pelo Hibernate
     }
@@ -113,6 +123,14 @@ public class Gestor extends EntidadeBase {
 
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public boolean isPodeCriarLigas() {
+        return podeCriarLigas;
+    }
+
+    public void setPodeCriarLigas(boolean podeCriarLigas) {
+        this.podeCriarLigas = podeCriarLigas;
     }
 
     @Override

@@ -58,6 +58,17 @@ class TreinadorContaServiceTest {
         assertTrue(conta.isAtivo());
     }
 
+    /**
+     * Quem só foi convidado para treinar não fica, de brinde, a poder criar
+     * ligas próprias — isso exige um administrador a conceder isso depois.
+     */
+    @Test
+    void contaNovaNaoPodeCriarLigas() {
+        Gestor conta = contaService.registar("joao@exemplo.pt", "passwordsegura1", "João", convite());
+
+        assertFalse(conta.isPodeCriarLigas());
+    }
+
     /** O treinador vem do convite: quem se regista não escolhe que equipas vai ver. */
     @Test
     void aContaFicaLigadaAoTreinadorDoConvite() {
@@ -129,6 +140,8 @@ class TreinadorContaServiceTest {
         assertEquals(gestor, treinador.getConta());
         // nenhuma conta nova foi criada: continua a existir só a do gestor do setUp
         assertEquals(1, gestorRepository.listarTodos().size());
+        // e a permissão que já tinha (é gestor a sério) não é mexida por ligar
+        assertTrue(gestor.isPodeCriarLigas());
     }
 
     @Test

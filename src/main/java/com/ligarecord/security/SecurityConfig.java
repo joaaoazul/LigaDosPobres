@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -70,8 +71,12 @@ public class SecurityConfig {
                                      "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;
-                    // todo o resto é isolado por dono, não por perfil.
+                    // todo o resto é isolado por dono, não por perfil — com uma
+                    // excepção: criar uma liga exige a permissão explícita
+                    // PODE_CRIAR_LIGAS, para quem só foi convidado a treinar uma
+                    // equipa não ficar, de brinde, a poder criar as suas próprias.
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/ligas").hasAuthority("PODE_CRIAR_LIGAS")
                     .anyRequest().authenticated())
             .addFilterAfter(contaAtivaFilter,
                     org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class)

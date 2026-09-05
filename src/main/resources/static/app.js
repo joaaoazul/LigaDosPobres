@@ -809,6 +809,13 @@ async function iniciar() {
     if (estado.gestor.admin) {
         $("#link-admin").classList.remove("oculto");
     }
+    if (!estado.gestor.podeCriarLigas) {
+        // Conta sem permissão para criar ligas (normalmente uma conta que só
+        // aceitou um convite de treinador). O servidor já recusa o pedido de
+        // qualquer forma; isto só evita mostrar um formulário que ia falhar.
+        $("#form-liga").classList.add("oculto");
+        $("#aviso-sem-permissao").classList.remove("oculto");
+    }
     await carregarLigas();
 }
 

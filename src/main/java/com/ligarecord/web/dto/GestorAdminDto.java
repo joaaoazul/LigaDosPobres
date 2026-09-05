@@ -11,6 +11,7 @@ public record GestorAdminDto(
         String email,
         String papel,
         boolean ativo,
+        boolean podeCriarLigas,
         Instant criadoEm) {
 
     public static GestorAdminDto de(Gestor gestor) {
@@ -20,6 +21,7 @@ public record GestorAdminDto(
                 gestor.getEmail(),
                 gestor.getPapel().name(),
                 gestor.isAtivo(),
+                gestor.isPodeCriarLigas(),
                 gestor.getCriadoEm()
         );
     }

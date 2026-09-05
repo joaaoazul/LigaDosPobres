@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,7 @@ public class GestorAutenticado implements UserDetails {
     private final String nome;
     private final boolean admin;
     private final boolean ativo;
+    private final boolean podeCriarLigas;
 
     public GestorAutenticado(Gestor gestor) {
         this.id = gestor.getId();
@@ -29,10 +31,15 @@ public class GestorAutenticado implements UserDetails {
         this.nome = gestor.getNome();
         this.admin = gestor.isAdmin();
         this.ativo = gestor.isAtivo();
+        this.podeCriarLigas = gestor.isPodeCriarLigas();
     }
 
     public boolean isAdmin() {
         return admin;
+    }
+
+    public boolean isPodeCriarLigas() {
+        return podeCriarLigas;
     }
 
     public UUID getId() {
@@ -49,9 +56,16 @@ public class GestorAutenticado implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return admin
-                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-                : List.of();
+        List<GrantedAuthority> autoridades = new ArrayList<>();
+        if (admin) {
+            autoridades.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+        // Um administrador pode sempre criar ligas, mesmo que a própria conta
+        // não tenha a permissão marcada explicitamente.
+        if (admin || podeCriarLigas) {
+            autoridades.add(new SimpleGrantedAuthority("PODE_CRIAR_LIGAS"));
+        }
+        return autoridades;
     }
 
     @Override

@@ -59,12 +59,16 @@ public class TreinadorContaService {
 
         ConviteTreinador convite = conviteService.exigirDisponivel(codigo);
 
-        Gestor conta = gestorRepository.guardar(new Gestor(
+        Gestor conta = new Gestor(
                 UUID.randomUUID(),
                 emailNormalizado,
                 passwordEncoder.encode(password),
                 nomeValidado
-        ));
+        );
+        // Só foi convidado para treinar uma equipa — não fica, de brinde, a
+        // poder criar ligas próprias. Só um administrador concede isso.
+        conta.setPodeCriarLigas(false);
+        conta = gestorRepository.guardar(conta);
 
         ligarTreinador(convite, conta);
         return conta;

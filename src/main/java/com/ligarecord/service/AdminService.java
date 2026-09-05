@@ -60,6 +60,20 @@ public class AdminService {
     }
 
     /**
+     * Concede ou retira a uma conta a permissão de criar as suas próprias
+     * ligas. Só interessa a quem se registou por convite de treinador — quem
+     * é gestor pelo caminho normal já nasce com ela.
+     */
+    @Transactional
+    public Gestor alterarPermissaoCriarLigas(UUID adminId, UUID gestorId, boolean podeCriarLigas) {
+        Gestor gestor = buscar(gestorId);
+        verificarNaoEProprio(adminId, gestorId, "acesso a criar ligas");
+
+        gestor.setPodeCriarLigas(podeCriarLigas);
+        return gestorRepository.guardar(gestor);
+    }
+
+    /**
      * Rede redundante. Quem administra não pode mexer na própria conta, logo há
      * sempre pelo menos dois administradores ativos no momento em que um age
      * sobre o outro, e esta condição não chega a verificar-se. Fica como defesa

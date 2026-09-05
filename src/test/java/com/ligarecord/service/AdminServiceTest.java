@@ -101,4 +101,23 @@ class AdminServiceTest {
     void deveListarTodosOsGestores() {
         assertEquals(2, adminService.listarGestores().size());
     }
+
+    @Test
+    void deveBloquearECederAPermissaoDeCriarLigas() {
+        assertTrue(gestor.isPodeCriarLigas());
+
+        Gestor bloqueado = adminService.alterarPermissaoCriarLigas(admin.getId(), gestor.getId(), false);
+        assertFalse(bloqueado.isPodeCriarLigas());
+
+        Gestor liberado = adminService.alterarPermissaoCriarLigas(admin.getId(), gestor.getId(), true);
+        assertTrue(liberado.isPodeCriarLigas());
+    }
+
+    @Test
+    void naoDeveAlterarAPropriaPermissaoDeCriarLigas() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> adminService.alterarPermissaoCriarLigas(admin.getId(), admin.getId(), false)
+        );
+    }
 }
