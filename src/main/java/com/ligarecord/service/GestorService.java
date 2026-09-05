@@ -1,30 +1,28 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.repository.ContaTreinadorRepository;
 import com.ligarecord.repository.GestorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 @Service
 public class GestorService {
 
-    /** Validação deliberadamente permissiva: só rejeita o que é obviamente inválido. */
-    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
-
-    private static final int MINIMO_PASSWORD = 10;
-
     private final GestorRepository gestorRepository;
+    private final ContaTreinadorRepository contaTreinadorRepository;
     private final ConviteService conviteService;
     private final PasswordEncoder passwordEncoder;
 
     public GestorService(GestorRepository gestorRepository,
+                         ContaTreinadorRepository contaTreinadorRepository,
                          ConviteService conviteService,
                          PasswordEncoder passwordEncoder) {
         this.gestorRepository = gestorRepository;
+        this.contaTreinadorRepository = contaTreinadorRepository;
         this.conviteService = conviteService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -37,21 +35,15 @@ public class GestorService {
      */
     @Transactional
     public Gestor registar(String email, String password, String nome, String codigo) {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("O email é obrigatório.");
-        }
-        String emailNormalizado = email.trim().toLowerCase();
-        if (!EMAIL.matcher(emailNormalizado).matches()) {
-            throw new IllegalArgumentException("O email não é válido.");
-        }
-        if (nome == null || nome.isBlank()) {
-            throw new IllegalArgumentException("O nome é obrigatório.");
-        }
-        if (password == null || password.length() < MINIMO_PASSWORD) {
-            throw new IllegalArgumentException(
-                    "A password tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
-        }
-        if (gestorRepository.buscarPorEmail(emailNormalizado).isPresent()) {
+        String emailNormalizado = RegrasDeConta.emailNormalizado(email);
+        String nomeValidado = RegrasDeConta.nomeValidado(nome);
+        RegrasDeConta.validarPassword(password);
+
+        // As contas de treinador vivem noutra tabela mas partilham o espaço de
+        // emails: a autenticação procura nas duas. Um email repetido entre elas
+        // deixaria uma das contas sem conseguir entrar, sem erro nenhum.
+        if (gestorRepository.buscarPorEmail(emailNormalizado).isPresent()
+                || contaTreinadorRepository.buscarPorEmail(emailNormalizado).isPresent()) {
             throw new IllegalStateException("Já existe uma conta com este email.");
         }
 
@@ -59,7 +51,7 @@ public class GestorService {
                 UUID.randomUUID(),
                 emailNormalizado,
                 passwordEncoder.encode(password),
-                nome.trim()
+                nomeValidado
         );
 
         conviteService.consumir(codigo, gestor);
@@ -85,10 +77,7 @@ public class GestorService {
             // há nada a proteger em ser-se vago, e ser-se vago só o confundiria.
             throw new IllegalArgumentException("A password actual não está correcta.");
         }
-        if (nova == null || nova.length() < MINIMO_PASSWORD) {
-            throw new IllegalArgumentException(
-                    "A password nova tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
-        }
+        RegrasDeConta.validarPasswordNova(nova);
         if (passwordEncoder.matches(nova, gestor.getPasswordHash())) {
             throw new IllegalArgumentException("A password nova tem de ser diferente da actual.");
         }

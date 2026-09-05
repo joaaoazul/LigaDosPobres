@@ -1,13 +1,17 @@
 package com.ligarecord.repository.jpa;
 
+import com.ligarecord.domain.ContaTreinador;
 import com.ligarecord.domain.Convite;
+import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
 import com.ligarecord.domain.Treinador;
+import com.ligarecord.repository.ContaTreinadorRepository;
 import com.ligarecord.repository.ConviteRepository;
+import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
@@ -162,6 +166,66 @@ public final class RepositoriosJpa {
         @Override
         public long contarAdminsAtivos() {
             return jpa.countByPapelAndAtivoTrue(com.ligarecord.domain.enums.PapelGestor.ADMIN);
+        }
+    }
+
+    @Repository
+    public static class ContasTreinador implements ContaTreinadorRepository {
+
+        private final ContaTreinadorJpaRepository jpa;
+
+        public ContasTreinador(ContaTreinadorJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public ContaTreinador guardar(ContaTreinador conta) {
+            return jpa.save(conta);
+        }
+
+        @Override
+        public Optional<ContaTreinador> buscarPorEmail(String email) {
+            return jpa.findByEmailIgnoreCase(email);
+        }
+
+        @Override
+        public Optional<ContaTreinador> buscarPorId(UUID id) {
+            return jpa.findById(id);
+        }
+
+        @Override
+        public boolean existePorTreinador(UUID treinadorId) {
+            return jpa.existsByTreinadorId(treinadorId);
+        }
+    }
+
+    @Repository
+    public static class ConvitesTreinador implements ConviteTreinadorRepository {
+
+        private final ConviteTreinadorJpaRepository jpa;
+
+        public ConvitesTreinador(ConviteTreinadorJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public ConviteTreinador guardar(ConviteTreinador convite) {
+            return jpa.save(convite);
+        }
+
+        @Override
+        public Optional<ConviteTreinador> buscarPorCodigo(String codigo) {
+            return jpa.findByCodigo(codigo);
+        }
+
+        @Override
+        public Optional<ConviteTreinador> buscarPorIdEGestor(UUID id, UUID gestorId) {
+            return jpa.findByIdAndCriadoPorId(id, gestorId);
+        }
+
+        @Override
+        public List<ConviteTreinador> listarPorGestor(UUID gestorId) {
+            return jpa.findByCriadoPorIdOrderByCriadoEmDesc(gestorId);
         }
     }
 

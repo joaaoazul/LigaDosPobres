@@ -3,6 +3,8 @@ package com.ligarecord.service;
 import com.ligarecord.domain.Convite;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.enums.PapelGestor;
+import com.ligarecord.repository.ContaTreinadorRepository;
+import com.ligarecord.repository.ContaTreinadorRepositoryImpl;
 import com.ligarecord.repository.ConviteRepository;
 import com.ligarecord.repository.ConviteRepositoryImpl;
 import com.ligarecord.repository.GestorRepository;
@@ -20,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GestorServiceTest {
 
     private GestorRepository gestorRepository;
+    private ContaTreinadorRepository contaTreinadorRepository;
     private ConviteRepository conviteRepository;
     private PasswordEncoder passwordEncoder;
     private ConviteService conviteService;
@@ -29,10 +32,12 @@ class GestorServiceTest {
     @BeforeEach
     void setUp() {
         gestorRepository = new GestorRepositoryImpl();
+        contaTreinadorRepository = new ContaTreinadorRepositoryImpl();
         conviteRepository = new ConviteRepositoryImpl();
         passwordEncoder = new BCryptPasswordEncoder();
         conviteService = new ConviteService(conviteRepository);
-        gestorService = new GestorService(gestorRepository, conviteService, passwordEncoder);
+        gestorService = new GestorService(
+                gestorRepository, contaTreinadorRepository, conviteService, passwordEncoder);
 
         admin = new Gestor(UUID.randomUUID(), "admin@teste.pt", "hash", "Admin", PapelGestor.ADMIN);
         gestorRepository.guardar(admin);
