@@ -125,6 +125,24 @@ function calcularValorEscalao(regra, posicao) {
     return Math.min(valor, regra.valorMaximo);
 }
 
+/* Espelha o critério de JornadaService.fecharJornada: ordena por pontuação
+   desta jornada e dá a mesma posição a quem empata. Usado para prever, numa
+   jornada ainda aberta, a posição que cada equipa vai ficar quando fechar. */
+function calcularPosicoesPreview(resultados) {
+    const ordenados = resultados.slice().sort((a, b) => b.pontuacao - a.pontuacao);
+    const posicoes = new Map();
+    let posicaoAtual = 0;
+    let pontuacaoAnterior = null;
+    ordenados.forEach((resultado, indice) => {
+        if (pontuacaoAnterior === null || resultado.pontuacao !== pontuacaoAnterior) {
+            posicaoAtual = indice + 1;
+            pontuacaoAnterior = resultado.pontuacao;
+        }
+        posicoes.set(resultado.equipaId, posicaoAtual);
+    });
+    return posicoes;
+}
+
 /* ------------------------------------------------------------- carregar --- */
 
 async function carregarLigas() {
@@ -327,10 +345,11 @@ function desenharJornadaSelecionada() {
 
     const fechada = jornada.estado === "FECHADA";
     const pontosPorEquipa = new Map(jornada.resultados.map((r) => [r.equipaId, r]));
-    // A coluna de valor usa a classificação GERAL actual (a mesma da tab
-    // Classificação), não a desta jornada em concreto: é o que essa posição
-    // pagaria hoje segundo a regra da liga, não um valor histórico.
-    const posicaoGeralPorEquipa = new Map(estado.detalhe.classificacao.map((c) => [c.equipaId, c.posicao]));
+    // A coluna de valor usa a posição desta jornada em concreto (a que o
+    // backend soma às restantes do bloco quando este fechar), não a
+    // classificação geral acumulada da liga. Fechada, usa a posição já
+    // atribuída; aberta, prevê a posição a partir das pontuações inseridas.
+    const posicaoPreviaPorEquipa = fechada ? null : calcularPosicoesPreview(jornada.resultados);
     const regra = estado.regraDivida;
 
     const linhas = estado.detalhe.equipas
@@ -348,9 +367,11 @@ function desenharJornadaSelecionada() {
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);
             const podeEditar = !fechada && equipa.estado === "ATIVA";
-            const posicaoGeral = posicaoGeralPorEquipa.get(equipa.id);
-            const valor = (regra && equipa.estado === "ATIVA" && posicaoGeral)
-                ? formatoMoeda(calcularValorEscalao(regra, posicaoGeral))
+            const posicaoDaJornada = fechada
+                ? (resultado ? resultado.posicao : null)
+                : posicaoPreviaPorEquipa.get(equipa.id);
+            const valor = (regra && equipa.estado === "ATIVA" && posicaoDaJornada)
+                ? formatoMoeda(calcularValorEscalao(regra, posicaoDaJornada))
                 : "-";
             return `
                 <tr>
@@ -376,7 +397,9 @@ function desenharJornadaSelecionada() {
         <p class="ajuda">${fechada
             ? "Jornada fechada — posições atribuídas por pontuação."
             : "Insere a pontuação de cada equipa ativa e fecha a jornada no fim."}</p>
-        <p class="ajuda">A coluna Valor é o escalão da classificação geral actual (${regra ? "regra definida" : "sem regra definida nesta liga"}), não um valor cobrado nesta jornada em concreto.</p>
+        <p class="ajuda">${regra
+            ? "A coluna Valor é o que esta jornada pesa no bloco, segundo a regra da liga. Quando o bloco fechar, soma-se ao valor das outras jornadas que o compõem."
+            : "Sem regra de dívida definida nesta liga: os blocos são cobrados à mão."}</p>
         <div class="tabela-rolavel">
             <table>
                 <thead>
