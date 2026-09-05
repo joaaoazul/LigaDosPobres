@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -52,7 +53,7 @@ public class DividaService {
      * há confirmação nem acção do lado do treinador.
      */
     @Transactional
-    public void resolverBloco(Equipa equipa, UUID blocoId) {
+    public Divida resolverBloco(Equipa equipa, UUID blocoId) {
         Divida divida = buscarDividaOuFalhar(equipa);
         BlocoDivida bloco = divida.getBlocos().stream()
                 .filter(b -> b.getId().equals(blocoId))
@@ -65,7 +66,7 @@ public class DividaService {
 
         bloco.marcarResolvido();
         atualizarEstado(divida);
-        dividaRepository.guardarDivida(divida);
+        return dividaRepository.guardarDivida(divida);
     }
 
     /** Marca todos os blocos ainda pendentes da equipa como pagos de uma vez. */
@@ -106,6 +107,11 @@ public class DividaService {
     @Transactional(readOnly = true)
     public List<Divida> listarPorLiga(Liga liga, EstadoDivida estado) {
         return dividaRepository.listarDividas(liga, estado);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Divida> buscarPorEquipa(Equipa equipa) {
+        return dividaRepository.buscarPorEquipa(equipa);
     }
 
     private Divida buscarDividaOuFalhar(Equipa equipa) {

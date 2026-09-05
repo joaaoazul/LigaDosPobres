@@ -66,7 +66,8 @@ public class SecurityConfig {
                     // o pedido do .woff2 na página de login seria reencaminhado para
                     // o login e a página caía no tipo de letra do sistema.
                     .requestMatchers("/fontes/**").permitAll()
-                    .requestMatchers("/api/auth/registo", "/api/auth/login", "/api/auth/estado").permitAll()
+                    .requestMatchers("/api/auth/registo", "/api/auth/registo-treinador",
+                                     "/api/auth/login", "/api/auth/estado").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;
                     // todo o resto é isolado por dono, não por perfil.

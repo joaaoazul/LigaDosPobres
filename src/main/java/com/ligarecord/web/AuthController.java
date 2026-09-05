@@ -1,10 +1,13 @@
 package com.ligarecord.web;
 
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.GestorService;
+import com.ligarecord.service.TreinadorContaService;
 import com.ligarecord.web.dto.AlterarPasswordRequest;
 import com.ligarecord.web.dto.GestorDto;
+import com.ligarecord.web.dto.LigarTreinadorRequest;
 import com.ligarecord.web.dto.LoginRequest;
 import com.ligarecord.web.dto.RegistoRequest;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,11 +36,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final GestorService gestorService;
+    private final TreinadorContaService treinadorContaService;
+    private final GestorRepository gestorRepository;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(GestorService gestorService, AuthenticationManager authenticationManager) {
+    public AuthController(GestorService gestorService,
+                          TreinadorContaService treinadorContaService,
+                          GestorRepository gestorRepository,
+                          AuthenticationManager authenticationManager) {
         this.gestorService = gestorService;
+        this.treinadorContaService = treinadorContaService;
+        this.gestorRepository = gestorRepository;
         this.authenticationManager = authenticationManager;
     }
 
@@ -52,6 +63,35 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new GestorDto(gestor.getId(), gestor.getNome(), gestor.getEmail(), gestor.isAdmin()));
+    }
+
+    /** Para quem aceita um convite de treinador e ainda não tem conta nenhuma. */
+    @PostMapping("/registo-treinador")
+    public ResponseEntity<GestorDto> registarTreinador(@RequestBody RegistoRequest pedido,
+                                                        HttpServletRequest http,
+                                                        HttpServletResponse resposta) {
+        Gestor conta = treinadorContaService.registar(
+                pedido.email(), pedido.password(), pedido.nome(), pedido.codigo());
+
+        autenticar(pedido.email(), pedido.password(), http, resposta);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new GestorDto(conta.getId(), conta.getNome(), conta.getEmail(), conta.isAdmin()));
+    }
+
+    /**
+     * Para quem aceita um convite de treinador com sessão já aberta — já é
+     * gestor de outra liga, ou já treina outra equipa — e liga o convite à
+     * conta que já tem, sem criar um segundo login.
+     */
+    @PostMapping("/treinador/ligar")
+    @Transactional
+    public ResponseEntity<Void> ligarTreinador(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                               @RequestBody LigarTreinadorRequest pedido) {
+        Gestor conta = gestorRepository.buscarPorId(autenticado.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada."));
+        treinadorContaService.ligar(pedido.codigo(), conta);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")
