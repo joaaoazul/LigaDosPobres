@@ -1,22 +1,24 @@
 package com.ligarecord.repository.jpa;
 
-import com.ligarecord.domain.ContaTreinador;
 import com.ligarecord.domain.Convite;
 import com.ligarecord.domain.ConviteTreinador;
+import com.ligarecord.domain.Divida;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
 import com.ligarecord.domain.Treinador;
-import com.ligarecord.repository.ContaTreinadorRepository;
+import com.ligarecord.domain.enums.EstadoDivida;
 import com.ligarecord.repository.ConviteRepository;
 import com.ligarecord.repository.ConviteTreinadorRepository;
+import com.ligarecord.repository.DividaRepository;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
+import com.ligarecord.repository.TreinadorRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -170,32 +172,47 @@ public final class RepositoriosJpa {
     }
 
     @Repository
-    public static class ContasTreinador implements ContaTreinadorRepository {
+    public static class Treinadores implements TreinadorRepository {
 
-        private final ContaTreinadorJpaRepository jpa;
+        private final TreinadorJpaRepository jpa;
 
-        public ContasTreinador(ContaTreinadorJpaRepository jpa) {
+        public Treinadores(TreinadorJpaRepository jpa) {
             this.jpa = jpa;
         }
 
         @Override
-        public ContaTreinador guardar(ContaTreinador conta) {
-            return jpa.save(conta);
+        public Treinador guardar(Treinador treinador) {
+            return jpa.save(treinador);
+        }
+    }
+
+    @Repository
+    public static class Dividas implements DividaRepository {
+
+        private final DividaJpaRepository jpa;
+
+        public Dividas(DividaJpaRepository jpa) {
+            this.jpa = jpa;
         }
 
         @Override
-        public Optional<ContaTreinador> buscarPorEmail(String email) {
-            return jpa.findByEmailIgnoreCase(email);
+        public Divida guardarDivida(Divida divida) {
+            return jpa.save(divida);
         }
 
         @Override
-        public Optional<ContaTreinador> buscarPorId(UUID id) {
-            return jpa.findById(id);
+        public Optional<Divida> buscarPorEquipa(Equipa equipa) {
+            return jpa.findByEquipaId(equipa.getId());
         }
 
         @Override
-        public boolean existePorTreinador(UUID treinadorId) {
-            return jpa.existsByTreinadorId(treinadorId);
+        public List<Divida> listarDividas(Liga liga, EstadoDivida estadoDivida) {
+            return jpa.findByEquipaLigaIdAndEstado(liga.getId(), estadoDivida);
+        }
+
+        @Override
+        public List<Divida> buscarPorTreinador(Gestor conta) {
+            return jpa.findByEquipaTreinadorContaIdOrderByEquipaLigaNomeAscEquipaNomeAsc(conta.getId());
         }
     }
 

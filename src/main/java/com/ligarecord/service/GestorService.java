@@ -1,7 +1,6 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.Gestor;
-import com.ligarecord.repository.ContaTreinadorRepository;
 import com.ligarecord.repository.GestorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,16 +12,13 @@ import java.util.UUID;
 public class GestorService {
 
     private final GestorRepository gestorRepository;
-    private final ContaTreinadorRepository contaTreinadorRepository;
     private final ConviteService conviteService;
     private final PasswordEncoder passwordEncoder;
 
     public GestorService(GestorRepository gestorRepository,
-                         ContaTreinadorRepository contaTreinadorRepository,
                          ConviteService conviteService,
                          PasswordEncoder passwordEncoder) {
         this.gestorRepository = gestorRepository;
-        this.contaTreinadorRepository = contaTreinadorRepository;
         this.conviteService = conviteService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -39,11 +35,7 @@ public class GestorService {
         String nomeValidado = RegrasDeConta.nomeValidado(nome);
         RegrasDeConta.validarPassword(password);
 
-        // As contas de treinador vivem noutra tabela mas partilham o espaço de
-        // emails: a autenticação procura nas duas. Um email repetido entre elas
-        // deixaria uma das contas sem conseguir entrar, sem erro nenhum.
-        if (gestorRepository.buscarPorEmail(emailNormalizado).isPresent()
-                || contaTreinadorRepository.buscarPorEmail(emailNormalizado).isPresent()) {
+        if (gestorRepository.buscarPorEmail(emailNormalizado).isPresent()) {
             throw new IllegalStateException("Já existe uma conta com este email.");
         }
 

@@ -12,10 +12,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Convite de uso único para ligar uma {@link ContaTreinador} a um
+ * Convite de uso único para ligar uma conta ({@link Gestor}) a um
  * {@link Treinador} já existente. Criado pelo gestor dono da liga a que
- * pertence a equipa do treinador — nunca pelo treinador, que ainda não tem
- * conta nenhuma nesse momento.
+ * pertence a equipa do treinador — nunca pelo treinador.
+ *
+ * <p>Quem aceita pode não ter conta nenhuma ainda (cria uma de raiz) ou já ser
+ * gestor de outra liga, ou treinador de outra equipa (liga o convite à conta
+ * que já tem, sem criar um segundo login).
  *
  * <p>Tal como o {@link Convite}, nunca é apagado: fica o registo de quem
  * convidou quem, e quando.
@@ -49,7 +52,7 @@ public class ConviteTreinador extends EntidadeBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usado_por")
-    private ContaTreinador usadoPor;
+    private Gestor usadoPor;
 
     @Column(name = "revogado_em")
     private Instant revogadoEm;
@@ -96,7 +99,7 @@ public class ConviteTreinador extends EntidadeBase {
         return usadoEm;
     }
 
-    public ContaTreinador getUsadoPor() {
+    public Gestor getUsadoPor() {
         return usadoPor;
     }
 
@@ -120,7 +123,7 @@ public class ConviteTreinador extends EntidadeBase {
         return !estaUsado() && !estaRevogado() && !estaExpirado();
     }
 
-    public void marcarUsado(ContaTreinador conta) {
+    public void marcarUsado(Gestor conta) {
         this.usadoEm = Instant.now();
         this.usadoPor = conta;
     }

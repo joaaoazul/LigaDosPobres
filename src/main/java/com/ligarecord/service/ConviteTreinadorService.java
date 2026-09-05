@@ -1,10 +1,8 @@
 package com.ligarecord.service;
 
-import com.ligarecord.domain.ContaTreinador;
 import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Treinador;
-import com.ligarecord.repository.ContaTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.web.ConviteInvalidoException;
 import com.ligarecord.web.RecursoNaoEncontradoException;
@@ -32,12 +30,9 @@ public class ConviteTreinadorService {
     private static final int VALIDADE_MAXIMA_DIAS = 365;
 
     private final ConviteTreinadorRepository conviteRepository;
-    private final ContaTreinadorRepository contaRepository;
 
-    public ConviteTreinadorService(ConviteTreinadorRepository conviteRepository,
-                                   ContaTreinadorRepository contaRepository) {
+    public ConviteTreinadorService(ConviteTreinadorRepository conviteRepository) {
         this.conviteRepository = conviteRepository;
-        this.contaRepository = contaRepository;
     }
 
     /**
@@ -46,7 +41,7 @@ public class ConviteTreinadorService {
      * <p>Quem chama tem de ter resolvido a equipa do treinador por
      * {@code buscarPorIdEGestor} — é essa consulta que prova que o gestor manda
      * na liga onde o treinador tem equipa. Aqui verifica-se apenas o que essa
-     * consulta não pode saber: que o treinador ainda não tem conta.
+     * consulta não pode saber: que o treinador ainda não tem conta ligada.
      */
     @Transactional
     public ConviteTreinador criar(Gestor criadoPor, Treinador treinador, Integer diasValidade) {
@@ -60,7 +55,7 @@ public class ConviteTreinadorService {
             throw new IllegalArgumentException(
                     "A validade tem de estar entre 1 e " + VALIDADE_MAXIMA_DIAS + " dias.");
         }
-        if (contaRepository.existePorTreinador(treinador.getId())) {
+        if (treinador.temConta()) {
             throw new IllegalStateException("Este treinador já tem conta.");
         }
 
@@ -124,11 +119,11 @@ public class ConviteTreinadorService {
     }
 
     /**
-     * Gasta o convite. Chamado dentro da transação que cria a conta: se a
-     * criação falhar, o convite não fica gasto.
+     * Gasta o convite. Chamado dentro da transação que liga o treinador à
+     * conta: se essa ligação falhar, o convite não fica gasto.
      */
     @Transactional
-    public ConviteTreinador consumir(ConviteTreinador convite, ContaTreinador conta) {
+    public ConviteTreinador consumir(ConviteTreinador convite, Gestor conta) {
         if (!convite.estaDisponivel()) {
             throw new ConviteInvalidoException("Código de convite inválido.");
         }

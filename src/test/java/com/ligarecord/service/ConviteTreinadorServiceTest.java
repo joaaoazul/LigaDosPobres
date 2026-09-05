@@ -1,11 +1,8 @@
 package com.ligarecord.service;
 
-import com.ligarecord.domain.ContaTreinador;
 import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Treinador;
-import com.ligarecord.repository.ContaTreinadorRepository;
-import com.ligarecord.repository.ContaTreinadorRepositoryImpl;
 import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepositoryImpl;
 import com.ligarecord.web.ConviteInvalidoException;
@@ -23,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ConviteTreinadorServiceTest {
 
     private ConviteTreinadorRepository conviteRepository;
-    private ContaTreinadorRepository contaRepository;
     private ConviteTreinadorService conviteService;
     private Gestor gestor;
     private Gestor outroGestor;
@@ -32,8 +28,7 @@ class ConviteTreinadorServiceTest {
     @BeforeEach
     void setUp() {
         conviteRepository = new ConviteTreinadorRepositoryImpl();
-        contaRepository = new ContaTreinadorRepositoryImpl();
-        conviteService = new ConviteTreinadorService(conviteRepository, contaRepository);
+        conviteService = new ConviteTreinadorService(conviteRepository);
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
         outroGestor = new Gestor(UUID.randomUUID(), "outro@teste.pt", "hash", "Outro");
@@ -58,8 +53,7 @@ class ConviteTreinadorServiceTest {
 
     @Test
     void naoDeveConvidarTreinadorQueJaTemConta() {
-        contaRepository.guardar(new ContaTreinador(
-                UUID.randomUUID(), "joao@teste.pt", "hash", "João", treinador));
+        treinador.setConta(gestor);
 
         assertThrows(IllegalStateException.class, () -> conviteService.criar(gestor, treinador, null));
     }
@@ -93,8 +87,7 @@ class ConviteTreinadorServiceTest {
     @Test
     void conviteUsadoDeixaDeServir() {
         ConviteTreinador convite = conviteService.criar(gestor, treinador, null);
-        ContaTreinador conta = new ContaTreinador(
-                UUID.randomUUID(), "joao@teste.pt", "hash", "João", treinador);
+        Gestor conta = new Gestor(UUID.randomUUID(), "joao@teste.pt", "hash", "João");
 
         conviteService.consumir(convite, conta);
 
@@ -106,8 +99,7 @@ class ConviteTreinadorServiceTest {
     @Test
     void conviteInexistenteEUsadoDaoAMesmaResposta() {
         ConviteTreinador convite = conviteService.criar(gestor, treinador, null);
-        conviteService.consumir(convite, new ContaTreinador(
-                UUID.randomUUID(), "joao@teste.pt", "hash", "João", treinador));
+        conviteService.consumir(convite, new Gestor(UUID.randomUUID(), "joao@teste.pt", "hash", "João"));
 
         ConviteInvalidoException usado = assertThrows(ConviteInvalidoException.class,
                 () -> conviteService.exigirDisponivel(convite.getCodigo()));
