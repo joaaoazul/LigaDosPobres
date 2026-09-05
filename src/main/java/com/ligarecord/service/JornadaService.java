@@ -1,6 +1,5 @@
 package com.ligarecord.service;
 
-import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
@@ -27,16 +26,13 @@ public class JornadaService {
 
     private JornadaRepository jornadaRepository;
     private final RegraDividaService regraDividaService;
-    private final ClassificacaoService classificacaoService;
     private final DividaService dividaService;
 
     public JornadaService(JornadaRepository jornadaRepository,
                           RegraDividaService regraDividaService,
-                          ClassificacaoService classificacaoService,
                           DividaService dividaService){
         this.jornadaRepository = jornadaRepository;
         this.regraDividaService = regraDividaService;
-        this.classificacaoService = classificacaoService;
         this.dividaService = dividaService;
     }
 
@@ -182,8 +178,7 @@ public class JornadaService {
         Liga liga = jornada.getLiga();
         regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {
             if (dividaService.jornadaFechaBloco(jornada, regra)) {
-                List<ClassificacaoGeral> classificacao = classificacaoService.calcularClassificacao(liga);
-                dividaService.processarFechoBloco(liga, regra, classificacao);
+                dividaService.processarFechoBloco(liga, regra, jornada.getResultadoJ());
             }
         });
     }

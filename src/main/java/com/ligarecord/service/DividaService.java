@@ -1,13 +1,13 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.BlocoDivida;
-import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Divida;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.RegraDivida;
+import com.ligarecord.domain.ResultadoJornada;
 import com.ligarecord.domain.enums.EstadoDivida;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoJornada;
@@ -89,17 +89,19 @@ public class DividaService {
 
     /**
      * Fecha um bloco de período para a liga inteira: cada equipa ainda ativa
-     * paga o valor do seu escalão na classificação dada. Equipas desistentes
-     * não voltam a ser cobradas.
+     * paga o valor do seu escalão nesta jornada — a que fechou o bloco — e
+     * não na classificação geral acumulada desde o início da liga. Uma
+     * equipa que jogou mal agora paga mais agora, mesmo que tenha ido bem em
+     * jornadas anteriores. Equipas desistentes não voltam a ser cobradas.
      */
     @Transactional
-    public void processarFechoBloco(Liga liga, RegraDivida regra, List<ClassificacaoGeral> classificacao) {
-        for (ClassificacaoGeral posicao : classificacao) {
-            Equipa equipa = posicao.getEquipa();
+    public void processarFechoBloco(Liga liga, RegraDivida regra, List<ResultadoJornada> resultados) {
+        for (ResultadoJornada resultado : resultados) {
+            Equipa equipa = resultado.getEquipa();
             if (equipa.getEstado() != EstadoEquipa.ATIVA) {
                 continue;
             }
-            BigDecimal valor = classificacaoService.calcularValor(regra, posicao.getPosicao());
+            BigDecimal valor = classificacaoService.calcularValor(regra, resultado.getPosicao());
             registarBloco(equipa, valor);
         }
     }

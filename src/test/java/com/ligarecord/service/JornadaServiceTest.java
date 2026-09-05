@@ -49,7 +49,7 @@ class JornadaServiceTest {
         ClassificacaoService classificacaoService = new ClassificacaoService();
         regraDividaService = new RegraDividaService(regraDividaRepository);
         dividaService = new DividaService(dividaRepository, classificacaoService);
-        jornadaService = new JornadaService(jornadaRepository, regraDividaService, classificacaoService, dividaService);
+        jornadaService = new JornadaService(jornadaRepository, regraDividaService, dividaService);
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
         liga = new Liga(UUID.randomUUID(), "Liga de Teste", 10, EstadoLiga.ATIVA, gestor);
@@ -110,8 +110,29 @@ class JornadaServiceTest {
 
         Jornada segundaJornada = abrirEPontuar(1, 2, 3);
         jornadaService.fecharJornada(segundaJornada);
-        // agora é a terceira equipa que vai em 1º (3 pontos na 2ª jornada, mas só 1 na 1ª: 1+3=4)
         assertTrue(dividaService.buscarPorEquipa(primeira).isPresent());
+    }
+
+    /**
+     * O valor cobrado no fecho do bloco usa só a posição desta jornada, não a
+     * classificação geral acumulada: a primeira ganhou a 1ª jornada mas foi a
+     * pior na 2ª (a que fecha o bloco), por isso é ela que paga mais, mesmo
+     * tendo mais pontos ao todo (1+3=4 contra os 2+2=4 da segunda).
+     */
+    @Test
+    void oValorDoBlocoUsaAPosicaoDaJornadaQueFechaOBlocoNaoAGeral() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 2);
+
+        Jornada primeiraJornada = abrirEPontuar(3, 2, 1);
+        jornadaService.fecharJornada(primeiraJornada);
+
+        Jornada segundaJornada = abrirEPontuar(1, 2, 3);
+        jornadaService.fecharJornada(segundaJornada);
+
+        assertEquals(new BigDecimal("1.00"), totalDe(primeira));
+        assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+        assertEquals(new BigDecimal("0.00"), totalDe(terceira));
     }
 
     /** Uma equipa que já desistiu não volta a ser cobrada no fecho automático. */
