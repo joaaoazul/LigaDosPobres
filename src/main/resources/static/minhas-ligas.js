@@ -1,0 +1,331 @@
+"use strict";
+
+const estado = {
+    eu: null,
+    ligas: [],
+    ligaId: null,
+    detalhe: null,
+    jornadaId: null,
+    tab: "classificacao"
+};
+
+const $ = (s) => document.querySelector(s);
+
+function texto(valor) {
+    return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+}
+
+function tokenCsrf() {
+    const par = document.cookie.split("; ").find((c) => c.startsWith("XSRF-TOKEN="));
+    return par ? decodeURIComponent(par.split("=").slice(1).join("=")) : null;
+}
+
+async function api(caminho, opcoes = {}) {
+    const cabecalhos = { "Content-Type": "application/json" };
+    const token = tokenCsrf();
+    if (token) {
+        cabecalhos["X-XSRF-TOKEN"] = token;
+    }
+    const resposta = await fetch(caminho, { headers: cabecalhos, ...opcoes });
+
+    if (resposta.status === 401) {
+        window.location.href = "/login.html";
+        throw new Error("Sessão terminada.");
+    }
+    if (resposta.status === 204) {
+        return null;
+    }
+
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok) {
+        throw new Error((corpo && corpo.mensagem) || `Erro ${resposta.status}`);
+    }
+    return corpo;
+}
+
+let temporizador = null;
+
+function mostrarAlerta(mensagem, tipo = "erro") {
+    const alerta = $("#alerta");
+    alerta.textContent = mensagem;
+    alerta.className = `alerta ${tipo === "sucesso" ? "sucesso" : ""}`;
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => alerta.classList.add("oculto"), 4500);
+}
+
+async function executar(acao) {
+    try {
+        await acao();
+    } catch (erro) {
+        mostrarAlerta(erro.message);
+    }
+}
+
+function plural(n, singular, pluralForma) {
+    return `${n} ${n === 1 ? singular : pluralForma}`;
+}
+
+function badgeEstado(estadoTexto) {
+    const cores = {
+        ATIVA: "verde",
+        DESATIVADA: "vermelho",
+        DESISTENTE: "vermelho",
+        ABERTA: "verde",
+        FECHADA: "azul",
+        TREINO: "amarelo",
+        OFICIAL: "azul"
+    };
+    return `<span class="badge ${cores[estadoTexto] || ""}">${texto(estadoTexto)}</span>`;
+}
+
+/* ------------------------------------------------------------- carregar --- */
+
+async function carregarLigas() {
+    estado.ligas = await api("/api/minhas-ligas");
+    desenharLigas();
+}
+
+async function carregarDetalhe() {
+    if (!estado.ligaId) {
+        return;
+    }
+    estado.detalhe = await api(`/api/minhas-ligas/${estado.ligaId}`);
+
+    const jornadas = estado.detalhe.jornadas;
+    if (!jornadas.some((j) => j.id === estado.jornadaId)) {
+        const aberta = jornadas.find((j) => j.estado !== "FECHADA");
+        estado.jornadaId = aberta ? aberta.id : (jornadas.length ? jornadas[jornadas.length - 1].id : null);
+    }
+
+    desenharDetalhe();
+}
+
+/* -------------------------------------------------------------- desenho --- */
+
+function desenharLigas() {
+    const lista = $("#lista-ligas");
+
+    if (!estado.ligas.length) {
+        lista.innerHTML = `<li class="ajuda">Ainda não treinas nenhuma equipa.</li>`;
+        return;
+    }
+
+    lista.innerHTML = estado.ligas.map((liga) => `
+        <li>
+            <button class="cartao-liga ${liga.id === estado.ligaId ? "selecionado" : ""}" data-liga="${liga.id}">
+                <strong>${texto(liga.nome)}</strong>
+                <small>${liga.equipasAtivas}/${liga.maxEquipas} equipas &middot; ${plural(liga.totalJornadas, "jornada", "jornadas")}</small>
+                ${badgeEstado(liga.estado)}
+            </button>
+        </li>
+    `).join("");
+}
+
+function desenharDetalhe() {
+    const detalhe = estado.detalhe;
+
+    $("#sem-liga").classList.toggle("oculto", Boolean(detalhe));
+    $("#detalhe-liga").classList.toggle("oculto", !detalhe);
+
+    if (!detalhe) {
+        return;
+    }
+
+    const liga = detalhe.liga;
+
+    $("#liga-titulo").textContent = liga.nome;
+    $("#liga-badges").innerHTML = [
+        badgeEstado(liga.estado),
+        `<span class="badge">${liga.totalEquipas}/${liga.maxEquipas} equipas</span>`,
+        `<span class="badge">${liga.equipasAtivas} ativas</span>`,
+        `<span class="badge">${plural(liga.totalJornadas, "jornada", "jornadas")}</span>`
+    ].join("");
+
+    desenharClassificacao(detalhe.classificacao);
+    desenharEquipas(detalhe.equipas);
+    desenharJornadas(detalhe.jornadas);
+    desenharJornadaSelecionada();
+}
+
+function desenharClassificacao(classificacao) {
+    if (!classificacao.length) {
+        $("#tabela-classificacao").innerHTML = `<p class="ajuda">Sem equipas para classificar.</p>`;
+        return;
+    }
+
+    $("#tabela-classificacao").innerHTML = `
+        <div class="tabela-rolavel">
+            <table class="marcador">
+                <thead>
+                    <tr>
+                        <th class="col-pos">Pos</th>
+                        <th>Equipa</th>
+                        <th>Estado</th>
+                        <th class="col-pts">Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${classificacao.map((linha) => `
+                        <tr class="${linha.posicao === 1 && linha.estado !== "DESISTENTE" ? "lider" : ""}${linha.estado === "DESISTENTE" ? " linha-desistente" : ""}">
+                            <td class="col-pos"><span class="pos">${linha.posicao}</span></td>
+                            <td class="col-equipa">
+                                <span class="equipa">${texto(linha.equipa)}</span>
+                                <span class="treinador">${texto(linha.treinador)}</span>
+                            </td>
+                            <td>${badgeEstado(linha.estado)}</td>
+                            <td class="col-pts"><span class="pts">${linha.pontos}</span></td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function desenharEquipas(equipas) {
+    if (!equipas.length) {
+        $("#tabela-equipas").innerHTML = `<p class="ajuda">Ainda não há equipas nesta liga.</p>`;
+        return;
+    }
+
+    $("#tabela-equipas").innerHTML = `
+        <div class="tabela-rolavel">
+            <table>
+                <thead>
+                    <tr><th>Equipa</th><th>Treinador</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    ${equipas.map((equipa) => `
+                        <tr class="${equipa.estado === "DESISTENTE" ? "linha-desistente" : ""}">
+                            <td><strong>${texto(equipa.nome)}</strong></td>
+                            <td>${texto(equipa.treinador)}</td>
+                            <td>${badgeEstado(equipa.estado)}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function desenharJornadas(jornadas) {
+    const lista = $("#lista-jornadas");
+
+    if (!jornadas.length) {
+        lista.innerHTML = `<p class="ajuda">Sem jornadas abertas.</p>`;
+        return;
+    }
+
+    lista.innerHTML = jornadas.map((jornada) => `
+        <button class="cartao-jornada ${jornada.id === estado.jornadaId ? "selecionado" : ""}" data-jornada="${jornada.id}">
+            <strong>Jornada ${jornada.numero}</strong>
+            <small>${jornada.treino ? "Treino" : "Oficial"} &middot; ${plural(jornada.resultados.length, "resultado", "resultados")}</small>
+            ${badgeEstado(jornada.estado)}
+        </button>
+    `).join("");
+}
+
+function desenharJornadaSelecionada() {
+    const painel = $("#detalhe-jornada");
+    const jornada = estado.detalhe.jornadas.find((j) => j.id === estado.jornadaId);
+
+    if (!jornada) {
+        painel.innerHTML = `<p class="ajuda">Escolhe uma jornada para ver os resultados.</p>`;
+        return;
+    }
+
+    const fechada = jornada.estado === "FECHADA";
+    const pontosPorEquipa = new Map(jornada.resultados.map((r) => [r.equipaId, r]));
+
+    const linhas = estado.detalhe.equipas
+        .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
+        .slice()
+        .sort((a, b) => {
+            const ra = pontosPorEquipa.get(a.id);
+            const rb = pontosPorEquipa.get(b.id);
+            const va = fechada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
+            const vb = fechada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
+            return va - vb;
+        })
+        .map((equipa) => {
+            const resultado = pontosPorEquipa.get(equipa.id);
+            return `
+                <tr>
+                    <td class="posicao">${resultado && resultado.posicao ? resultado.posicao : "&ndash;"}</td>
+                    <td><strong>${texto(equipa.nome)}</strong></td>
+                    <td class="numero">${resultado ? resultado.pontuacao : "&ndash;"}</td>
+                </tr>`;
+        }).join("");
+
+    painel.innerHTML = `
+        <h3>Jornada ${jornada.numero} ${badgeEstado(jornada.estado)} ${badgeEstado(jornada.tipo)}</h3>
+        <p class="ajuda">${fechada
+            ? "Jornada fechada — posições atribuídas por pontuação."
+            : "Jornada ainda aberta — o gestor ainda pode alterar estes resultados."}</p>
+        <div class="tabela-rolavel">
+            <table>
+                <thead>
+                    <tr><th class="posicao">Pos</th><th>Equipa</th><th class="numero">Pontos</th></tr>
+                </thead>
+                <tbody>${linhas || `<tr><td colspan="3" class="ajuda">Sem equipas ativas.</td></tr>`}</tbody>
+            </table>
+        </div>`;
+}
+
+/* --------------------------------------------------------------- ações ---- */
+
+function selecionarTab(tab) {
+    estado.tab = tab;
+    document.querySelectorAll(".separador")
+        .forEach((botao) => botao.classList.toggle("ativo", botao.dataset.tab === tab));
+    document.querySelectorAll(".tab")
+        .forEach((seccao) => seccao.classList.toggle("oculto", seccao.id !== `tab-${tab}`));
+}
+
+document.querySelectorAll(".separador")
+    .forEach((botao) => botao.addEventListener("click", () => selecionarTab(botao.dataset.tab)));
+
+document.addEventListener("click", (evento) => {
+    const alvo = evento.target.closest("[data-liga], [data-jornada]");
+    if (!alvo) {
+        return;
+    }
+
+    if (alvo.dataset.liga) {
+        estado.ligaId = alvo.dataset.liga;
+        estado.jornadaId = null;
+        executar(async () => {
+            await carregarDetalhe();
+            desenharLigas();
+        });
+        return;
+    }
+
+    if (alvo.dataset.jornada) {
+        estado.jornadaId = alvo.dataset.jornada;
+        desenharJornadas(estado.detalhe.jornadas);
+        desenharJornadaSelecionada();
+    }
+});
+
+/* --------------------------------------------------------------- início --- */
+
+$("#btn-sair").addEventListener("click", () => {
+    executar(async () => {
+        await api("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login.html";
+    });
+});
+
+selecionarTab("classificacao");
+
+executar(async () => {
+    const resposta = await fetch("/api/auth/estado");
+    if (!resposta.ok) {
+        window.location.href = "/login.html";
+        return;
+    }
+    estado.eu = await resposta.json();
+    $("#gestor-nome").textContent = estado.eu.nome;
+    await carregarLigas();
+});
