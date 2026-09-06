@@ -42,16 +42,16 @@ final class RegrasDeConta {
     }
 
     static void validarPassword(String password) {
-        if (password == null || password.length() < MINIMO_PASSWORD) {
-            throw new IllegalArgumentException(
-                    "A password tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
-        }
+        validarComprimento(password, "A password tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
     }
 
     static void validarPasswordNova(String password) {
+        validarComprimento(password, "A password nova tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
+    }
+
+    private static void validarComprimento(String password, String mensagemErro) {
         if (password == null || password.length() < MINIMO_PASSWORD) {
-            throw new IllegalArgumentException(
-                    "A password nova tem de ter pelo menos " + MINIMO_PASSWORD + " caracteres.");
+            throw new IllegalArgumentException(mensagemErro);
         }
     }
 }

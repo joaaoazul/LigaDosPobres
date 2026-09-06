@@ -8,22 +8,16 @@ import com.ligarecord.web.RecursoNaoEncontradoException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ConviteService {
 
-    /** 24 bytes: demasiado grande para ser adivinhado por tentativa e erro. */
-    private static final int BYTES_CODIGO = 24;
-
     private static final int VALIDADE_MAXIMA_DIAS = 365;
 
-    private final SecureRandom aleatorio = new SecureRandom();
     private final ConviteRepository conviteRepository;
 
     public ConviteService(ConviteRepository conviteRepository) {
@@ -46,7 +40,7 @@ public class ConviteService {
 
         Convite convite = new Convite(
                 UUID.randomUUID(),
-                gerarCodigo(),
+                CodigosDeConvite.gerar(),
                 nota == null || nota.isBlank() ? null : nota.trim(),
                 admin,
                 expiraEm
@@ -96,11 +90,5 @@ public class ConviteService {
 
         convite.marcarUsado(gestor);
         return conviteRepository.guardar(convite);
-    }
-
-    private String gerarCodigo() {
-        byte[] bytes = new byte[BYTES_CODIGO];
-        aleatorio.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
