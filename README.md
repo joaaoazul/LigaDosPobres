@@ -6,6 +6,17 @@ Cada gestor tem conta própria e vê apenas as suas ligas.
 Java 21 · Spring Boot · PostgreSQL · Flyway · interface em HTML e JavaScript,
 sem passo de build no frontend.
 
+## Documentação
+
+| Documento | Para quem | PDF |
+| --- | --- | --- |
+| [Manual de utilização](docs/MANUAL.md) | gestores e treinadores | [PDF](docs/pdf/MANUAL.pdf) |
+| [Manual técnico](docs/DESENVOLVIMENTO.md) | quem mexe no código | [PDF](docs/pdf/DESENVOLVIMENTO.pdf) |
+| [Referência da API](docs/API.md) | integrações e frontend | [PDF](docs/pdf/API.pdf) |
+
+Os PDF são gerados a partir dos markdown com `docs/gerar-pdf.py`; as instruções
+estão no cabeçalho do script.
+
 ## Correr localmente
 
 ```bash
@@ -194,9 +205,6 @@ correm em segundos e não precisam de base de dados.
 
 ## Por implementar
 
-- Dívidas e blocos de dívida (`DividaService` é ainda um esboço)
-- Resolução manual de empates (`DesempateService`); equipas empatadas ficam com
-  a mesma posição na jornada
 - Recuperação de password e verificação de email no registo
 - Limite de tentativas de login: hoje nada impede tentativas repetidas de
   adivinhar uma password, além da lentidão própria do BCrypt

@@ -1,0 +1,3 @@
+# HTML intermédio do gerar-pdf.py. Serve para espreitar o resultado no browser
+# antes de imprimir; o que interessa guardar são os PDF.
+*.html
