@@ -135,6 +135,59 @@ class JornadaServiceTest {
         assertEquals(new BigDecimal("0.50"), totalDe(terceira));
     }
 
+    /**
+     * numJornada reinicia em 1 quando as jornadas de treino terminam e
+     * começam as oficiais (ver {@link Liga#getJornadas()}), por isso a
+     * jornada de treino nº4 e a oficial nº1 partilham o mesmo número. Marcar
+     * cada jornada como incluída assim que o seu bloco fecha (em vez de
+     * inferir "as últimas N" por essa ordenação) garante que o bloco
+     * seguinte apanha exatamente a oficial nova, nunca outra vez a de treino.
+     */
+    @Test
+    void ultimasJornadasDoBlocoRespeitamAOrdemRealAoAtravessarTreinoParaOficial() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 2);
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // treino 1
+        jornadaService.fecharJornada(abrirEPontuar(2, 3, 1)); // treino 2 — fecha bloco 1
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // treino 3
+        jornadaService.fecharJornada(abrirEPontuar(1, 2, 3)); // treino 4 — fecha bloco 2
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // treino 5
+        jornadaService.fecharJornada(abrirEPontuar(2, 1, 3)); // oficial 1, numJornada volta a 1 — fecha bloco 3
+
+        assertEquals(new BigDecimal("2.00"), totalDe(primeira));
+        assertEquals(new BigDecimal("3.00"), totalDe(segunda));
+        assertEquals(new BigDecimal("4.00"), totalDe(terceira));
+    }
+
+    /**
+     * RegraDividaService.definir é idempotente de propósito: o gestor pode
+     * mudar jornadasPorBloco a meio da época. Sem marcar as jornadas já
+     * incluídas num bloco, o próximo fecho voltava a olhar para trás e somava
+     * outra vez jornadas já cobradas.
+     */
+    @Test
+    void mudarJornadasPorBlocoAMeioDaEpocaNaoCobraDuasVezesAMesmaJornada() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 5);
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // 1
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // 2
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // 3
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // 4
+        jornadaService.fecharJornada(abrirEPontuar(1, 2, 3)); // 5 — fecha o bloco de 5
+
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 2);
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1)); // 6, pendente
+        jornadaService.fecharJornada(abrirEPontuar(2, 1, 3)); // 7 — fecha o bloco de 2 (só a 6 e a 7)
+
+        assertEquals(new BigDecimal("1.50"), totalDe(primeira));
+        assertEquals(new BigDecimal("4.00"), totalDe(segunda));
+        assertEquals(new BigDecimal("5.00"), totalDe(terceira));
+    }
+
     /** Uma equipa que já desistiu não volta a ser cobrada no fecho automático. */
     @Test
     void naoCobraEquipaDesistenteNoFechoAutomatico() {

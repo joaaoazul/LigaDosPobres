@@ -13,7 +13,7 @@ import java.util.UUID;
 /**
  * A regra de cobrança de uma liga: quanto custa entrar, e como o valor por
  * período sobe por escalão de classificação. Uma liga sem regra não tem
- * cobrança automática — ver {@link DividaService#jornadaFechaBloco}.
+ * cobrança automática — ver {@link DividaService#prontoParaFecharBloco}.
  */
 @Service
 public class RegraDividaService {

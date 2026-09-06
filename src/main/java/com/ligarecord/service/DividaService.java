@@ -10,7 +10,6 @@ import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.ResultadoJornada;
 import com.ligarecord.domain.enums.EstadoDivida;
 import com.ligarecord.domain.enums.EstadoEquipa;
-import com.ligarecord.domain.enums.EstadoJornada;
 import com.ligarecord.repository.DividaRepository;
 import com.ligarecord.web.RecursoNaoEncontradoException;
 import org.springframework.stereotype.Service;
@@ -74,31 +73,27 @@ public class DividaService {
     }
 
     /**
-     * Diz se fechar esta jornada fecha também um bloco de período, segundo a
-     * periodicidade da regra da liga. Sem regra definida, nunca — a liga não
-     * tem cobrança automática. Chamado depois de a jornada já estar fechada.
+     * Diz se as jornadas fechadas ainda não incluídas num bloco já chegam
+     * para fechar um bloco novo, segundo a periodicidade atual da regra.
+     * Conta só as pendentes, não o total de sempre: {@link RegraDividaService#definir}
+     * é idempotente de propósito, o gestor pode mudar {@code jornadasPorBloco}
+     * a meio da época, e uma jornada já somada num bloco anterior
+     * (ver {@link Jornada#isIncluidaEmBloco()}) nunca deve voltar a contar.
      */
-    @Transactional(readOnly = true)
-    public boolean jornadaFechaBloco(Jornada jornada, RegraDivida regra) {
-        if (regra == null) {
-            return false;
-        }
-        long fechadas = jornada.getLiga().getJornadas().stream()
-                .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA)
-                .count();
-        return fechadas % regra.getJornadasPorBloco() == 0;
+    public boolean prontoParaFecharBloco(List<Jornada> jornadasPendentes, RegraDivida regra) {
+        return jornadasPendentes.size() >= regra.getJornadasPorBloco();
     }
 
     /**
-     * Fecha um bloco de período para a liga inteira: cada jornada do bloco
-     * tem a sua própria classificação e o seu próprio valor por escalão —
-     * não é a classificação geral acumulada desde o início da liga. O que
-     * cada equipa ainda ativa paga no bloco é a soma dos valores de cada uma
-     * das jornadas que o compõem. Equipas desistentes não voltam a ser
-     * cobradas.
+     * Fecha um bloco de período para a liga inteira com as jornadas ainda
+     * pendentes: cada jornada tem a sua própria classificação e o seu
+     * próprio valor por escalão, não a classificação geral acumulada desde o
+     * início da liga. O que cada equipa ainda ativa paga no bloco é a soma
+     * dos valores de cada uma das jornadas que o compõem. Equipas
+     * desistentes não voltam a ser cobradas.
      */
     @Transactional
-    public void processarFechoBloco(Liga liga, RegraDivida regra, List<Jornada> jornadasDoBloco) {
+    public void processarFechoBloco(RegraDivida regra, List<Jornada> jornadasDoBloco) {
         Map<Equipa, BigDecimal> totalPorEquipa = new HashMap<>();
         for (Jornada jornada : jornadasDoBloco) {
             for (ResultadoJornada resultado : jornada.getResultadoJ()) {

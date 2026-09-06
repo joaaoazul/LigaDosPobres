@@ -177,19 +177,28 @@ public class JornadaService {
     private void fecharBlocoSeForACaso(Jornada jornada) {
         Liga liga = jornada.getLiga();
         regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {
-            if (dividaService.jornadaFechaBloco(jornada, regra)) {
-                List<Jornada> jornadasDoBloco = ultimasFechadas(liga, regra.getJornadasPorBloco());
-                dividaService.processarFechoBloco(liga, regra, jornadasDoBloco);
+            List<Jornada> pendentes = jornadasPendentesDeBloco(liga);
+            if (dividaService.prontoParaFecharBloco(pendentes, regra)) {
+                dividaService.processarFechoBloco(regra, pendentes);
+                pendentes.forEach(j -> {
+                    j.setIncluidaEmBloco(true);
+                    jornadaRepository.guardar(j);
+                });
             }
         });
     }
 
-    /** As últimas {@code quantas} jornadas fechadas da liga — as que compõem o bloco que acabou de fechar. */
-    private List<Jornada> ultimasFechadas(Liga liga, int quantas) {
-        List<Jornada> fechadas = liga.getJornadas().stream()
-                .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA)
+    /**
+     * As jornadas já fechadas da liga que ainda não entraram em nenhum
+     * bloco. Basta o estado {@link Jornada#isIncluidaEmBloco()}: como cada
+     * jornada fica marcada assim que o seu bloco fecha, isto não depende da
+     * ordem de {@code liga.getJornadas()} nem se perde se o gestor mudar
+     * {@code jornadasPorBloco} a meio da época.
+     */
+    private List<Jornada> jornadasPendentesDeBloco(Liga liga) {
+        return liga.getJornadas().stream()
+                .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA && !j.isIncluidaEmBloco())
                 .toList();
-        return fechadas.subList(Math.max(0, fechadas.size() - quantas), fechadas.size());
     }
 
     public boolean verificaSeTreino(Jornada jornada){

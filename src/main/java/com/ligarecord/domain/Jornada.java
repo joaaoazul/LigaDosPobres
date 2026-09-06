@@ -41,6 +41,15 @@ public class Jornada extends EntidadeBase {
     @Column(name = "tipo", nullable = false)
     private EstadoJornadaTreino tipoJornada;
 
+    /**
+     * Marca que esta jornada já foi somada num bloco de dívida fechado. Sem
+     * isto, mudar {@code jornadasPorBloco} a meio da época (RegraDividaService
+     * é idempotente de propósito) fazia o próximo fecho olhar outra vez para
+     * jornadas já cobradas e somá-las a dobro.
+     */
+    @Column(name = "incluida_em_bloco", nullable = false)
+    private boolean incluidaEmBloco = false;
+
     @OneToMany(mappedBy = "jornada", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ResultadoJornada> resultadoJ = new ArrayList<>();
 
@@ -92,6 +101,14 @@ public class Jornada extends EntidadeBase {
 
     public void setTipoJornada(EstadoJornadaTreino tipoJornada) {
         this.tipoJornada = tipoJornada;
+    }
+
+    public boolean isIncluidaEmBloco() {
+        return incluidaEmBloco;
+    }
+
+    public void setIncluidaEmBloco(boolean incluidaEmBloco) {
+        this.incluidaEmBloco = incluidaEmBloco;
     }
 
     /** Derivado do tipo: não há estado duplicado para se desencontrar. */
