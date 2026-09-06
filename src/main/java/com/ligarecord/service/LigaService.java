@@ -90,6 +90,13 @@ public class LigaService {
                     "A equipa já pertence a uma liga."
             );
         }
+        // Duas equipas com o mesmo nome na mesma liga tornam a classificação e as
+        // jornadas ambíguas — não há como saber qual é qual a olhar para a tabela.
+        boolean nomeRepetido = liga.getEquipas().stream()
+                .anyMatch(existente -> existente.getNome().equalsIgnoreCase(equipa.getNome()));
+        if (nomeRepetido) {
+            throw new IllegalStateException("Já existe uma equipa com este nome nesta liga.");
+        }
         liga.adicionarEquipa(equipa);
         equipa.setLiga(liga);
         equipa.setEstado(EstadoEquipa.ATIVA);

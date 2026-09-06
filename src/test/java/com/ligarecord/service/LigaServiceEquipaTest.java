@@ -146,6 +146,20 @@ class LigaServiceEquipaTest {
         );
     }
 
+    /** Duas equipas com o mesmo nome tornam a classificação ambígua. */
+    @Test
+    void naoDeveAdicionarDuasEquipasComOMesmoNome() {
+
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+
+        ligaService.adicionarEquipa(liga, criarEquipa("Messias", criarTreinador("João")));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> ligaService.adicionarEquipa(liga, criarEquipa("messias", criarTreinador("Pedro")))
+        );
+    }
+
     @Test
     void deveRegistarDesistencia() {
 
