@@ -31,9 +31,17 @@ EXPOSE 8080
 # MaxRAMPercentage em vez de -Xmx: a JVM respeita o limite de memória que a
 # plataforma impuser ao contentor, seja ele qual for.
 #
-# preferIPv6Addresses: a rede privada do Railway só existe em IPv6. O nome
-# postgres.railway.internal resolve apenas para um endereço IPv6 e, sem esta
-# opção, a JVM não o usa — a ligação à base de dados fica a tentar até estourar
-# e a aplicação morre no arranque. Não faz mal onde há IPv4: só muda a ordem
-# de preferência quando ambos existem.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-Djava.net.preferIPv6Addresses=true", "-jar", "app.jar"]
+# Aqui esteve -Djava.net.preferIPv6Addresses=true, para a rede privada do
+# Railway. Estava a mais, e fazia mal: a opção só decide a ORDEM quando um nome
+# tem endereços das duas famílias. Um nome que só tenha IPv6, como o
+# postgres.railway.internal, resolve para IPv6 na mesma sem ela — medido, com
+# e sem a opção.
+#
+# O que ela fazia era mandar para IPv6 tudo o que tem as duas, incluindo a
+# api.resend.com. O Railway não tem saída IPv6 para a internet pública, por
+# isso os emails de recuperação de password morriam todos em "Network is
+# unreachable", e o erro não tinha nada a ver com o email nem com o Resend.
+#
+# Sem a opção, a JVM prefere IPv4 quando existem os dois e usa IPv6 quando é o
+# único que há. É o que serve os dois casos.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]

@@ -131,9 +131,18 @@ A porta vem da variável `PORT`, que a aplicação já respeita.
 
 **Se o arranque falhar com um erro de ligação ao PostgreSQL** (`PGStream`,
 `ConnectionFactoryImpl`, `Socket.connect`), é quase sempre a rede privada do
-Railway, que só existe em IPv6. A imagem já arranca com
-`-Djava.net.preferIPv6Addresses=true`, mas se o problema persistir usa o
-endereço público da base de dados para desbloquear:
+Railway, que só existe em IPv6. Um nome que só tem endereços IPv6, como o
+`postgres.railway.internal`, é usado pela JVM sem ser preciso opção nenhuma.
+
+> **Não acrescentes `-Djava.net.preferIPv6Addresses=true`.** Já lá esteve e
+> teve de sair. Essa opção só decide a ordem quando um nome tem endereços das
+> duas famílias, não ajuda em nada um nome que só tem IPv6, e manda para IPv6
+> tudo o resto, incluindo a API do Resend. Como o Railway não tem saída IPv6
+> para a internet pública, os emails de recuperação de password falhavam todos
+> com `Network is unreachable`.
+
+Se o problema persistir, usa o endereço público da base de dados para
+desbloquear:
 
 ```
 DB_URL  jdbc:postgresql://${{Postgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{Postgres.RAILWAY_TCP_PROXY_PORT}}/${{Postgres.PGDATABASE}}?sslmode=require

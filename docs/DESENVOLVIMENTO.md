@@ -208,6 +208,30 @@ Existe **um** `recarregar()` (ligas, detalhe, e as dívidas só se a tab estiver
 aberta) e todas as acções que mudam alguma coisa chamam-no. Não acrescentes
 refrescamentos avulso.
 
+### 4.6 Nunca ponhas `-Djava.net.preferIPv6Addresses=true`
+
+Já esteve no `Dockerfile`, posto para a rede privada do Railway, que só existe
+em IPv6. Estava a mais e fazia mal.
+
+A opção só decide a **ordem** quando um nome tem endereços das duas famílias.
+Um nome que só tem IPv6, como o `postgres.railway.internal`, é usado pela JVM
+sem opção nenhuma. Medido, com e sem:
+
+| `preferIPv6Addresses` | `api.resend.com` (as duas) | nome só com IPv6 |
+| --- | --- | --- |
+| `true` | IPv6 | IPv6 |
+| `system` | IPv4 | IPv6 |
+| ausente | IPv4 | IPv6 |
+
+O que ela fazia era mandar para IPv6 tudo o que tem as duas, incluindo a API do
+Resend. O Railway não tem saída IPv6 para a internet pública, por isso os emails
+de recuperação morriam em `Network is unreachable`.
+
+O sintoma apareceu longe da causa: parecia problema do Resend, ou do DNS do
+domínio, e era uma opção da JVM posta meses antes por outra razão. Se um dia
+alguma chamada a um serviço externo falhar com `Network is unreachable` em
+produção, começa por aqui.
+
 ---
 
 ## 5. Segurança
