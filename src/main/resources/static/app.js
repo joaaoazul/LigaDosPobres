@@ -706,6 +706,9 @@ document.addEventListener("submit", (evento) => {
             body: JSON.stringify({ valor: Number(valor) })
         });
         estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+        // O pote da liga vem no detalhe, por isso mexer no dinheiro obriga a
+        // recarregá-lo — senão o mostrador em cima fica a mostrar o de antes.
+        await carregarDetalhe();
         desenharListaEquipasDivida();
         desenharDetalheDivida();
         mostrarAlerta("Bloco registado.", "sucesso");
@@ -944,6 +947,7 @@ document.addEventListener("click", (evento) => {
             await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/blocos/${alvo.dataset.pagarBloco}/pagar`,
                 { method: "POST" });
             estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+            await carregarDetalhe();
             desenharListaEquipasDivida();
             desenharDetalheDivida();
             mostrarAlerta("Bloco marcado como pago.", "sucesso");
@@ -959,6 +963,7 @@ document.addEventListener("click", (evento) => {
             const equipaId = alvo.dataset.pagarTudo;
             await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/pagar`, { method: "POST" });
             estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
+            await carregarDetalhe();
             desenharListaEquipasDivida();
             desenharDetalheDivida();
             mostrarAlerta("Dívida paga.", "sucesso");

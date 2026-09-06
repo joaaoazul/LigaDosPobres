@@ -18,8 +18,4 @@ public record PoteDaLiga(BigDecimal total, BigDecimal pago, BigDecimal porPagar)
     public static PoteDaLiga de(BigDecimal pago, BigDecimal porPagar) {
         return new PoteDaLiga(pago.add(porPagar), pago, porPagar);
     }
-
-    public static PoteDaLiga vazio() {
-        return de(BigDecimal.ZERO, BigDecimal.ZERO);
-    }
 }
