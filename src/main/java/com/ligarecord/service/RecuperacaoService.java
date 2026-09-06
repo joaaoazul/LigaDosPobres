@@ -3,6 +3,7 @@ package com.ligarecord.service;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.PedidoRecuperacao;
 import com.ligarecord.email.EnviadorDeEmail;
+import com.ligarecord.email.ModeloDeEmail;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.PedidoRecuperacaoRepository;
 import org.slf4j.Logger;
@@ -102,7 +103,9 @@ public class RecuperacaoService {
         pedidoRepository.guardar(new PedidoRecuperacao(
                 UUID.randomUUID(), resumo(codigo), gestor, Instant.now().plus(VALIDADE)));
 
-        email.enviar(gestor.getEmail(), "Recuperar a password da Quota", mensagem(gestor, codigo));
+        ModeloDeEmail.Mensagem mensagem = ModeloDeEmail.recuperacaoDePassword(
+                gestor.getNome(), link(codigo), validadePorExtenso());
+        email.enviar(gestor.getEmail(), mensagem.assunto(), mensagem.texto(), mensagem.html());
     }
 
     /**
@@ -134,14 +137,23 @@ public class RecuperacaoService {
         pedidoRepository.guardar(pedido);
     }
 
-    private String mensagem(Gestor gestor, String codigo) {
-        return "Olá " + gestor.getNome() + ",\n\n"
-                + "Alguém pediu para redefinir a password da tua conta na Quota.\n"
-                + "Se foste tu, abre este link:\n\n"
-                + base + "/nova-password.html?codigo=" + codigo + "\n\n"
-                + "O link serve uma vez e expira dentro de uma hora.\n\n"
-                + "Se não foste tu, não tens de fazer nada: sem este link ninguém\n"
-                + "muda a password, e a que tens continua a servir.\n";
+    private String link(String codigo) {
+        return base + "/nova-password.html?codigo=" + codigo;
+    }
+
+    /**
+     * A validade dita por extenso, a partir da constante. Escrita à mão, ficava
+     * a dizer "uma hora" no dia em que alguém mudasse a {@link #VALIDADE} e se
+     * esquecesse de vir aqui.
+     */
+    private String validadePorExtenso() {
+        long horas = VALIDADE.toHours();
+        if (horas == 1) {
+            return "dentro de uma hora";
+        }
+        return horas > 0
+                ? "dentro de " + horas + " horas"
+                : "dentro de " + VALIDADE.toMinutes() + " minutos";
     }
 
     /**

@@ -397,6 +397,22 @@ Sem chave nenhuma a aplicação arranca à mesma e o `EnviadorParaLog` escreve a
 mensagens na consola, com o link e tudo. É assim que o fluxo se experimenta em
 desenvolvimento.
 
+### O HTML das mensagens
+
+Está todo no `ModeloDeEmail`, e parece antiquado de propósito. HTML de email não
+é HTML de página: tabelas para a disposição, estilos em linha, sem `<style>`,
+sem imagens e sem os tipos de letra da aplicação, porque um `@font-face` não
+carrega em cliente de email nenhum. O botão é uma célula de tabela com cor de
+fundo e não um `<a>` com padding, senão o Outlook, que desenha com o motor do
+Word, mostrava um link azul sublinhado onde devia estar um botão laranja.
+
+Cada mensagem leva sempre as duas versões, texto e HTML. Quem recebe em texto
+simples tem de conseguir recuperar a password na mesma, e um email só com HTML
+é olhado de lado pelos filtros de spam.
+
+O nome de quem recebe é escrito pela própria pessoa no registo e vai para dentro
+de HTML, por isso é escapado. Há um teste para isso.
+
 O túnel para a base de dados (`railway connect Postgres --tunnel-only`) falha
 com alguma frequência e não há URL pública alternativa. Quando isso acontecer,
 reproduzir localmente costuma responder melhor à pergunta do que espreitar os

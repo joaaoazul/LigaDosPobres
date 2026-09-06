@@ -17,7 +17,9 @@ public class EnviadorParaLog implements EnviadorDeEmail {
     private static final Logger LOG = LoggerFactory.getLogger(EnviadorParaLog.class);
 
     @Override
-    public void enviar(String para, String assunto, String corpo) {
-        LOG.info("Email por enviar, não há chave configurada\npara: {}\nassunto: {}\n{}", para, assunto, corpo);
+    public void enviar(String para, String assunto, String texto, String html) {
+        // Só a versão de texto: é a legível numa consola, e traz o link à
+        // mesma, que é para isto que serve em desenvolvimento.
+        LOG.info("Email por enviar, não há chave configurada\npara: {}\nassunto: {}\n{}", para, assunto, texto);
     }
 }

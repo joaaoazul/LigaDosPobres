@@ -12,5 +12,10 @@ package com.ligarecord.email;
  */
 public interface EnviadorDeEmail {
 
-    void enviar(String para, String assunto, String corpo);
+    /**
+     * As duas versões vão sempre juntas. Quem recebe em texto simples, ou num
+     * cliente que recusa HTML, tem de continuar a conseguir recuperar a
+     * password; e um email só com HTML é olhado de lado pelos filtros de spam.
+     */
+    void enviar(String para, String assunto, String texto, String html);
 }

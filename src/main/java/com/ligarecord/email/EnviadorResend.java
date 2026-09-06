@@ -33,11 +33,12 @@ public class EnviadorResend implements EnviadorDeEmail {
     }
 
     @Override
-    public void enviar(String para, String assunto, String corpo) {
+    public void enviar(String para, String assunto, String texto, String html) {
         try {
             cliente.post()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("from", remetente, "to", para, "subject", assunto, "text", corpo))
+                    .body(Map.of("from", remetente, "to", para, "subject", assunto,
+                            "text", texto, "html", html))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RuntimeException e) {

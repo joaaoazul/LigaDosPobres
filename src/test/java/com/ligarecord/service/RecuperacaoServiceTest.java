@@ -23,14 +23,14 @@ class RecuperacaoServiceTest {
 
     /** Guarda o que teria sido enviado, para os testes poderem ler o link. */
     private static class EnviadorDeTeste implements EnviadorDeEmail {
-        record Mensagem(String para, String assunto, String corpo) {
+        record Mensagem(String para, String assunto, String corpo, String html) {
         }
 
         final List<Mensagem> enviadas = new ArrayList<>();
 
         @Override
-        public void enviar(String para, String assunto, String corpo) {
-            enviadas.add(new Mensagem(para, assunto, corpo));
+        public void enviar(String para, String assunto, String texto, String html) {
+            enviadas.add(new Mensagem(para, assunto, texto, html));
         }
     }
 
