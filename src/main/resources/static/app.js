@@ -415,7 +415,7 @@ function desenharJornadaSelecionada() {
             </table>
         </div>
         ${fechada ? "" : `
-            <div class="barra-acoes" style="margin-top:16px">
+            <div class="barra-acoes depois">
                 <button class="botao primario" data-fechar="${jornada.id}"
                     ${jornada.resultados.length ? "" : "disabled"}>Fechar jornada</button>
                 <span class="ajuda">Empates ficam com a mesma posição (desempate manual ainda por implementar).</span>
@@ -533,7 +533,7 @@ function desenharDetalheDivida() {
                     <tbody>${linhasBlocos}</tbody>
                 </table>
             </div>
-            <div class="barra-acoes" style="margin-top:16px">
+            <div class="barra-acoes depois">
                 <button class="botao primario" data-pagar-tudo="${equipa.id}" ${temPendente ? "" : "disabled"}>
                     Marcar tudo pago
                 </button>

@@ -81,8 +81,9 @@ function desenharDividas() {
         return;
     }
 
+    $("#lista-minhas-equipas").classList.add("pilha");
     $("#lista-minhas-equipas").innerHTML = equipas.map((divida) => `
-        <div class="detalhe-jornada" style="margin-bottom: var(--e4)">
+        <div class="detalhe-jornada">
             <h3>${texto(divida.equipaNome)} <span class="ajuda">&middot; ${texto(divida.ligaNome)}</span></h3>
             <p class="ajuda">Total pendente: <strong>${formatoMoeda(divida.totalPendente)}</strong> ${badge(divida.estado)}</p>
             ${divida.blocos.length ? `
@@ -120,6 +121,9 @@ executar(async () => {
     }
     estado.eu = await resposta.json();
     $("#gestor-nome").textContent = estado.eu.nome;
+    if (estado.eu.admin) {
+        $("#link-admin").classList.remove("oculto");
+    }
 
     estado.dividas = await api("/api/minhas-dividas");
     desenharDividas();

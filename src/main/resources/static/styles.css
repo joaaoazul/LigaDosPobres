@@ -86,6 +86,15 @@
 
 * { box-sizing: border-box; }
 
+/* O browser desenha <hr> como uma moldura em relevo (border: 1px inset), um
+   resto dos anos 90 que destoa de tudo o resto neste tema escuro. Uma régua
+   fina, como as que já separam tabelas e cabeçalhos. */
+hr {
+    border: none;
+    border-top: 1px solid var(--regua);
+    margin: var(--e5) 0;
+}
+
 body {
     margin: 0;
     background: var(--ground);
@@ -656,6 +665,21 @@ td.numero, th.numero { text-align: right; }
     gap: var(--e3);
     flex-wrap: wrap;
     margin-bottom: var(--e5);
+}
+
+/* A mesma barra, mas depois de uma tabela em vez de antes dela: precisa de
+   espaço a separá-la do que vem acima, não do que vem a seguir. */
+.barra-acoes.depois {
+    margin-top: var(--e4);
+    margin-bottom: 0;
+}
+
+/* Uma coluna de blocos independentes (uma dívida por equipa, um resultado
+   por jornada), cada um já emoldurado — só falta o espaço entre eles. */
+.pilha {
+    display: flex;
+    flex-direction: column;
+    gap: var(--e4);
 }
 
 .ajuda {

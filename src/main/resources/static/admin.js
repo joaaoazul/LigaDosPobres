@@ -67,7 +67,8 @@ function data(valor) {
 function badge(estadoTexto) {
     const cores = {
         DISPONIVEL: "verde", USADO: "azul", REVOGADO: "vermelho",
-        EXPIRADO: "amarelo", ADMIN: "amarelo", GESTOR: ""
+        EXPIRADO: "amarelo", ADMIN: "amarelo", GESTOR: "",
+        SIM: "verde", NAO: "vermelho"
     };
     return `<span class="badge ${cores[estadoTexto] ?? ""}">${texto(estadoTexto)}</span>`;
 }
@@ -125,7 +126,7 @@ function desenharGestores() {
                         <td>${texto(g.email)}</td>
                         <td>${badge(g.papel)}</td>
                         <td>${g.ativo ? badge("ATIVO") : badge("DESATIVADO")}</td>
-                        <td>${g.podeCriarLigas ? badge("SIM") : `<span class="ajuda">não</span>`}</td>
+                        <td>${badge(g.podeCriarLigas ? "SIM" : "NAO")}</td>
                         <td>${data(g.criadoEm)}</td>
                         <td class="numero">
                             ${proprio ? `<span class="ajuda">a tua conta</span>` : `

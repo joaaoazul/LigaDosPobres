@@ -327,5 +327,8 @@ executar(async () => {
     }
     estado.eu = await resposta.json();
     $("#gestor-nome").textContent = estado.eu.nome;
+    if (estado.eu.admin) {
+        $("#link-admin").classList.remove("oculto");
+    }
     await carregarLigas();
 });
