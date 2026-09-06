@@ -1,5 +1,6 @@
 package com.ligarecord.security;
 
+import com.ligarecord.domain.Gestor;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.web.dto.ErroDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,12 +8,15 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Verifica, a cada pedido autenticado, que a conta continua ativa.
@@ -43,13 +47,11 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
 
         if (autenticacao != null && autenticacao.getPrincipal() instanceof GestorAutenticado gestor) {
-            boolean continuaAtivo = gestorRepository.buscarPorId(gestor.getId())
-                    .map(com.ligarecord.domain.Gestor::isAtivo)
-                    .orElse(false);
+            Optional<Gestor> atual = gestorRepository.buscarPorId(gestor.getId());
 
-            if (!continuaAtivo) {
+            if (atual.isEmpty() || !atual.get().isAtivo()) {
                 SecurityContextHolder.clearContext();
-                jakarta.servlet.http.HttpSession sessao = pedido.getSession(false);
+                HttpSession sessao = pedido.getSession(false);
                 if (sessao != null) {
                     sessao.invalidate();
                 }
@@ -58,9 +60,33 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
                 objectMapper.writeValue(resposta.getWriter(), new ErroDto(401, "A tua conta foi desativada."));
                 return;
             }
+
+            trocarPeloPrincipalFresco(autenticacao, atual.get());
         }
 
         cadeia.doFilter(pedido, resposta);
+    }
+
+    /**
+     * Reconstrói o principal a partir da linha que acabámos de ler, para este
+     * pedido.
+     *
+     * <p>O {@link GestorAutenticado} é uma fotografia tirada no login e vive na
+     * sessão, por isso as permissões ficavam congeladas nesse momento: tirar a
+     * um gestor o direito de criar ligas não tinha efeito nenhum enquanto ele
+     * tivesse sessão aberta — continuava a criá-las até sair e voltar a entrar.
+     * Não custa uma consulta a mais: é a mesma linha que já foi lida para
+     * confirmar que a conta continua ativa.
+     *
+     * <p>Só o contexto deste pedido é trocado. A sessão fica como está, e é
+     * relida da base de dados no pedido seguinte de qualquer forma.
+     */
+    private void trocarPeloPrincipalFresco(Authentication autenticacao, Gestor atual) {
+        GestorAutenticado fresco = new GestorAutenticado(atual);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                fresco, autenticacao.getCredentials(), fresco.getAuthorities());
+        token.setDetails(autenticacao.getDetails());
+        SecurityContextHolder.getContext().setAuthentication(token);
     }
 
     /**
