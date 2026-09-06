@@ -39,6 +39,9 @@ class ContaAtivaFilterTest {
         assertTrue(isento("/api/auth/registo"));
         assertTrue(isento("/api/auth/registo-treinador"));
         assertTrue(isento("/api/auth/logout"));
+        // Quem vem recuperar a password não tem sessão nenhuma, por definição.
+        assertTrue(isento("/api/auth/recuperar"));
+        assertTrue(isento("/api/auth/recuperar/confirmar"));
     }
 
     /**
@@ -125,6 +128,59 @@ class ContaAtivaFilterTest {
 
         assertEquals(401, resposta.getStatus());
         assertFalse(resposta.getContentAsString().isBlank());
+    }
+
+    /**
+     * O caso que motivou a data de corte: alguém recupera a password porque
+     * desconfia que outra pessoa entrou na conta. Se a sessão dessa pessoa
+     * continuasse a valer, a recuperação não tinha servido para nada.
+     */
+    @Test
+    void sessaoAbertaAntesDaMudancaDePasswordDeixaDeValer() throws Exception {
+        GestorRepository gestores = new GestorRepositoryImpl();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        gestores.guardar(gestor);
+
+        GestorAutenticado noLogin = new GestorAutenticado(gestor);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(noLogin, null, noLogin.getAuthorities()));
+
+        MockHttpServletRequest pedido = new MockHttpServletRequest();
+        pedido.setRequestURI("/api/ligas");
+        // A sessão existe desde antes da mudança.
+        pedido.getSession(true);
+        Thread.sleep(5);
+        gestor.invalidarSessoesAbertas();
+        gestores.guardar(gestor);
+
+        MockHttpServletResponse resposta = new MockHttpServletResponse();
+        new ContaAtivaFilter(gestores, new ObjectMapper()).doFilter(pedido, resposta, new MockFilterChain());
+
+        assertEquals(401, resposta.getStatus());
+        assertTrue(resposta.getContentAsString().contains("password"));
+    }
+
+    /** A sessão de quem acabou de mudar a password é aberta depois do corte e vale. */
+    @Test
+    void sessaoAbertaDepoisDaMudancaDePasswordContinuaAValer() throws Exception {
+        GestorRepository gestores = new GestorRepositoryImpl();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        gestor.invalidarSessoesAbertas();
+        gestores.guardar(gestor);
+
+        GestorAutenticado noLogin = new GestorAutenticado(gestor);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(noLogin, null, noLogin.getAuthorities()));
+
+        Thread.sleep(5);
+        MockHttpServletRequest pedido = new MockHttpServletRequest();
+        pedido.setRequestURI("/api/ligas");
+        pedido.getSession(true);
+
+        MockHttpServletResponse resposta = new MockHttpServletResponse();
+        new ContaAtivaFilter(gestores, new ObjectMapper()).doFilter(pedido, resposta, new MockFilterChain());
+
+        assertEquals(200, resposta.getStatus());
     }
 
     private boolean temPermissaoDeCriarLigas(GestorAutenticado conta) {

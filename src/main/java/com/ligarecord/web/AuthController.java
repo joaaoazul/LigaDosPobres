@@ -4,11 +4,14 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.GestorService;
+import com.ligarecord.service.RecuperacaoService;
 import com.ligarecord.service.TreinadorContaService;
 import com.ligarecord.web.dto.AlterarPasswordRequest;
 import com.ligarecord.web.dto.GestorDto;
 import com.ligarecord.web.dto.LigarTreinadorRequest;
 import com.ligarecord.web.dto.LoginRequest;
+import com.ligarecord.web.dto.PedirRecuperacaoRequest;
+import com.ligarecord.web.dto.RedefinirPasswordRequest;
 import com.ligarecord.web.dto.RegistoRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,16 +39,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final GestorService gestorService;
+    private final RecuperacaoService recuperacaoService;
     private final TreinadorContaService treinadorContaService;
     private final GestorRepository gestorRepository;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
     public AuthController(GestorService gestorService,
+                          RecuperacaoService recuperacaoService,
                           TreinadorContaService treinadorContaService,
                           GestorRepository gestorRepository,
                           AuthenticationManager authenticationManager) {
         this.gestorService = gestorService;
+        this.recuperacaoService = recuperacaoService;
         this.treinadorContaService = treinadorContaService;
         this.gestorRepository = gestorRepository;
         this.authenticationManager = authenticationManager;
@@ -129,6 +135,26 @@ public class AuthController {
             sessao.invalidate();
         }
         SecurityContextHolder.clearContext();
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Pede o link de recuperação.
+     *
+     * <p>Responde sempre 204, exista a conta ou não. Se distinguisse os dois
+     * casos, este endereço passava a ser uma forma de descobrir quem tem conta
+     * aqui, sem sequer precisar de tentar uma password.
+     */
+    @PostMapping("/recuperar")
+    public ResponseEntity<Void> pedirRecuperacao(@RequestBody PedirRecuperacaoRequest pedido) {
+        recuperacaoService.pedir(pedido.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Redefine a password a partir do código do email. */
+    @PostMapping("/recuperar/confirmar")
+    public ResponseEntity<Void> confirmarRecuperacao(@RequestBody RedefinirPasswordRequest pedido) {
+        recuperacaoService.redefinir(pedido.codigo(), pedido.password());
         return ResponseEntity.noContent().build();
     }
 

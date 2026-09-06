@@ -62,13 +62,20 @@ public class SecurityConfig {
                     .requestMatchers("/login.html", "/registo.html", "/registo-treinador.html", "/styles.css",
                                      "/auth.js", "/login.js", "/registo.js", "/registo-treinador.js",
                                      "/favicon.ico").permitAll()
+                    // Quem vem recuperar a password não tem sessão nenhuma: se
+                    // estas páginas exigissem autenticação, o link do email
+                    // levava ao login, que é precisamente onde a pessoa não
+                    // consegue entrar.
+                    .requestMatchers("/recuperar.html", "/recuperar.js",
+                                     "/nova-password.html", "/nova-password.js").permitAll()
                     // Os tipos de letra são servidos pela própria aplicação, para a
                     // CSP poder continuar a ser default-src 'self'. Sem esta linha,
                     // o pedido do .woff2 na página de login seria reencaminhado para
                     // o login e a página caía no tipo de letra do sistema.
                     .requestMatchers("/fontes/**").permitAll()
                     .requestMatchers("/api/auth/registo", "/api/auth/registo-treinador",
-                                     "/api/auth/login", "/api/auth/estado").permitAll()
+                                     "/api/auth/login", "/api/auth/estado",
+                                     "/api/auth/recuperar", "/api/auth/recuperar/confirmar").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;
                     // todo o resto é isolado por dono, não por perfil — com uma

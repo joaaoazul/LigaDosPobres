@@ -40,7 +40,7 @@ public class ConviteService {
 
         Convite convite = new Convite(
                 UUID.randomUUID(),
-                CodigosDeConvite.gerar(),
+                CodigosAleatorios.gerar(),
                 nota == null || nota.isBlank() ? null : nota.trim(),
                 admin,
                 expiraEm

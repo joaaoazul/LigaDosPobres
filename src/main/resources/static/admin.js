@@ -141,6 +141,10 @@ function desenharGestores() {
                                 <button class="botao pequeno" data-cria-ligas="${g.id}"
                                         data-novo-cria-ligas="${!g.podeCriarLigas}">
                                     ${g.podeCriarLigas ? "Bloquear criar ligas" : "Permitir criar ligas"}
+                                </button>
+                                <button class="botao pequeno" data-email="${g.id}"
+                                        data-email-atual="${texto(g.email)}">
+                                    Corrigir email
                                 </button>`}
                         </td>
                     </tr>`;
@@ -186,7 +190,8 @@ $("#btn-sair").addEventListener("click", () => {
 });
 
 document.addEventListener("click", (evento) => {
-    const alvo = evento.target.closest("[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas]");
+    const alvo = evento.target.closest(
+        "[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas], [data-email]");
     if (!alvo) {
         return;
     }
@@ -253,6 +258,25 @@ document.addEventListener("click", (evento) => {
             });
             await carregar();
             mostrarAlerta(permitir ? "Passa a poder criar ligas." : "Deixa de poder criar ligas.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.email) {
+        // Serve para desenrascar quem escreveu o email mal no registo: sem isto,
+        // essa conta não recebe o link de recuperação e fica presa para sempre,
+        // porque só o próprio muda o email e o próprio já não consegue entrar.
+        const novo = prompt("Email novo para esta conta:", alvo.dataset.emailAtual);
+        if (novo === null || novo.trim() === "" || novo.trim() === alvo.dataset.emailAtual) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/admin/gestores/${alvo.dataset.email}`, {
+                method: "PATCH",
+                body: JSON.stringify({ email: novo.trim() })
+            });
+            await carregar();
+            mostrarAlerta("Email alterado. A sessão dessa conta terminou.", "sucesso");
         });
     }
 });

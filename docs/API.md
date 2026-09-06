@@ -37,6 +37,7 @@ curl -b cookies -c cookies \
 | Caminho | Requisito |
 |---|---|
 | `/api/auth/login`, `/registo`, `/registo-treinador`, `/estado` | público |
+| `/api/auth/recuperar`, `/api/auth/recuperar/confirmar` | público |
 | `/actuator/health` | público |
 | `/api/admin/**` | papel `ADMIN` |
 | `POST /api/ligas` | permissão `PODE_CRIAR_LIGAS` |
@@ -111,6 +112,33 @@ decide se mostra a aplicação ou a página de entrada.
 ```
 `204`. **A sessão é invalidada a seguir**, de propósito: quem mudou volta a
 entrar, e qualquer sessão aberta noutro sítio deixa de servir.
+
+### `POST /api/auth/recuperar`
+```json
+{ "email": "joao@exemplo.pt" }
+```
+`204` **sempre**, exista a conta ou não. É deliberado: se distinguisse os dois
+casos, este endereço passava a ser uma forma de descobrir quem tem conta na
+aplicação, sem sequer precisar de tentar uma password. Um email mal formado
+também dá `204`.
+
+Envia uma mensagem com um link para `/nova-password.html?codigo=...`. O código
+tem 24 bytes aleatórios, vale uma hora e serve uma vez. Na base de dados fica só
+o SHA-256 dele.
+
+Limite de **três pedidos por conta por hora**. Acima disso continua a responder
+`204`, mas não envia nada.
+
+### `POST /api/auth/recuperar/confirmar`
+```json
+{ "codigo": "o-codigo-do-link", "password": "apasswordnova" }
+```
+`204`. `400` se o código for inventado, já usado ou expirado (a mensagem é a
+mesma nos três casos), e `400` se a password tiver menos de 10 caracteres. Uma
+password recusada **não gasta o código**: o link continua a servir.
+
+Não abre sessão: quem chega aqui não tinha nenhuma. Corta **todas as sessões
+abertas** dessa conta, incluindo as de outros dispositivos.
 
 ### `POST /api/auth/logout`
 `204`.
@@ -341,10 +369,15 @@ Tudo abaixo requer papel `ADMIN`.
 ### `PATCH /api/admin/gestores/{gestorId}`
 Envia só os campos a mudar; pelo menos um é obrigatório.
 ```json
-{ "ativo": false, "papel": "ADMIN", "podeCriarLigas": true }
+{ "ativo": false, "papel": "ADMIN", "podeCriarLigas": true, "email": "novo@exemplo.pt" }
 ```
-`409` ao tentar alterar a própria conta, ou ao desactivar/despromover o último
-administrador activo.
+`409` ao tentar alterar a própria conta, ao desactivar/despromover o último
+administrador activo, ou ao pôr um email que já é de outra conta.
+
+O `email` existe para desenrascar quem se enganou a escrevê-lo no registo: sem
+isto essa conta não recebe o link de recuperação e fica presa, porque só o
+próprio muda o email e o próprio já não consegue entrar. Muda-lo **corta as
+sessões abertas** dessa conta.
 
 Uma alteração aqui tem efeito **no pedido seguinte** da pessoa afectada, mesmo
 que ela esteja com sessão aberta.

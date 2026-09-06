@@ -7,12 +7,24 @@ function tokenCsrf() {
 }
 
 function mostrarErro(mensagem) {
-    const alerta = document.getElementById("alerta");
-    alerta.textContent = mensagem;
-    alerta.className = "alerta";
+    mostrarAlerta(mensagem, "erro");
 }
 
-async function submeter(caminho, corpo, form) {
+/** "erro" é o estilo base da caixa; sucesso e aviso são variantes. */
+function mostrarAlerta(mensagem, tipo) {
+    const alerta = document.getElementById("alerta");
+    alerta.textContent = mensagem;
+    alerta.className = `alerta ${tipo === "erro" ? "" : tipo}`;
+}
+
+/**
+ * Envia o formulário e, correndo bem, leva para a aplicação.
+ *
+ * <p>O `aoSucesso` existe para as páginas de recuperação: quem pede o link fica
+ * na mesma página a ler uma mensagem, e quem acabou de redefinir a password vai
+ * para o login e não para dentro, porque ainda não tem sessão nenhuma.
+ */
+async function submeter(caminho, corpo, form, aoSucesso) {
     // O botão é sempre o da forma que disparou o envio — não o primeiro da
     // página — para uma página com mais do que um formulário não desativar
     // o botão errado.
@@ -32,7 +44,11 @@ async function submeter(caminho, corpo, form) {
         });
 
         if (resposta.ok) {
-            window.location.href = "/";
+            if (aoSucesso) {
+                aoSucesso();
+            } else {
+                window.location.href = "/";
+            }
             return;
         }
 

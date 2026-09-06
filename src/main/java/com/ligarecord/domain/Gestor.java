@@ -54,6 +54,22 @@ public class Gestor extends EntidadeBase {
     @Column(name = "pode_criar_ligas", nullable = false)
     private boolean podeCriarLigas = true;
 
+    /**
+     * Momento a partir do qual uma sessão desta conta é aceite. Sessões abertas
+     * antes disto deixam de servir.
+     *
+     * <p>Existe porque mudar a password não chegava para expulsar ninguém: a
+     * sessão vive do lado do servidor e não sabe nada da password, por isso
+     * quem já lá estivesse dentro continuava lá. Numa recuperação de password
+     * isso é o pior caso possível, porque a razão para a recuperar costuma ser
+     * precisamente haver alguém que não devia estar na conta.
+     *
+     * <p>Fica a {@code null} até à primeira mudança de password: uma conta que
+     * nunca a mudou não tem nenhuma sessão a invalidar.
+     */
+    @Column(name = "sessoes_validas_desde")
+    private Instant sessoesValidasDesde;
+
     protected Gestor() {
         // exigido pelo Hibernate
     }
@@ -131,6 +147,18 @@ public class Gestor extends EntidadeBase {
 
     public void setPodeCriarLigas(boolean podeCriarLigas) {
         this.podeCriarLigas = podeCriarLigas;
+    }
+
+    public Instant getSessoesValidasDesde() {
+        return sessoesValidasDesde;
+    }
+
+    /**
+     * Corta todas as sessões abertas desta conta. Chamado sempre que a password
+     * muda, seja pelo próprio seja por recuperação.
+     */
+    public void invalidarSessoesAbertas() {
+        this.sessoesValidasDesde = Instant.now();
     }
 
     @Override

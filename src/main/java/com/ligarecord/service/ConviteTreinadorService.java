@@ -65,7 +65,7 @@ public class ConviteTreinadorService {
 
         return conviteRepository.guardar(new ConviteTreinador(
                 UUID.randomUUID(),
-                CodigosDeConvite.gerar(),
+                CodigosAleatorios.gerar(),
                 treinador,
                 criadoPor,
                 expiraEm

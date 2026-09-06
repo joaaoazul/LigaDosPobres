@@ -74,6 +74,36 @@ public class AdminService {
     }
 
     /**
+     * Corrige o email de uma conta.
+     *
+     * <p>Existe por causa da recuperação de password: quem escreveu o email mal
+     * no registo não recebe o link, e sem esta operação a conta ficava presa
+     * para sempre, porque só o próprio pode mudar o email e o próprio já não
+     * consegue entrar.
+     *
+     * <p>Corta as sessões abertas dessa conta. O email é metade das credenciais,
+     * e quem o muda a outra pessoa está a mudar por onde ela entra: deixar
+     * sessões vivas a essa conta seria deixar meia porta aberta.
+     */
+    @Transactional
+    public Gestor alterarEmail(UUID adminId, UUID gestorId, String email) {
+        Gestor gestor = buscar(gestorId);
+        verificarNaoEProprio(adminId, gestorId, "email");
+
+        String normalizado = RegrasDeConta.emailNormalizado(email);
+        if (normalizado.equals(gestor.getEmail())) {
+            throw new IllegalArgumentException("O email é o mesmo que já lá estava.");
+        }
+        if (gestorRepository.buscarPorEmail(normalizado).isPresent()) {
+            throw new IllegalStateException("Já existe uma conta com este email.");
+        }
+
+        gestor.setEmail(normalizado);
+        gestor.invalidarSessoesAbertas();
+        return gestorRepository.guardar(gestor);
+    }
+
+    /**
      * Rede redundante. Quem administra não pode mexer na própria conta, logo há
      * sempre pelo menos dois administradores ativos no momento em que um age
      * sobre o outro, e esta condição não chega a verificar-se. Fica como defesa

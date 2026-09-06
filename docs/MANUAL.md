@@ -77,8 +77,28 @@ A partir daí, a mesma conta gere as tuas ligas e mostra as equipas que treinas.
 Em **Password**. Tens de saber a password actual. Depois de mudares, a sessão
 termina e voltas a entrar com a nova, em todos os sítios onde estavas.
 
-> **Atenção:** não há recuperação de password por email. Se te esqueceres,
-> um administrador tem de tratar disso.
+### 2.5 Se te esqueceste da password
+
+Na página de entrada, carrega em **Recupera-a aqui**. Escreves o email da conta
+e recebes uma mensagem com um link.
+
+O link serve **uma vez** e **expira ao fim de uma hora**. Se demorares, ou se o
+usares e precisares de outro, é só pedir de novo.
+
+Alguns pormenores que valem a pena saber:
+
+- A página diz sempre a mesma coisa, quer o email tenha conta quer não. É de
+  propósito: assim ninguém pode usar este ecrã para descobrir quem está
+  registado na aplicação.
+- Se não receber nada, confirma a pasta de spam e confirma que escreveste o
+  email com que te registaste, e não outro qualquer.
+- Ao redefinires a password, **todas as sessões dessa conta são terminadas**,
+  incluindo as de outros telemóveis ou computadores. Se estás a recuperar
+  precisamente porque desconfias que alguém entrou na tua conta, é isto que
+  põe essa pessoa fora.
+
+> **Se o email da tua conta estiver mal escrito**, a mensagem nunca chega, e
+> nesse caso só um administrador pode corrigir o email (secção 9.2).
 
 ---
 
@@ -323,6 +343,10 @@ A tabela lista todas as contas. Em cada linha podes:
   apagadas.
 - **Bloquear** ou **Permitir criar ligas**. Serve para contas que entraram por
   convite de treinador e que queiras promover, ou o contrário.
+- **Corrigir email**. Existe para desenrascar quem escreveu o email mal no
+  registo: sem isto essa conta não recebe o link de recuperação e fica presa,
+  porque só o próprio muda o email e o próprio já não consegue entrar. Ao
+  corrigires, as sessões dessa conta terminam.
 
 Não podes alterar a tua própria conta. É deliberado, para ninguém se fechar
 fora da aplicação por engano.
@@ -338,7 +362,9 @@ fora da aplicação por engano.
 Para não haver surpresas:
 
 - **Não movimenta dinheiro.** Marcar como pago é um registo do que recebeste.
-- **Não recupera passwords por email.** Não envia emails de todo.
+- **Não confirma o email no registo.** O registo é por convite, e ninguém se
+  regista sem um. Mas também ninguém verifica se o email que escreveste está
+  certo, e só dás por isso quando precisares de recuperar a password.
 - **Não reabre jornadas.** Depois de fechada, uma jornada não se altera.
 - **Não desfaz uma liga terminada.**
 - **Não apaga equipas.** Quem sai marca-se como desistente, e o histórico fica.
@@ -365,6 +391,20 @@ A tua conta não pode criar ligas. Pede a um administrador.
 
 **"A tua conta foi desativada."**
 Fala com um administrador.
+
+**"A password desta conta foi alterada. Entra outra vez."**
+A password foi mudada noutro sítio, ou recuperada por email, e as sessões
+antigas deixaram de valer. Entra com a password nova. Se não foste tu a
+mudá-la, recupera-a já (secção 2.5) e escolhe outra.
+
+**Pedi o link de recuperação e não recebi nada.**
+Confirma a pasta de spam. Confirma que escreveste o email com que te
+registaste. Se pediste várias vezes seguidas, só as três primeiras de cada
+hora são enviadas. Se mesmo assim nada, o email da conta pode estar mal
+escrito, e aí só um administrador o corrige.
+
+**"O link de recuperação não é válido ou já expirou."**
+Os links servem uma vez e duram uma hora. Pede outro.
 
 **"Isto foi alterado por outro pedido ao mesmo tempo. Tenta outra vez."**
 Duas alterações à mesma coisa ao mesmo tempo, provavelmente em dois

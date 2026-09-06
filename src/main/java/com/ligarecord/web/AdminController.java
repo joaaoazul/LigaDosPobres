@@ -57,8 +57,9 @@ public class AdminController {
                                         @PathVariable UUID gestorId,
                                         @RequestBody AlterarGestorRequest pedido) {
 
-        if (pedido.ativo() == null && pedido.papel() == null && pedido.podeCriarLigas() == null) {
-            throw new IllegalArgumentException("Indica o estado, o papel ou a permissão a alterar.");
+        if (pedido.ativo() == null && pedido.papel() == null
+                && pedido.podeCriarLigas() == null && pedido.email() == null) {
+            throw new IllegalArgumentException("Indica o estado, o papel, a permissão ou o email a alterar.");
         }
 
         Gestor gestor = null;
@@ -71,6 +72,9 @@ public class AdminController {
         }
         if (pedido.podeCriarLigas() != null) {
             gestor = adminService.alterarPermissaoCriarLigas(admin.getId(), gestorId, pedido.podeCriarLigas());
+        }
+        if (pedido.email() != null) {
+            gestor = adminService.alterarEmail(admin.getId(), gestorId, pedido.email());
         }
 
         return GestorAdminDto.de(gestor);

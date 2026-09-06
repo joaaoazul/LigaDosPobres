@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -50,14 +51,12 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
             Optional<Gestor> atual = gestorRepository.buscarPorId(gestor.getId());
 
             if (atual.isEmpty() || !atual.get().isAtivo()) {
-                SecurityContextHolder.clearContext();
-                HttpSession sessao = pedido.getSession(false);
-                if (sessao != null) {
-                    sessao.invalidate();
-                }
-                resposta.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                resposta.setContentType("application/json;charset=UTF-8");
-                objectMapper.writeValue(resposta.getWriter(), new ErroDto(401, "A tua conta foi desativada."));
+                terminar(pedido, resposta, "A tua conta foi desativada.");
+                return;
+            }
+
+            if (sessaoAnteriorAUmaMudancaDePassword(pedido, atual.get())) {
+                terminar(pedido, resposta, "A password desta conta foi alterada. Entra outra vez.");
                 return;
             }
 
@@ -65,6 +64,38 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
         }
 
         cadeia.doFilter(pedido, resposta);
+    }
+
+    /**
+     * Uma sessão aberta antes da última mudança de password deixou de valer.
+     *
+     * <p>A sessão vive do lado do servidor e não sabe nada da password, por isso
+     * mudá-la não expulsava ninguém: quem já lá estivesse dentro continuava lá.
+     * Numa recuperação de password é o pior caso possível, porque a razão para a
+     * recuperar costuma ser haver alguém na conta que não devia estar.
+     *
+     * <p>Uma conta que nunca mudou a password não tem data de corte e não passa
+     * por aqui.
+     */
+    private boolean sessaoAnteriorAUmaMudancaDePassword(HttpServletRequest pedido, Gestor atual) {
+        Instant corte = atual.getSessoesValidasDesde();
+        if (corte == null) {
+            return false;
+        }
+        HttpSession sessao = pedido.getSession(false);
+        return sessao != null && Instant.ofEpochMilli(sessao.getCreationTime()).isBefore(corte);
+    }
+
+    private void terminar(HttpServletRequest pedido, HttpServletResponse resposta, String mensagem)
+            throws IOException {
+        SecurityContextHolder.clearContext();
+        HttpSession sessao = pedido.getSession(false);
+        if (sessao != null) {
+            sessao.invalidate();
+        }
+        resposta.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        resposta.setContentType("application/json;charset=UTF-8");
+        objectMapper.writeValue(resposta.getWriter(), new ErroDto(401, mensagem));
     }
 
     /**
@@ -108,6 +139,7 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
         return caminho.equals("/api/auth/registo")
                 || caminho.equals("/api/auth/registo-treinador")
                 || caminho.equals("/api/auth/login")
-                || caminho.equals("/api/auth/logout");
+                || caminho.equals("/api/auth/logout")
+                || caminho.startsWith("/api/auth/recuperar");
     }
 }

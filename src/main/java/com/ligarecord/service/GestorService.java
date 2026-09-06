@@ -75,6 +75,10 @@ public class GestorService {
         }
 
         gestor.setPasswordHash(passwordEncoder.encode(nova));
+        // O controlador termina a sessão deste browser; isto termina as dos
+        // outros. Mudar a password por se desconfiar de alguém não servia de
+        // nada se essa pessoa continuasse com a sessão dela aberta noutro sítio.
+        gestor.invalidarSessoesAbertas();
         gestorRepository.guardar(gestor);
     }
 }

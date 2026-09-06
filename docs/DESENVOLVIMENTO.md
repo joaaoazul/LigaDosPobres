@@ -223,6 +223,18 @@ refrescamentos avulso.
 - **404 em vez de 403** quando o recurso é de outra pessoa, para não confirmar
   que existe.
 - **Contas desactivadas** são barradas no pedido seguinte, não no próximo login.
+- **Sessões cortadas por mudança de password.** `Gestor.sessoesValidasDesde` é
+  uma data de corte: o `ContaAtivaFilter` recusa qualquer sessão criada antes
+  dela. Sem isto, mudar a password não expulsava ninguém, porque a sessão vive
+  do lado do servidor e não sabe nada da password. Quem recupera a password
+  costuma fazê-lo por desconfiar que alguém entrou; deixar a sessão dessa
+  pessoa viva tornava a recuperação inútil. Também é accionada quando um
+  administrador corrige o email de uma conta.
+- **Recuperação de password** (`RecuperacaoService`): pedir responde sempre 204,
+  exista a conta ou não, para o endereço não servir de lista de quem está
+  registado. O código tem 24 bytes aleatórios, vale uma hora, serve uma vez, e
+  é guardado em SHA-256 e não em claro. Máximo de três pedidos por conta por
+  hora.
 - **Logos** são validados pelos primeiros bytes (`ImagemSuportada`), não pelo
   `Content-Type` que o cliente declara. SVG fica de fora, para não servirmos
   scripts do nosso próprio domínio.
@@ -338,6 +350,28 @@ railway logs                 # ver o arranque
 ```
 
 Confirma sempre nos logs que as migrações validaram e que o arranque foi limpo.
+Confirma também que não aparece o aviso `Sem EMAIL_CHAVE ou EMAIL_REMETENTE`:
+se aparecer, os emails de recuperação vão para o log em vez de serem enviados,
+e ninguém consegue recuperar a password.
+
+### Email
+
+Três variáveis de ambiente:
+
+| Variável | Para que serve |
+| --- | --- |
+| `EMAIL_CHAVE` | Chave de API do Resend |
+| `EMAIL_REMETENTE` | Remetente, num domínio verificado no Resend |
+| `APP_URL` | Endereço público, usado no link do email |
+
+O `EMAIL_REMETENTE` tem mesmo de ser de um domínio verificado no Resend, com os
+registos de DNS configurados. Com o remetente de teste deles, só a caixa de
+correio do dono da conta recebe as mensagens, o que na prática deixa a
+recuperação sem funcionar para toda a gente menos uma pessoa.
+
+Sem chave nenhuma a aplicação arranca à mesma e o `EnviadorParaLog` escreve as
+mensagens na consola, com o link e tudo. É assim que o fluxo se experimenta em
+desenvolvimento.
 
 O túnel para a base de dados (`railway connect Postgres --tunnel-only`) falha
 com alguma frequência e não há URL pública alternativa. Quando isso acontecer,
@@ -348,7 +382,9 @@ dados de produção.
 
 ## 10. Por implementar
 
-- Recuperação de password e verificação de email no registo.
+- Verificação de email no registo. O convite já trava o registo aberto, que é o
+  que a confirmação costuma proteger; o que fica por resolver é o email mal
+  escrito, e para esse o remendo é o administrador corrigi-lo à mão.
 - Limitação de tentativas de login.
 - Desempate na classificação geral (hoje ordena por nome).
 - Reabrir uma jornada fechada.

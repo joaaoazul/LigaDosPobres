@@ -120,4 +120,52 @@ class AdminServiceTest {
                 () -> adminService.alterarPermissaoCriarLigas(admin.getId(), admin.getId(), false)
         );
     }
+
+    /* ---------------------------------------------------- correcao de email --- */
+
+    @Test
+    void deveCorrigirOEmailDeOutraConta() {
+        Gestor resultado = adminService.alterarEmail(admin.getId(), gestor.getId(), "  Novo@Exemplo.PT ");
+
+        // normalizado, como em todo o lado: sem espacos e em minusculas
+        assertEquals("novo@exemplo.pt", resultado.getEmail());
+    }
+
+    /**
+     * O email e metade das credenciais. Muda-lo a outra pessoa e mudar por onde
+     * ela entra, e deixar sessoes vivas seria deixar meia porta aberta.
+     */
+    @Test
+    void corrigirOEmailDeveCortarAsSessoesAbertas() {
+        assertNull(gestor.getSessoesValidasDesde());
+
+        Gestor resultado = adminService.alterarEmail(admin.getId(), gestor.getId(), "novo@exemplo.pt");
+
+        assertNotNull(resultado.getSessoesValidasDesde());
+    }
+
+    @Test
+    void naoDeveCorrigirParaUmEmailQueJaEDeOutraConta() {
+        assertThrows(IllegalStateException.class,
+                () -> adminService.alterarEmail(admin.getId(), gestor.getId(), "admin@teste.pt"));
+    }
+
+    @Test
+    void naoDeveCorrigirParaUmEmailInvalido() {
+        assertThrows(IllegalArgumentException.class,
+                () -> adminService.alterarEmail(admin.getId(), gestor.getId(), "isto-nao-e-um-email"));
+    }
+
+    @Test
+    void naoDeveCorrigirParaOMesmoEmail() {
+        assertThrows(IllegalArgumentException.class,
+                () -> adminService.alterarEmail(admin.getId(), gestor.getId(), "GESTOR@teste.pt"));
+    }
+
+    /** Mexer na propria conta continua vedado, tal como no estado e no papel. */
+    @Test
+    void naoDeveCorrigirOEmailDaPropriaConta() {
+        assertThrows(IllegalStateException.class,
+                () -> adminService.alterarEmail(admin.getId(), admin.getId(), "outro@exemplo.pt"));
+    }
 }

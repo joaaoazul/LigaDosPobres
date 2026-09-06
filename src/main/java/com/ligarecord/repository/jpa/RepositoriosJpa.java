@@ -8,6 +8,7 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
+import com.ligarecord.domain.PedidoRecuperacao;
 import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoDivida;
@@ -19,10 +20,12 @@ import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
+import com.ligarecord.repository.PedidoRecuperacaoRepository;
 import com.ligarecord.repository.RegraDividaRepository;
 import com.ligarecord.repository.TreinadorRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -300,6 +303,31 @@ public final class RepositoriosJpa {
         @Override
         public List<Convite> listarTodos() {
             return jpa.findAllByOrderByCriadoEmDesc();
+        }
+    }
+
+    @Repository
+    public static class PedidosRecuperacao implements PedidoRecuperacaoRepository {
+
+        private final PedidoRecuperacaoJpaRepository jpa;
+
+        public PedidosRecuperacao(PedidoRecuperacaoJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public PedidoRecuperacao guardar(PedidoRecuperacao pedido) {
+            return jpa.save(pedido);
+        }
+
+        @Override
+        public Optional<PedidoRecuperacao> buscarPorCodigoHash(String codigoHash) {
+            return jpa.findByCodigoHash(codigoHash);
+        }
+
+        @Override
+        public long contarDoGestorDesde(UUID gestorId, Instant desde) {
+            return jpa.countByGestorIdAndCriadoEmAfter(gestorId, desde);
         }
     }
 }
