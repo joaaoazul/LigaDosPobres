@@ -12,6 +12,7 @@ import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.ClassificacaoService;
+import com.ligarecord.service.DividaService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
 import com.ligarecord.web.dto.ClassificacaoDto;
@@ -57,6 +58,7 @@ public class LigaController {
 
     private final LigaService ligaService;
     private final ClassificacaoService classificacaoService;
+    private final DividaService dividaService;
     private final LigaRepository ligaRepository;
     private final LigaLogoRepository ligaLogoRepository;
     private final EquipaRepository equipaRepository;
@@ -64,12 +66,14 @@ public class LigaController {
 
     public LigaController(LigaService ligaService,
                           ClassificacaoService classificacaoService,
+                          DividaService dividaService,
                           LigaRepository ligaRepository,
                           LigaLogoRepository ligaLogoRepository,
                           EquipaRepository equipaRepository,
                           GestorRepository gestorRepository) {
         this.ligaService = ligaService;
         this.classificacaoService = classificacaoService;
+        this.dividaService = dividaService;
         this.ligaRepository = ligaRepository;
         this.ligaLogoRepository = ligaLogoRepository;
         this.equipaRepository = equipaRepository;
@@ -101,7 +105,7 @@ public class LigaController {
     public LigaDetalheDto detalhe(@AuthenticationPrincipal GestorAutenticado autenticado,
                                   @PathVariable UUID ligaId) {
         Liga liga = liga(autenticado, ligaId);
-        return LigaDetalheDto.de(liga, classificacao(liga));
+        return LigaDetalheDto.de(liga, classificacao(liga), dividaService.calcularPoteDaLiga(liga));
     }
 
     @GetMapping("/{ligaId}/classificacao")

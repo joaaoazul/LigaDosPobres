@@ -502,6 +502,50 @@ input:disabled {
     margin-top: var(--e2);
 }
 
+/* ------------------------------------------------------ o pote da liga --- */
+
+/* Três números para ler de relance, na mesma linguagem do marcador: rótulo
+   miúdo em versais por cima, número grande e tabular por baixo. Em dinheiro,
+   badges ficavam pequenos de mais para o que isto pesa. */
+.mostrador-pote {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--e5);
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    padding: var(--e3) var(--e4);
+    margin-bottom: var(--e4);
+}
+
+.valor-pote {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rotulo-pote {
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-micro);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+}
+
+.valor-pote strong {
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-grande);
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* As mesmas cores que os estados já usam no resto da aplicação. O laranja de
+   sinal fica de fora de propósito: é do líder, do separador activo e do foco,
+   e uma quarta utilização tirava-lhe o significado. */
+.valor-pote.pago strong { color: var(--ok); }
+.valor-pote.por-pagar strong { color: var(--espera); }
+
 /* Etiqueta de estado: um ponto de cor e a palavra. Sozinha, a cor não diz
    nada a quem não a distingue. */
 .badge {

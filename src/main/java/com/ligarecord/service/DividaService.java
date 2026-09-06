@@ -6,6 +6,7 @@ import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.PoteDaLiga;
 import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.ResultadoJornada;
 import com.ligarecord.domain.enums.EstadoDivida;
@@ -148,6 +149,36 @@ public class DividaService {
                 .filter(bloco -> !bloco.estaResolvido())
                 .map(BlocoDivida::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * O pote da liga: o que já foi lançado, o que está dado como pago e o que
+     * falta receber.
+     *
+     * <p>Somado bloco a bloco de propósito. O estado da dívida de uma equipa
+     * diz só se ainda sobra alguma coisa por pagar, não quanto — uma dívida
+     * pendente pode ter blocos já pagos lá dentro, por isso somar por aí dava
+     * números errados.
+     *
+     * <p>Conta tudo: inscrições e blocos de período, e também o que as equipas
+     * desistentes deixaram por pagar — continua a fazer falta ao pote.
+     */
+    @Transactional(readOnly = true)
+    public PoteDaLiga calcularPoteDaLiga(Liga liga) {
+        BigDecimal pago = BigDecimal.ZERO;
+        BigDecimal porPagar = BigDecimal.ZERO;
+
+        for (Divida divida : dividaRepository.listarPorLiga(liga)) {
+            for (BlocoDivida bloco : divida.getBlocos()) {
+                if (bloco.estaResolvido()) {
+                    pago = pago.add(bloco.getValor());
+                } else {
+                    porPagar = porPagar.add(bloco.getValor());
+                }
+            }
+        }
+
+        return PoteDaLiga.de(pago, porPagar);
     }
 
     /** Soma tudo o que as equipas desta conta (como treinador) ainda devem, em qualquer liga. */

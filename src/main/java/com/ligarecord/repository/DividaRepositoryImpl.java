@@ -29,6 +29,13 @@ public class DividaRepositoryImpl extends RepositorioEmMemoria<Divida> implement
     }
 
     @Override
+    public List<Divida> listarPorLiga(Liga liga) {
+        return entidades.stream()
+                .filter(divida -> divida.getEquipa().getLiga().equals(liga))
+                .toList();
+    }
+
+    @Override
     public List<Divida> buscarPorTreinador(Gestor conta) {
         // Mesma ordem que a consulta JPA real (findByEquipaTreinadorContaIdOrderBy
         // EquipaLigaNomeAscEquipaNomeAsc), para um teste com este fake não ficar

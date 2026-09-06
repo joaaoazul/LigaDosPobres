@@ -17,6 +17,16 @@ public interface DividaRepository {
 
     List<Divida> listarDividas(Liga liga, EstadoDivida estadoDivida);
 
+    /**
+     * Todas as dívidas da liga, sem filtrar por estado.
+     *
+     * <p>Distinto do {@link #listarDividas}: aquele filtra pelo estado da
+     * dívida da equipa, que não diz nada sobre cada bloco — uma dívida
+     * pendente pode ter blocos já pagos lá dentro. Para somar dinheiro é
+     * preciso olhar bloco a bloco, e para isso são precisas todas.
+     */
+    List<Divida> listarPorLiga(Liga liga);
+
     /** Todas as dívidas das equipas que esta conta treina, em qualquer liga. */
     List<Divida> buscarPorTreinador(Gestor conta);
 }

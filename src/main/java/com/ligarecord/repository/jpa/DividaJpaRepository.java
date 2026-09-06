@@ -17,6 +17,10 @@ public interface DividaJpaRepository extends JpaRepository<Divida, UUID> {
     @EntityGraph(attributePaths = {"blocos", "equipa"})
     List<Divida> findByEquipaLigaIdAndEstado(UUID ligaId, EstadoDivida estado);
 
+    /** Os blocos vêm no mesmo pedido: é sobre eles que o pote da liga é somado. */
+    @EntityGraph(attributePaths = {"blocos"})
+    List<Divida> findByEquipaLigaId(UUID ligaId);
+
     @EntityGraph(attributePaths = {"blocos", "equipa", "equipa.liga"})
     List<Divida> findByEquipaTreinadorContaIdOrderByEquipaLigaNomeAscEquipaNomeAsc(UUID contaId);
 }

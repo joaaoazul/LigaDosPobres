@@ -213,6 +213,11 @@ public final class RepositoriosJpa {
         }
 
         @Override
+        public List<Divida> listarPorLiga(Liga liga) {
+            return jpa.findByEquipaLigaId(liga.getId());
+        }
+
+        @Override
         public List<Divida> buscarPorTreinador(Gestor conta) {
             return jpa.findByEquipaTreinadorContaIdOrderByEquipaLigaNomeAscEquipaNomeAsc(conta.getId());
         }

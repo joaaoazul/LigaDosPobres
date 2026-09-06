@@ -67,6 +67,37 @@ function plural(n, singular, pluralForma) {
     return `${n} ${n === 1 ? singular : pluralForma}`;
 }
 
+function formatoMoeda(valor) {
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(valor ?? 0);
+}
+
+/* O pote é da liga toda, não das equipas desta conta: são valores agregados,
+   não dizem quanto cada equipa deve. Escondido numa liga que não cobra nada. */
+function desenharPote(pote) {
+    const mostrador = $("#mostrador-pote");
+    const temDinheiro = Boolean(pote) && Number(pote.total) > 0;
+
+    mostrador.classList.toggle("oculto", !temDinheiro);
+    if (!temDinheiro) {
+        mostrador.innerHTML = "";
+        return;
+    }
+
+    mostrador.innerHTML = `
+        <div class="valor-pote">
+            <span class="rotulo-pote">Total</span>
+            <strong class="numero">${formatoMoeda(pote.total)}</strong>
+        </div>
+        <div class="valor-pote pago">
+            <span class="rotulo-pote">Pago</span>
+            <strong class="numero">${formatoMoeda(pote.pago)}</strong>
+        </div>
+        <div class="valor-pote por-pagar">
+            <span class="rotulo-pote">Dívidas</span>
+            <strong class="numero">${formatoMoeda(pote.porPagar)}</strong>
+        </div>`;
+}
+
 function badgeEstado(estadoTexto) {
     const cores = {
         ATIVA: "verde",
@@ -144,6 +175,7 @@ function desenharDetalhe() {
         `<span class="badge">${plural(liga.totalJornadas, "jornada", "jornadas")}</span>`
     ].join("");
 
+    desenharPote(detalhe.pote);
     desenharClassificacao(detalhe.classificacao);
     desenharEquipas(detalhe.equipas);
     desenharJornadas(detalhe.jornadas);

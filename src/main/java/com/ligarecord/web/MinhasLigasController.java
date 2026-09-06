@@ -8,6 +8,7 @@ import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.TreinadorRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.ClassificacaoService;
+import com.ligarecord.service.DividaService;
 import com.ligarecord.web.dto.ClassificacaoDto;
 import com.ligarecord.web.dto.LigaDetalheDto;
 import com.ligarecord.web.dto.LigaDto;
@@ -37,15 +38,18 @@ public class MinhasLigasController {
     private final EquipaRepository equipaRepository;
     private final GestorRepository gestorRepository;
     private final ClassificacaoService classificacaoService;
+    private final DividaService dividaService;
 
     public MinhasLigasController(TreinadorRepository treinadorRepository,
                                  EquipaRepository equipaRepository,
                                  GestorRepository gestorRepository,
-                                 ClassificacaoService classificacaoService) {
+                                 ClassificacaoService classificacaoService,
+                                 DividaService dividaService) {
         this.treinadorRepository = treinadorRepository;
         this.equipaRepository = equipaRepository;
         this.gestorRepository = gestorRepository;
         this.classificacaoService = classificacaoService;
+        this.dividaService = dividaService;
     }
 
     @GetMapping
@@ -78,7 +82,9 @@ public class MinhasLigasController {
         List<ClassificacaoDto> classificacao = classificacaoService.calcularClassificacao(liga).stream()
                 .map(ClassificacaoDto::de)
                 .toList();
-        return LigaDetalheDto.de(liga, classificacao);
+        // O pote é da liga toda, não das equipas desta conta: são valores
+        // agregados, não dizem quanto cada equipa deve.
+        return LigaDetalheDto.de(liga, classificacao, dividaService.calcularPoteDaLiga(liga));
     }
 
     private List<Equipa> equipasTreinadas(Gestor conta) {

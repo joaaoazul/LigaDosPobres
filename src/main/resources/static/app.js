@@ -222,10 +222,39 @@ function desenharDetalhe() {
     $("#btn-terminar").disabled = desativada;
     $("#btn-abrir-jornada").disabled = desativada;
 
+    desenharPote(detalhe.pote);
     desenharClassificacao(detalhe.classificacao);
     desenharEquipas(detalhe.equipas, desativada);
     desenharJornadas(detalhe.jornadas);
     desenharJornadaSelecionada();
+}
+
+/* O dinheiro da liga inteira: o que já foi lançado, o que o gestor deu por
+   pago, e o que falta receber. Some-se numa liga que ainda não cobra nada —
+   três zeros no cabeçalho não dizem nada a ninguém. */
+function desenharPote(pote) {
+    const mostrador = $("#mostrador-pote");
+    const temDinheiro = Boolean(pote) && Number(pote.total) > 0;
+
+    mostrador.classList.toggle("oculto", !temDinheiro);
+    if (!temDinheiro) {
+        mostrador.innerHTML = "";
+        return;
+    }
+
+    mostrador.innerHTML = `
+        <div class="valor-pote">
+            <span class="rotulo-pote">Total</span>
+            <strong class="numero">${formatoMoeda(pote.total)}</strong>
+        </div>
+        <div class="valor-pote pago">
+            <span class="rotulo-pote">Pago</span>
+            <strong class="numero">${formatoMoeda(pote.pago)}</strong>
+        </div>
+        <div class="valor-pote por-pagar">
+            <span class="rotulo-pote">Dívidas</span>
+            <strong class="numero">${formatoMoeda(pote.porPagar)}</strong>
+        </div>`;
 }
 
 /* O logo é a identidade da liga (do gestor), mostrada aqui, no seu espaço.
