@@ -132,4 +132,16 @@ public class Convite extends EntidadeBase {
     public String toString() {
         return "Convite{id=" + id + "}";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Convite outro)) return false;
+        return id != null && id.equals(outro.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
