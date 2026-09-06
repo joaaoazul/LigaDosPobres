@@ -175,6 +175,24 @@ async function carregarDetalhe() {
     desenharDetalhe();
 }
 
+/**
+ * Um sítio só para "os dados mudaram": volta a ler o que o servidor sabe e
+ * redesenha tudo.
+ *
+ * Toda a acção que muda alguma coisa chama isto, em vez de cada uma decidir
+ * por si o que refrescar. Enquanto essa decisão era de cada handler, faltava
+ * sempre um pedaço: o painel do desempate ficou com a ordem velha, e o
+ * mostrador do pote não mexia depois de marcar um pagamento. Custa um ou dois
+ * pedidos a mais por acção, e à escala desta aplicação isso não se nota.
+ *
+ * As dívidas só são lidas se a tab estiver aberta — são um pedido por equipa.
+ */
+async function recarregar() {
+    await carregarLigas();
+    await carregarDetalhe();
+    await atualizarDividasSeAbertas();
+}
+
 /* -------------------------------------------------------------- desenho --- */
 
 function desenharLigas() {
@@ -671,7 +689,7 @@ function selecionarTab(tab) {
 $("#form-regra-divida").addEventListener("submit", (evento) => {
     evento.preventDefault();
     executar(async () => {
-        estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`, {
+        await api(`/api/ligas/${estado.ligaId}/regra-divida`, {
             method: "PUT",
             body: JSON.stringify({
                 valorInscricao: Number($("#regra-inscricao").value || 0),
@@ -682,9 +700,7 @@ $("#form-regra-divida").addEventListener("submit", (evento) => {
                 jornadasPorBloco: Number($("#regra-jornadas").value || 1)
             })
         });
-        desenharRegraDivida();
-        // A coluna de valor na tab Jornadas também depende da regra.
-        desenharJornadaSelecionada();
+        await recarregar();
         mostrarAlerta("Regra de dívida guardada.", "sucesso");
     });
 });
@@ -705,12 +721,7 @@ document.addEventListener("submit", (evento) => {
             method: "POST",
             body: JSON.stringify({ valor: Number(valor) })
         });
-        estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
-        // O pote da liga vem no detalhe, por isso mexer no dinheiro obriga a
-        // recarregá-lo — senão o mostrador em cima fica a mostrar o de antes.
-        await carregarDetalhe();
-        desenharListaEquipasDivida();
-        desenharDetalheDivida();
+        await recarregar();
         mostrarAlerta("Bloco registado.", "sucesso");
     });
 });
@@ -728,8 +739,7 @@ $("#form-liga").addEventListener("submit", (evento) => {
         $("#liga-nome").value = "";
         estado.ligaId = liga.id;
         estado.jornadaId = null;
-        await carregarLigas();
-        await carregarDetalhe();
+        await recarregar();
         mostrarAlerta(`Liga "${liga.nome}" criada.`, "sucesso");
     });
 });
@@ -746,10 +756,8 @@ $("#form-equipa").addEventListener("submit", (evento) => {
         });
         $("#equipa-nome").value = "";
         $("#equipa-treinador").value = "";
-        await carregarDetalhe();
-        await carregarLigas();
         // A equipa pode ter sido logo cobrada a inscrição, se a liga tiver regra.
-        await atualizarDividasSeAbertas();
+        await recarregar();
         mostrarAlerta("Equipa adicionada.", "sucesso");
     });
 });
@@ -760,8 +768,7 @@ $("#btn-terminar").addEventListener("click", () => {
     }
     executar(async () => {
         await api(`/api/ligas/${estado.ligaId}/terminar`, { method: "POST" });
-        await carregarDetalhe();
-        await carregarLigas();
+        await recarregar();
         mostrarAlerta("Liga terminada.", "sucesso");
     });
 });
@@ -779,7 +786,7 @@ $("#input-logo").addEventListener("change", (evento) => {
         dados.append("ficheiro", ficheiro);
         await api(`/api/ligas/${estado.ligaId}/logo`, { method: "POST", body: dados });
         estado.logoV = Date.now();
-        await carregarDetalhe();
+        await recarregar();
         mostrarAlerta("Logo da liga atualizado.", "sucesso");
     });
 });
@@ -791,7 +798,7 @@ $("#btn-logo-remover").addEventListener("click", () => {
     executar(async () => {
         await api(`/api/ligas/${estado.ligaId}/logo`, { method: "DELETE" });
         estado.logoV = Date.now();
-        await carregarDetalhe();
+        await recarregar();
         mostrarAlerta("Logo removido.", "sucesso");
     });
 });
@@ -800,8 +807,7 @@ $("#btn-abrir-jornada").addEventListener("click", () => {
     executar(async () => {
         const jornada = await api(`/api/ligas/${estado.ligaId}/jornadas`, { method: "POST" });
         estado.jornadaId = jornada.id;
-        await carregarDetalhe();
-        await carregarLigas();
+        await recarregar();
         mostrarAlerta(`Jornada ${jornada.numero} (${jornada.tipo.toLowerCase()}) aberta.`, "sucesso");
     });
 });
@@ -824,9 +830,7 @@ document.addEventListener("click", (evento) => {
         estado.jornadaId = null;
         estado.equipaDividaId = null;
         executar(async () => {
-            await carregarDetalhe();
-            desenharLigas();
-            await atualizarDividasSeAbertas();
+            await recarregar();
         });
         return;
     }
@@ -844,8 +848,7 @@ document.addEventListener("click", (evento) => {
         }
         executar(async () => {
             await api(`/api/ligas/${estado.ligaId}/equipas/${alvo.dataset.desistencia}/desistencia`, { method: "POST" });
-            await carregarDetalhe();
-            await carregarLigas();
+            await recarregar();
             mostrarAlerta("Desistência registada.", "sucesso");
         });
         return;
@@ -865,7 +868,7 @@ document.addEventListener("click", (evento) => {
                     pontuacao: Number(campo.value)
                 })
             });
-            await carregarDetalhe();
+            await recarregar();
             mostrarAlerta("Resultado guardado.", "sucesso");
         });
         return;
@@ -879,10 +882,8 @@ document.addEventListener("click", (evento) => {
             const jornada = await api(
                 `/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
             estado.desempate = null;
-            await carregarDetalhe();
-            await carregarLigas();
             // Pode ter fechado um bloco de dívida sozinha, se a liga tiver regra.
-            await atualizarDividasSeAbertas();
+            await recarregar();
             // Não é um erro: a jornada não fechou porque falta uma decisão tua.
             mostrarAlerta(...(jornada.estado === "DESEMPATE"
                 ? ["Há equipas empatadas: desfaz o empate para a jornada fechar.", "aviso"]
@@ -923,9 +924,7 @@ document.addEventListener("click", (evento) => {
                 body: JSON.stringify({ ordem })
             });
             estado.desempate = null;
-            await carregarDetalhe();
-            await carregarLigas();
-            await atualizarDividasSeAbertas();
+            await recarregar();
             mostrarAlerta("Desempate resolvido e jornada fechada.", "sucesso");
         });
         return;
@@ -946,10 +945,7 @@ document.addEventListener("click", (evento) => {
             const equipaId = estado.equipaDividaId;
             await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/blocos/${alvo.dataset.pagarBloco}/pagar`,
                 { method: "POST" });
-            estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
-            await carregarDetalhe();
-            desenharListaEquipasDivida();
-            desenharDetalheDivida();
+            await recarregar();
             mostrarAlerta("Bloco marcado como pago.", "sucesso");
         });
         return;
@@ -962,10 +958,7 @@ document.addEventListener("click", (evento) => {
         executar(async () => {
             const equipaId = alvo.dataset.pagarTudo;
             await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/pagar`, { method: "POST" });
-            estado.dividas.set(equipaId, await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida`));
-            await carregarDetalhe();
-            desenharListaEquipasDivida();
-            desenharDetalheDivida();
+            await recarregar();
             mostrarAlerta("Dívida paga.", "sucesso");
         });
         return;
