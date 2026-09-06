@@ -8,13 +8,17 @@ import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
+import com.ligarecord.repository.TreinadorRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.security.GestorAutenticado;
+import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.service.ClassificacaoService;
+import com.ligarecord.service.ConviteTreinadorService;
 import com.ligarecord.service.DividaService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
+import com.ligarecord.web.dto.AlterarTreinadorRequest;
 import com.ligarecord.web.dto.ClassificacaoDto;
 import com.ligarecord.web.dto.CriarLigaRequest;
 import com.ligarecord.web.dto.EquipaDto;
@@ -28,6 +32,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,7 +45,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ligas")
@@ -63,6 +71,8 @@ public class LigaController {
     private final LigaLogoRepository ligaLogoRepository;
     private final EquipaRepository equipaRepository;
     private final GestorRepository gestorRepository;
+    private final TreinadorRepository treinadorRepository;
+    private final ConviteTreinadorService conviteTreinadorService;
 
     public LigaController(LigaService ligaService,
                           ClassificacaoService classificacaoService,
@@ -70,7 +80,9 @@ public class LigaController {
                           LigaRepository ligaRepository,
                           LigaLogoRepository ligaLogoRepository,
                           EquipaRepository equipaRepository,
-                          GestorRepository gestorRepository) {
+                          GestorRepository gestorRepository,
+                          TreinadorRepository treinadorRepository,
+                          ConviteTreinadorService conviteTreinadorService) {
         this.ligaService = ligaService;
         this.classificacaoService = classificacaoService;
         this.dividaService = dividaService;
@@ -78,6 +90,8 @@ public class LigaController {
         this.ligaLogoRepository = ligaLogoRepository;
         this.equipaRepository = equipaRepository;
         this.gestorRepository = gestorRepository;
+        this.treinadorRepository = treinadorRepository;
+        this.conviteTreinadorService = conviteTreinadorService;
     }
 
     @GetMapping
@@ -105,7 +119,8 @@ public class LigaController {
     public LigaDetalheDto detalhe(@AuthenticationPrincipal GestorAutenticado autenticado,
                                   @PathVariable UUID ligaId) {
         Liga liga = liga(autenticado, ligaId);
-        return LigaDetalheDto.de(liga, classificacao(liga), dividaService.calcularPoteDaLiga(liga));
+        return LigaDetalheDto.deParaGestor(liga, classificacao(liga),
+                dividaService.calcularPoteDaLiga(liga), convitesPendentes(ligaId));
     }
 
     @GetMapping("/{ligaId}/classificacao")
@@ -156,6 +171,48 @@ public class LigaController {
         Equipa equipa = equipaRepository.buscarPorIdEGestor(equipaId, autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
         return EquipaDto.de(ligaService.registarDesistencia(liga, equipa));
+    }
+
+    /**
+     * Muda o nome do lugar de treinador desta equipa — o rótulo que o gestor
+     * lhe deu. Não mexe na conta ligada nem no nome de quem a tem: uma coisa é
+     * como a liga trata o treinador, outra é o nome da pessoa.
+     */
+    @PatchMapping("/{ligaId}/equipas/{equipaId}/treinador")
+    @Transactional
+    public EquipaDto alterarTreinador(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                      @PathVariable UUID ligaId,
+                                      @PathVariable UUID equipaId,
+                                      @RequestBody AlterarTreinadorRequest pedido) {
+        if (pedido.nome() == null || pedido.nome().isBlank()) {
+            throw new IllegalArgumentException("O nome do treinador é obrigatório.");
+        }
+        Equipa equipa = equipa(autenticado, ligaId, equipaId);
+        equipa.getTreinador().setNome(pedido.nome().trim());
+        treinadorRepository.guardar(equipa.getTreinador());
+        return EquipaDto.deParaGestor(equipa, pendenteDaEquipa(ligaId, equipaId));
+    }
+
+    /**
+     * Desliga a conta do lugar: o treinador saiu, e quem entrar a seguir não
+     * herda o acesso de quem lá estava.
+     *
+     * <p>A dívida não vai atrás — pertence à equipa ({@code divida.equipa_id}),
+     * não a quem a treina — e é isso que torna a troca de treinador uma
+     * operação inofensiva do ponto de vista do dinheiro.
+     */
+    @DeleteMapping("/{ligaId}/equipas/{equipaId}/treinador/conta")
+    @Transactional
+    public EquipaDto desligarContaDoTreinador(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                              @PathVariable UUID ligaId,
+                                              @PathVariable UUID equipaId) {
+        Equipa equipa = equipa(autenticado, ligaId, equipaId);
+        if (!equipa.getTreinador().temConta()) {
+            throw new IllegalStateException("Este lugar não tem conta ligada.");
+        }
+        equipa.getTreinador().setConta(null);
+        treinadorRepository.guardar(equipa.getTreinador());
+        return EquipaDto.deParaGestor(equipa, null);
     }
 
     /**
@@ -235,6 +292,31 @@ public class LigaController {
             throw new IllegalStateException("Não é possível alterar o logo de uma liga desativada.");
         }
         return liga;
+    }
+
+    /** Os convites por usar da liga, indexados pela equipa a que pertencem. */
+    private Map<UUID, ConviteTreinador> convitesPendentes(UUID ligaId) {
+        return conviteTreinadorService.pendentesDaLiga(ligaId).stream()
+                .collect(Collectors.toMap(
+                        convite -> convite.getEquipa().getId(),
+                        Function.identity(),
+                        // Só pode haver um por equipa; se a base de dados
+                        // trouxer dois (convites anteriores à V9), fica o mais
+                        // recente, que é o que a consulta traz primeiro.
+                        (primeiro, segundo) -> primeiro));
+    }
+
+    private ConviteTreinador pendenteDaEquipa(UUID ligaId, UUID equipaId) {
+        return convitesPendentes(ligaId).get(equipaId);
+    }
+
+    private Equipa equipa(GestorAutenticado autenticado, UUID ligaId, UUID equipaId) {
+        Equipa equipa = equipaRepository.buscarPorIdEGestor(equipaId, autenticado.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
+        if (equipa.getLiga() == null || !equipa.getLiga().getId().equals(ligaId)) {
+            throw new RecursoNaoEncontradoException("Equipa não encontrada.");
+        }
+        return equipa;
     }
 
     private Liga liga(GestorAutenticado autenticado, UUID ligaId) {

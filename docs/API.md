@@ -93,14 +93,17 @@ sessão logo a seguir.
 
 ### `POST /api/auth/registo-treinador`
 Público. Igual ao anterior, mas a partir de um convite de treinador. A conta
-criada fica com `podeCriarLigas: false`.
+criada fica com `podeCriarLigas: false`. É o que a página `convite.html` chama
+quando quem abre o link ainda não tem conta nenhuma.
 
 ### `POST /api/auth/treinador/ligar`
 Liga um convite de treinador à conta com sessão aberta, sem criar conta nova.
 ```json
 { "codigo": "..." }
 ```
-`204`. Dá `409` se aquele treinador já tiver conta.
+`204`. Dá `409` se aquele lugar já tiver conta. É o que a página `convite.html`
+chama quando quem abre o link já tem sessão — a mesma conta passa a ver mais uma
+equipa, sem um segundo login.
 
 ### `GET /api/auth/estado`
 Devolve o `GestorDto` de quem tem sessão, ou `401`. É por aqui que o frontend
@@ -166,7 +169,9 @@ que o frontend faz sempre que a liga muda.
   "liga": { "id": "...", "nome": "...", "estado": "ATIVA", "maxEquipas": 20,
             "totalEquipas": 8, "equipasAtivas": 7, "totalJornadas": 5,
             "temLogo": true },
-  "equipas": [ { "id": "...", "nome": "...", "treinador": "...", "estado": "ATIVA" } ],
+  "equipas": [ { "id": "...", "nome": "...", "treinador": "...", "estado": "ATIVA",
+                 "treinadorTemConta": false, "conviteEstado": "PENDENTE",
+                 "conviteId": "...", "conviteExpiraEm": "2026-10-06T22:54:11Z" } ],
   "jornadas": [ { "id": "...", "numero": 1, "estado": "FECHADA", "tipo": "TREINO",
                   "treino": true,
                   "resultados": [ { "id": "...", "equipaId": "...", "equipa": "...",
@@ -179,6 +184,13 @@ que o frontend faz sempre que a liga muda.
 
 As jornadas vêm por ordem cronológica real: todas as de treino antes das
 oficiais.
+
+Os quatro campos de conta em cada equipa dizem em que pé está o treinador:
+`conviteEstado` é `LIGADA` (já tem conta), `PENDENTE` (convite por usar, e então
+`conviteId` e `conviteExpiraEm` vêm preenchidos) ou `SEM_CONVITE`. **O código e
+o link do convite nunca vêm aqui** — são credenciais, e saem só na resposta ao
+pedido que os emite. Na vista do treinador (`/api/minhas-ligas/{ligaId}`) os
+quatro vêm a `null`.
 
 ### `GET /api/ligas/{ligaId}/classificacao`
 Só a classificação, em `ClassificacaoDto[]`. Empates de pontos são ordenados por
@@ -204,7 +216,8 @@ mais, `400` se não for imagem reconhecida, `409` se a liga estiver terminada.
 ```json
 { "nome": "Bairro FC", "treinador": "João Azul" }
 ```
-`201` devolve `EquipaDto`. Cria também o `Treinador`, sem conta.
+`201` devolve `EquipaDto`. Cria também o `Treinador` — o lugar de treinador
+desta equipa, sem conta e de mais nenhuma equipa.
 
 Se a liga tiver regra com valor de inscrição, **a inscrição é cobrada aqui**.
 
@@ -215,16 +228,46 @@ Se a liga tiver regra com valor de inscrição, **a inscrição é cobrada aqui*
 Marca a equipa como desistente. Sem corpo. Deixa de contar para jornadas
 seguintes, mas **a dívida dela mantém-se**. `409` se já não estivesse activa.
 
+### Treinador de uma equipa
+
+`PATCH /api/ligas/{ligaId}/equipas/{equipaId}/treinador`
+```json
+{ "nome": "João Azul" }
+```
+Muda o rótulo que o gestor deu ao lugar de treinador. Não mexe na conta ligada
+nem no nome de quem a tem. `200` devolve `EquipaDto`.
+
+`DELETE .../equipas/{equipaId}/treinador/conta` desliga a conta do lugar — o
+treinador saiu e quem entrar a seguir não herda o acesso. A dívida não vai
+atrás: é da equipa. `409` se não houver conta ligada.
+
 ### Convites de treinador
+
+O convite é a um **lugar** — "treinas a equipa X da liga Y" — e não a uma pessoa
+em abstracto. Quem o aceita pode criar conta de raiz ou ligá-lo à que já tem.
 
 `POST /api/ligas/{ligaId}/equipas/{equipaId}/convites-treinador`
 ```json
 { "diasValidade": 30 }
 ```
-`diasValidade` pode ser `null` para não expirar. `201` devolve o convite **com o
-código**, que só aqui é visível. `409` se aquele treinador já tiver conta.
+`diasValidade` a `null` usa a validade por omissão (30 dias); não há forma de
+pedir um convite sem prazo. **É idempotente**: se já houver um convite por usar
+para aquela equipa, é esse que volta, com `200` em vez de `201`. Para invalidar
+o que já foi dado, revoga-se e emite-se outro.
 
-`DELETE .../convites-treinador/{conviteId}` revoga um convite por usar.
+A resposta traz o `codigo` e o `link` — o endereço da página de aceitação, que é
+o que se entrega ao treinador — ambos só preenchidos enquanto o convite estiver
+por usar. `409` se aquele lugar já tiver conta ligada.
+
+`DELETE .../convites-treinador/{conviteId}` revoga um convite por usar. A
+autorização é pela equipa e não por quem o emitiu: uma liga pode ter mudado de
+gestor entretanto.
+
+### `GET /api/convites-treinador/{codigo}`
+**Público.** O que a página do convite mostra a quem chega pelo link sem sessão
+nenhuma: `treinadorNome`, `equipaNome`, `ligaNome`, `gestorNome` e `expiraEm`.
+Não devolve o código nem contacto nenhum. `403` — a mesma resposta para um
+código inventado, gasto, revogado ou expirado.
 
 ---
 
@@ -347,7 +390,9 @@ alguma equipa lá dentro.
 
 ### `GET /api/minhas-ligas/{ligaId}`
 O mesmo `LigaDetalheDto` do gestor, incluindo o pote, que é um valor agregado da
-liga. `404` se a conta não treinar lá nada.
+liga — mas sem o estado de conta das equipas (`treinadorTemConta` e os campos de
+convite vêm a `null`): isso é assunto de quem gere a liga. `404` se a conta não
+treinar lá nada.
 
 ### `GET /api/minhas-dividas`
 ```json

@@ -11,15 +11,24 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 
 /**
- * Alguém que treina uma ou mais equipas. Distinto de {@link Gestor}: um
- * treinador é criado pelo gestor dono da liga, sem credenciais próprias.
+ * O lugar de treinador de uma equipa: o nome que o gestor lhe deu e, quando
+ * existe, a conta da pessoa que o ocupa. Uma linha por equipa — a coluna
+ * {@code equipa.treinador_id} é única desde a V9.
+ *
+ * <p><b>Isto não é a pessoa.</b> A pessoa é a {@code conta} ({@link Gestor}),
+ * e é ela que se repete: quem treina três equipas tem três linhas aqui,
+ * todas a apontar à mesma conta, e é por conta que se pergunta "que equipas
+ * treino eu" ({@code TreinadorRepository.buscarPorConta}). Distinto de
+ * {@link Gestor} também no resto: um treinador é criado pelo gestor dono da
+ * liga, sem credenciais próprias.
+ *
+ * <p>O {@code nome} é o rótulo que o gestor escreveu e continua a ser o nome
+ * mostrado mesmo depois de haver conta ligada: é o gestor que gere a lista de
+ * equipas da liga dele, e o nome da conta é outra coisa — o da pessoa.
  *
  * <p>A ligação a {@code conta} é opcional — nem todo o treinador tem email ou
  * quer entrar na aplicação. Sem conta, o gestor continua a gerir a equipa e as
- * dívidas do treinador normalmente. A conta, quando existe, é a mesma tabela
- * do {@link Gestor}: a mesma pessoa pode gerir uma liga e treinar uma equipa
- * sem precisar de dois logins, e pode até treinar mais do que uma equipa (em
- * ligas diferentes) com essa única conta — daí não haver aqui unicidade.
+ * dívidas do treinador normalmente.
  */
 @Entity
 @Table(name = "treinador")

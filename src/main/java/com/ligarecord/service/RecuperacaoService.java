@@ -8,7 +8,6 @@ import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.PedidoRecuperacaoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,18 +56,18 @@ public class RecuperacaoService {
     private final PedidoRecuperacaoRepository pedidoRepository;
     private final PasswordEncoder passwordEncoder;
     private final EnviadorDeEmail email;
-    private final String base;
+    private final LinksDaAplicacao links;
 
     public RecuperacaoService(GestorRepository gestorRepository,
                               PedidoRecuperacaoRepository pedidoRepository,
                               PasswordEncoder passwordEncoder,
                               EnviadorDeEmail email,
-                              @Value("${app.url:http://localhost:8080}") String base) {
+                              LinksDaAplicacao links) {
         this.gestorRepository = gestorRepository;
         this.pedidoRepository = pedidoRepository;
         this.passwordEncoder = passwordEncoder;
         this.email = email;
-        this.base = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        this.links = links;
     }
 
     /**
@@ -104,7 +103,7 @@ public class RecuperacaoService {
                 UUID.randomUUID(), resumo(codigo), gestor, Instant.now().plus(VALIDADE)));
 
         ModeloDeEmail.Mensagem mensagem = ModeloDeEmail.recuperacaoDePassword(
-                gestor.getNome(), link(codigo), validadePorExtenso());
+                gestor.getNome(), links.novaPassword(codigo), validadePorExtenso());
         email.enviar(gestor.getEmail(), mensagem.assunto(), mensagem.texto(), mensagem.html());
     }
 
@@ -135,10 +134,6 @@ public class RecuperacaoService {
 
         pedido.marcarUsado();
         pedidoRepository.guardar(pedido);
-    }
-
-    private String link(String codigo) {
-        return base + "/nova-password.html?codigo=" + codigo;
     }
 
     /**

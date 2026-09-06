@@ -1,7 +1,13 @@
 package com.ligarecord.service;
 
+import com.ligarecord.domain.ConviteTreinador;
+import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
+import com.ligarecord.domain.enums.EstadoEquipa;
+import com.ligarecord.domain.enums.EstadoLiga;
+import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepositoryImpl;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.GestorRepositoryImpl;
@@ -26,28 +32,44 @@ class TreinadorContaServiceTest {
 
     private GestorRepository gestorRepository;
     private TreinadorRepository treinadorRepository;
+    private ConviteTreinadorRepository conviteRepository;
     private ConviteTreinadorService conviteService;
     private TreinadorContaService contaService;
     private PasswordEncoder passwordEncoder;
     private Gestor gestor;
     private Treinador treinador;
+    private Equipa equipa;
 
     @BeforeEach
     void setUp() {
         gestorRepository = new GestorRepositoryImpl();
         treinadorRepository = new TreinadorRepositoryImpl();
         passwordEncoder = new BCryptPasswordEncoder();
-        conviteService = new ConviteTreinadorService(new ConviteTreinadorRepositoryImpl());
+        conviteRepository = new ConviteTreinadorRepositoryImpl();
+        conviteService = new ConviteTreinadorService(conviteRepository);
         contaService = new TreinadorContaService(
                 gestorRepository, treinadorRepository, conviteService, passwordEncoder);
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
         gestorRepository.guardar(gestor);
         treinador = new Treinador(UUID.randomUUID(), "João Azul");
+        Liga liga = new Liga(UUID.randomUUID(), "Liga de Teste", 10, EstadoLiga.ATIVA, gestor);
+        equipa = new Equipa(UUID.randomUUID(), "Leões", treinador, liga, EstadoEquipa.ATIVA);
     }
 
     private String convite() {
-        return conviteService.criar(gestor, treinador, null).getCodigo();
+        return conviteService.emitir(gestor, equipa, null).convite().getCodigo();
+    }
+
+    /**
+     * Um segundo convite para o mesmo lugar, feito por fora do serviço — que
+     * já não emite dois, nem deixa um por revogar quando o lugar é ocupado.
+     * Serve para exercitar as defesas que continuam a existir para o caso de
+     * dois pedidos correrem ao mesmo tempo.
+     */
+    private ConviteTreinador conviteParalelo() {
+        return conviteRepository.guardar(new ConviteTreinador(
+                UUID.randomUUID(), "codigo-paralelo", equipa, gestor, null));
     }
 
     @Test
@@ -93,6 +115,20 @@ class TreinadorContaServiceTest {
         assertThrows(
                 ConviteInvalidoException.class,
                 () -> contaService.registar("outro@exemplo.pt", "passwordsegura1", "Outro", codigo));
+    }
+
+    /**
+     * O lugar ficou ocupado: o que sobrou não pode ficar por aí, válido, à
+     * espera de rebentar com um conflito no dia em que alguém o usasse.
+     */
+    @Test
+    void aceitarRevogaOsConvitesQueSobraramParaOMesmoLugar() {
+        String codigo = convite();
+        ConviteTreinador sobra = conviteParalelo();
+
+        contaService.registar("joao@exemplo.pt", "passwordsegura1", "João", codigo);
+
+        assertTrue(sobra.estaRevogado());
     }
 
     @Test
@@ -174,26 +210,26 @@ class TreinadorContaServiceTest {
      */
     @Test
     void naoDeveLigarTreinadorQueJaTemConta() {
-        String codigoUm = convite();
-        String codigoDois = conviteService.criar(gestor, treinador, null).getCodigo();
+        contaService.ligar(convite(), gestor);
 
-        contaService.ligar(codigoUm, gestor);
+        // Emitido depois de o lugar estar ocupado: o serviço não o faria, mas
+        // dois pedidos ao mesmo tempo dariam nisto.
+        String tardio = conviteParalelo().getCodigo();
 
         Gestor outraConta = new Gestor(UUID.randomUUID(), "outro@teste.pt", "hash", "Outro");
         gestorRepository.guardar(outraConta);
 
-        assertThrows(IllegalStateException.class, () -> contaService.ligar(codigoDois, outraConta));
+        assertThrows(IllegalStateException.class, () -> contaService.ligar(tardio, outraConta));
     }
 
     @Test
     void naoDeveRegistarTreinadorQueJaTemConta() {
-        String codigoUm = convite();
-        String codigoDois = conviteService.criar(gestor, treinador, null).getCodigo();
+        contaService.registar("joao@exemplo.pt", "passwordsegura1", "João", convite());
 
-        contaService.registar("joao@exemplo.pt", "passwordsegura1", "João", codigoUm);
+        String tardio = conviteParalelo().getCodigo();
 
         assertThrows(
                 IllegalStateException.class,
-                () -> contaService.registar("outro@exemplo.pt", "passwordsegura2", "Outro", codigoDois));
+                () -> contaService.registar("outro@exemplo.pt", "passwordsegura2", "Outro", tardio));
     }
 }

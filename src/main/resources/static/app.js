@@ -358,6 +358,7 @@ function desenharEquipas(equipas, desativada) {
                     <th>Equipa</th>
                     <th>Treinador</th>
                     <th>Estado</th>
+                    <th>Conta</th>
                     <th></th>
                 </tr>
             </thead>
@@ -365,13 +366,18 @@ function desenharEquipas(equipas, desativada) {
                 ${equipas.map((equipa) => `
                     <tr class="${equipa.estado === "DESISTENTE" ? "linha-desistente" : ""}">
                         <td><strong>${texto(equipa.nome)}</strong></td>
-                        <td>${texto(equipa.treinador)}</td>
-                        <td>${badgeEstado(equipa.estado)}</td>
-                        <td class="numero">
-                            <button class="botao pequeno" data-convidar-treinador="${equipa.id}"
+                        <td>
+                            ${texto(equipa.treinador)}
+                            <button class="botao pequeno" data-editar-treinador="${equipa.id}"
+                                data-nome-treinador="${texto(equipa.treinador)}"
                                 ${desativada ? "disabled" : ""}>
-                                Convidar treinador
+                                Editar
                             </button>
+                        </td>
+                        <td>${badgeEstado(equipa.estado)}</td>
+                        <td>${badgeConta(equipa)}</td>
+                        <td class="numero">
+                            ${acoesDaConta(equipa, desativada)}
                             <button class="botao pequeno perigo" data-desistencia="${equipa.id}"
                                 ${equipa.estado !== "ATIVA" || desativada ? "disabled" : ""}>
                                 Desistência
@@ -381,6 +387,45 @@ function desenharEquipas(equipas, desativada) {
                 `).join("")}
             </tbody>
         </table>`;
+}
+
+/* O estado da conta do treinador de uma equipa. Vem do servidor já decidido
+   (EquipaDto.deParaGestor) para o botão não ter de o adivinhar a partir de
+   meia dúzia de campos soltos. */
+function badgeConta(equipa) {
+    if (equipa.conviteEstado === "LIGADA") {
+        return `<span class="badge verde">Ligada</span>`;
+    }
+    if (equipa.conviteEstado === "PENDENTE") {
+        const ate = equipa.conviteExpiraEm
+            ? ` title="Válido até ${new Date(equipa.conviteExpiraEm).toLocaleDateString("pt-PT")}"`
+            : "";
+        return `<span class="badge amarelo"${ate}>Convite pendente</span>`;
+    }
+    return `<span class="ajuda">Sem convite</span>`;
+}
+
+/* Convidar e copiar o link são o mesmo botão porque são o mesmo pedido: o
+   servidor devolve o convite que já exista em vez de emitir um segundo. */
+function acoesDaConta(equipa, desativada) {
+    if (equipa.conviteEstado === "LIGADA") {
+        return `<button class="botao pequeno" data-desligar-conta="${equipa.id}"
+                    ${desativada ? "disabled" : ""}>Desligar conta</button>`;
+    }
+
+    const convidar = `<button class="botao pequeno" data-convidar-treinador="${equipa.id}"
+            ${desativada ? "disabled" : ""}>
+            ${equipa.conviteEstado === "PENDENTE" ? "Copiar link" : "Convidar treinador"}
+        </button>`;
+
+    if (equipa.conviteEstado !== "PENDENTE") {
+        return convidar;
+    }
+    return `${convidar}
+        <button class="botao pequeno perigo" data-revogar-convite="${equipa.conviteId}"
+            data-equipa-convite="${equipa.id}" ${desativada ? "disabled" : ""}>
+            Revogar
+        </button>`;
 }
 
 function desenharJornadas(jornadas) {
@@ -889,6 +934,7 @@ document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
         "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], " +
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
+        "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
         "[data-desempate-mover], [data-confirmar-desempate]"
     );
     if (!alvo) {
@@ -1022,14 +1068,60 @@ document.addEventListener("click", (evento) => {
     if (alvo.dataset.convidarTreinador) {
         executar(async () => {
             const equipaId = alvo.dataset.convidarTreinador;
+            // Sem diasValidade: o servidor usa a validade por omissão. Pedir um
+            // convite eterno daqui era espalhar uma credencial sem prazo.
             const convite = await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/convites-treinador`, {
                 method: "POST",
                 body: JSON.stringify({ diasValidade: null })
             });
-            const copiado = await copiar(convite.codigo);
+            const copiado = await copiar(convite.link);
+            await recarregar();
             mostrarAlerta(copiado
-                ? `Convite criado e copiado: ${convite.codigo}`
-                : `Convite criado: ${convite.codigo}`, "sucesso");
+                ? `Link do convite copiado. Envia-o ao treinador: ${convite.link}`
+                : `Link do convite: ${convite.link}`, "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.revogarConvite) {
+        if (!confirm("Revogar este convite? O link deixa de funcionar.")) {
+            return;
+        }
+        executar(async () => {
+            const equipaId = alvo.dataset.equipaConvite;
+            await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/convites-treinador/${alvo.dataset.revogarConvite}`,
+                { method: "DELETE" });
+            await recarregar();
+            mostrarAlerta("Convite revogado.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.editarTreinador) {
+        const nome = prompt("Nome do treinador desta equipa:", alvo.dataset.nomeTreinador || "");
+        if (nome === null || !nome.trim()) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/ligas/${estado.ligaId}/equipas/${alvo.dataset.editarTreinador}/treinador`, {
+                method: "PATCH",
+                body: JSON.stringify({ nome: nome.trim() })
+            });
+            await recarregar();
+            mostrarAlerta("Treinador alterado.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.desligarConta) {
+        if (!confirm("Desligar a conta deste treinador? Deixa de ver a equipa e as dívidas dela.")) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/ligas/${estado.ligaId}/equipas/${alvo.dataset.desligarConta}/treinador/conta`,
+                { method: "DELETE" });
+            await recarregar();
+            mostrarAlerta("Conta desligada.", "sucesso");
         });
     }
 });

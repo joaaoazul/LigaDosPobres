@@ -49,8 +49,8 @@ class RecuperacaoServiceTest {
         pedidoRepository = new PedidoRecuperacaoRepositoryImpl();
         passwordEncoder = new BCryptPasswordEncoder();
         enviador = new EnviadorDeTeste();
-        servico = new RecuperacaoService(gestorRepository, pedidoRepository,
-                passwordEncoder, enviador, "https://liga.exemplo.pt");
+        servico = new RecuperacaoService(gestorRepository, pedidoRepository, passwordEncoder,
+                enviador, new LinksDaAplicacao("https://liga.exemplo.pt"));
 
         gestor = new Gestor(UUID.randomUUID(), "joao@exemplo.pt",
                 passwordEncoder.encode("passwordantiga"), "João");

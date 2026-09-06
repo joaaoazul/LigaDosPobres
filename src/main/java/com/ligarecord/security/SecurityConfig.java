@@ -68,6 +68,10 @@ public class SecurityConfig {
                     // consegue entrar.
                     .requestMatchers("/recuperar.html", "/recuperar.js",
                                      "/nova-password.html", "/nova-password.js").permitAll()
+                    // Pela mesma razão, a página do convite de treinador: quem
+                    // chega pelo link ainda não tem conta nenhuma para entrar.
+                    // O que a protege é o código, que não se adivinha.
+                    .requestMatchers("/convite.html", "/convite.js").permitAll()
                     // Os tipos de letra são servidos pela própria aplicação, para a
                     // CSP poder continuar a ser default-src 'self'. Sem esta linha,
                     // o pedido do .woff2 na página de login seria reencaminhado para
@@ -76,6 +80,9 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/registo", "/api/auth/registo-treinador",
                                      "/api/auth/login", "/api/auth/estado",
                                      "/api/auth/recuperar", "/api/auth/recuperar/confirmar").permitAll()
+                    // Só a leitura do convite pelo código; emitir e revogar
+                    // continuam atrás da autorização por dono da liga.
+                    .requestMatchers(HttpMethod.GET, "/api/convites-treinador/*").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // A administração é a única zona com autorização por papel;
                     // todo o resto é isolado por dono, não por perfil — com uma

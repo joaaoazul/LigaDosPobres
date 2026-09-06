@@ -266,13 +266,18 @@ public final class RepositoriosJpa {
         }
 
         @Override
-        public Optional<ConviteTreinador> buscarPorIdEGestor(UUID id, UUID gestorId) {
-            return jpa.findByIdAndCriadoPorId(id, gestorId);
+        public Optional<ConviteTreinador> buscarPorIdEEquipa(UUID id, UUID equipaId) {
+            return jpa.findByIdAndEquipaId(id, equipaId);
         }
 
         @Override
-        public List<ConviteTreinador> listarPorGestor(UUID gestorId) {
-            return jpa.findByCriadoPorIdOrderByCriadoEmDesc(gestorId);
+        public List<ConviteTreinador> listarPendentesPorTreinador(UUID treinadorId) {
+            return jpa.findByTreinadorIdAndUsadoEmIsNullAndRevogadoEmIsNullOrderByCriadoEmDesc(treinadorId);
+        }
+
+        @Override
+        public List<ConviteTreinador> listarPendentesPorLiga(UUID ligaId) {
+            return jpa.findByEquipaLigaIdAndUsadoEmIsNullAndRevogadoEmIsNullOrderByCriadoEmDesc(ligaId);
         }
     }
 
