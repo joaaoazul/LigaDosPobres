@@ -200,6 +200,35 @@ class JornadaServiceDesempateTest {
         assertEquals(new BigDecimal("1.50"), totalDe(quarta));
     }
 
+    /**
+     * O empate a meio de uma janela de bloco: a jornada 1 fecha e fica
+     * pendente, a jornada 2 empata e segura tudo, e quando o desempate é
+     * resolvido o bloco fecha com as DUAS jornadas somadas. Cruza o bloqueio
+     * novo com a marca incluidaEmBloco, e é dinheiro.
+     */
+    @Test
+    void desempateAMeioDeUmBlocoSeguraAsJornadasAnterioresEDepoisSomaTudo() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 2);
+
+        jornadaService.fecharJornada(abrirEPontuar(4, 3, 2, 1));
+        assertTrue(dividaService.buscarPorEquipa(primeira).isEmpty());
+
+        Jornada segundaJornada = abrirEPontuar(5, 5, 2, 1);
+        jornadaService.fecharJornada(segundaJornada);
+        assertEquals(EstadoJornada.DESEMPATE, segundaJornada.getEstadoJ());
+        assertTrue(dividaService.buscarPorEquipa(primeira).isEmpty());
+
+        jornadaService.resolverDesempate(segundaJornada, List.of(segunda.getId(), primeira.getId()));
+
+        // jornada 1: 0.00 / 0.50 / 1.00 / 1.50 (primeira, segunda, terceira, quarta)
+        // jornada 2: 0.50 / 0.00 / 1.00 / 1.50 (a segunda passou à frente no desempate)
+        assertEquals(new BigDecimal("0.50"), totalDe(primeira));
+        assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+        assertEquals(new BigDecimal("2.00"), totalDe(terceira));
+        assertEquals(new BigDecimal("3.00"), totalDe(quarta));
+    }
+
     @Test
     void naoDeveResolverDesempateDeJornadaQueNaoEstaEmDesempate() {
         Jornada jornada = abrirEPontuar(4, 3, 2, 1);

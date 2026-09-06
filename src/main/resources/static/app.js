@@ -75,7 +75,8 @@ let temporizadorAlerta = null;
 function mostrarAlerta(mensagem, tipo = "erro") {
     const alerta = $("#alerta");
     alerta.textContent = mensagem;
-    alerta.className = `alerta ${tipo === "sucesso" ? "sucesso" : ""}`;
+    // "erro" é o estilo base da caixa; os outros tipos são variantes.
+    alerta.className = `alerta ${tipo === "erro" ? "" : tipo}`;
     clearTimeout(temporizadorAlerta);
     temporizadorAlerta = setTimeout(() => alerta.classList.add("oculto"), 4500);
 }
@@ -850,14 +851,21 @@ document.addEventListener("click", (evento) => {
             await carregarLigas();
             // Pode ter fechado um bloco de dívida sozinha, se a liga tiver regra.
             await atualizarDividasSeAbertas();
-            mostrarAlerta(jornada.estado === "DESEMPATE"
-                ? "Há equipas empatadas: desfaz o empate para a jornada fechar."
-                : "Jornada fechada.", jornada.estado === "DESEMPATE" ? "erro" : "sucesso");
+            // Não é um erro: a jornada não fechou porque falta uma decisão tua.
+            mostrarAlerta(...(jornada.estado === "DESEMPATE"
+                ? ["Há equipas empatadas: desfaz o empate para a jornada fechar.", "aviso"]
+                : ["Jornada fechada.", "sucesso"]));
         });
         return;
     }
 
     if (alvo.dataset.desempateMover) {
+        // O painel ainda está no ecrã enquanto um pedido anterior corre, e
+        // esse pedido limpa o estado a meio — sem isto, carregar numa seta
+        // nessa janela rebentava com um erro na consola e não fazia nada.
+        if (!estado.desempate) {
+            return;
+        }
         const grupo = estado.desempate.grupos[Number(alvo.dataset.desempateGrupo)];
         const indice = Number(alvo.dataset.desempateIndice);
         const destino = alvo.dataset.desempateMover === "cima" ? indice - 1 : indice + 1;
@@ -870,6 +878,9 @@ document.addEventListener("click", (evento) => {
     }
 
     if (alvo.dataset.confirmarDesempate) {
+        if (!estado.desempate) {
+            return;
+        }
         // Uma lista só, com todos os grupos por ordem: o servidor volta a
         // ordenar por pontuação, portanto isto nunca troca equipas entre
         // pontuações diferentes.

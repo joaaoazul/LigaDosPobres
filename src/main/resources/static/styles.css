@@ -864,6 +864,15 @@ td.numero, th.numero { text-align: right; }
     color: #7fd6a2;
 }
 
+/* Nem erro nem sucesso: o pedido correu bem mas ficou à espera de uma decisão
+   (um empate por desfazer, por exemplo). Âmbar, como o estado DESEMPATE. */
+.alerta.aviso {
+    background: #241d0f;
+    border-color: #4a3c1c;
+    border-left-color: var(--espera);
+    color: #e2bd6a;
+}
+
 .oculto { display: none; }
 
 /* -------------------------------------------------- páginas de entrada --- */
