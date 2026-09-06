@@ -32,7 +32,6 @@ public class LigaService {
         this.dividaService = dividaService;
     }
 
-    //esta func vai ver se o nr de equipas e o nome são validos
     @Transactional
     public Liga criarLiga(Gestor gestor, String nome, int maxEquipas){
         if(gestor == null){

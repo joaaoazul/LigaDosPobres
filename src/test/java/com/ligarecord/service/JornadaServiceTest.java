@@ -92,8 +92,9 @@ class JornadaServiceTest {
         Jornada jornada = abrirEPontuar(3, 2, 1);
         jornadaService.fecharJornada(jornada);
 
-        // 1ª posição: 0.00; 2ª: 0.50; 3ª: 1.00 (equipasPorEscalao = 1)
-        assertEquals(new BigDecimal("0.00"), totalDe(primeira));
+        // 1ª posição: 0.00 (bloco de 0€ fica logo resolvido, nada pendente);
+        // 2ª: 0.50; 3ª: 1.00 (equipasPorEscalao = 1)
+        assertEquals(BigDecimal.ZERO, totalDe(primeira));
         assertEquals(new BigDecimal("0.50"), totalDe(segunda));
         assertEquals(new BigDecimal("1.00"), totalDe(terceira));
     }

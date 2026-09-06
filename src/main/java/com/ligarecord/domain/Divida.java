@@ -110,7 +110,15 @@ public class Divida extends EntidadeBase {
         proximoNumeroBloco++;
         bloco.setDivida(this);
         blocos.add(bloco);
-        estado = EstadoDivida.PENDENTE;
+        // Um bloco de 0.00€ (equipa no escalão mais barato) não tem nada para o
+        // gestor cobrar; exigir que o marque como pago à mesma era só ruído.
+        // Fica logo resolvido, e não força a dívida de volta a PENDENTE se já
+        // não havia nada por pagar.
+        if (valor.signum() == 0) {
+            bloco.marcarResolvido();
+        } else {
+            estado = EstadoDivida.PENDENTE;
+        }
         return bloco;
     }
 

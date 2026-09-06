@@ -62,6 +62,26 @@ class DividaServiceTest {
         assertEquals(3, dividaRepository.buscarPorEquipa(equipa).orElseThrow().getBlocos().size());
     }
 
+    /** Nada para cobrar não devia exigir que o gestor marque nada como pago. */
+    @Test
+    void blocoDeValorZeroFicaLogoResolvido() {
+        BlocoDivida bloco = dividaService.registarBloco(equipa, BigDecimal.ZERO);
+
+        assertTrue(bloco.estaResolvido());
+    }
+
+    /** Um bloco de 0.00€ novo não devia reabrir uma dívida já paga. */
+    @Test
+    void blocoDeValorZeroNaoReabreADividaJaResolvida() {
+        BlocoDivida unico = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+        dividaService.resolverBloco(equipa, unico.getId());
+
+        dividaService.registarBloco(equipa, BigDecimal.ZERO);
+
+        Divida divida = dividaRepository.buscarPorEquipa(equipa).orElseThrow();
+        assertEquals(EstadoDivida.RESOLVIDA, divida.getEstado());
+    }
+
     @Test
     void naoDeveRegistarBlocoComValorNegativo() {
         assertThrows(
