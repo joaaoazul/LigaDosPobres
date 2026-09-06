@@ -125,7 +125,7 @@ public class DividaService {
         }
 
         bloco.marcarResolvido();
-        atualizarEstado(divida);
+        divida.atualizarEstado();
         return dividaRepository.guardarDivida(divida);
     }
 
@@ -187,10 +187,5 @@ public class DividaService {
     private Divida buscarDividaOuFalhar(Equipa equipa) {
         return dividaRepository.buscarPorEquipa(equipa)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Esta equipa não tem dívida registada."));
-    }
-
-    private void atualizarEstado(Divida divida) {
-        boolean aindaDeve = divida.getBlocos().stream().anyMatch(bloco -> !bloco.estaResolvido());
-        divida.setEstado(aindaDeve ? EstadoDivida.PENDENTE : EstadoDivida.RESOLVIDA);
     }
 }

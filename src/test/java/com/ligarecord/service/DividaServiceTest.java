@@ -70,6 +70,20 @@ class DividaServiceTest {
         assertTrue(bloco.estaResolvido());
     }
 
+    /**
+     * Apanhado a testar no browser: a dívida nasce PENDENTE no construtor, por
+     * isso uma equipa cujo primeiro (e único) bloco é de 0.00€ ficava marcada
+     * como pendente a dever zero — e o gestor não tinha sequer o que marcar
+     * como pago.
+     */
+    @Test
+    void dividaCujoPrimeiroBlocoEDeValorZeroNaoFicaPendente() {
+        dividaService.registarBloco(equipa, BigDecimal.ZERO);
+
+        Divida divida = dividaRepository.buscarPorEquipa(equipa).orElseThrow();
+        assertEquals(EstadoDivida.RESOLVIDA, divida.getEstado());
+    }
+
     /** Um bloco de 0.00€ novo não devia reabrir uma dívida já paga. */
     @Test
     void blocoDeValorZeroNaoReabreADividaJaResolvida() {
