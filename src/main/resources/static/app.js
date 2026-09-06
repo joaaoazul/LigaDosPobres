@@ -13,7 +13,10 @@ const estado = {
     // equipa, por id — carregadas só quando o separador é aberto.
     regraDivida: null,
     dividas: new Map(),
-    equipaDividaId: null
+    equipaDividaId: null,
+    // Ordem que o gestor está a montar para desfazer um empate, antes de a
+    // confirmar. Só existe enquanto a jornada escolhida estiver em desempate.
+    desempate: null
 };
 
 /* Emblema neutro para uma liga ainda sem logo — o mesmo anel+arco da marca,
@@ -344,30 +347,35 @@ function desenharJornadaSelecionada() {
     }
 
     const fechada = jornada.estado === "FECHADA";
+    const emDesempate = jornada.estado === "DESEMPATE";
+    // Em desempate as posições já estão atribuídas (partilhadas pelos
+    // empatados) e as pontuações estão trancadas, tal como numa jornada
+    // fechada — o servidor recusa alterá-las até o empate ficar desfeito.
+    const bloqueada = fechada || emDesempate;
     const pontosPorEquipa = new Map(jornada.resultados.map((r) => [r.equipaId, r]));
     // A coluna de valor usa a posição desta jornada em concreto (a que o
     // backend soma às restantes do bloco quando este fechar), não a
     // classificação geral acumulada da liga. Fechada, usa a posição já
     // atribuída; aberta, prevê a posição a partir das pontuações inseridas.
-    const posicaoPreviaPorEquipa = fechada ? null : calcularPosicoesPreview(jornada.resultados);
+    const posicaoPreviaPorEquipa = bloqueada ? null : calcularPosicoesPreview(jornada.resultados);
     const regra = estado.regraDivida;
 
     const linhas = estado.detalhe.equipas
         .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
         .slice()
         .sort((a, b) => {
-            // Fechada: ordena pela posição atribuída. Aberta: pelas pontuações
+            // Com posições atribuídas, ordena por elas. Aberta, pelas pontuações
             // já inseridas, como prévia de como fecharia se fechasse agora.
             const ra = pontosPorEquipa.get(a.id);
             const rb = pontosPorEquipa.get(b.id);
-            const va = fechada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
-            const vb = fechada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
+            const va = bloqueada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
+            const vb = bloqueada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
             return va - vb;
         })
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);
-            const podeEditar = !fechada && equipa.estado === "ATIVA";
-            const posicaoDaJornada = fechada
+            const podeEditar = !bloqueada && equipa.estado === "ATIVA";
+            const posicaoDaJornada = bloqueada
                 ? (resultado ? resultado.posicao : null)
                 : posicaoPreviaPorEquipa.get(equipa.id);
             const valor = (regra && equipa.estado === "ATIVA" && posicaoDaJornada)
@@ -392,11 +400,18 @@ function desenharJornadaSelecionada() {
                 </tr>`;
         }).join("");
 
+    let estadoDaJornada;
+    if (emDesempate) {
+        estadoDaJornada = "Jornada por fechar: há equipas empatadas. Ordena-as abaixo para desfazer o empate.";
+    } else if (fechada) {
+        estadoDaJornada = "Jornada fechada — posições atribuídas por pontuação.";
+    } else {
+        estadoDaJornada = "Insere a pontuação de cada equipa ativa e fecha a jornada no fim.";
+    }
+
     painel.innerHTML = `
         <h3>Jornada ${jornada.numero} ${badgeEstado(jornada.estado)} ${badgeEstado(jornada.tipo)}</h3>
-        <p class="ajuda">${fechada
-            ? "Jornada fechada — posições atribuídas por pontuação."
-            : "Insere a pontuação de cada equipa ativa e fecha a jornada no fim."}</p>
+        <p class="ajuda">${estadoDaJornada}</p>
         <p class="ajuda">${regra
             ? "A coluna Valor é o que esta jornada pesa no bloco, segundo a regra da liga. Quando o bloco fechar, soma-se ao valor das outras jornadas que o compõem."
             : "Sem regra de dívida definida nesta liga: os blocos são cobrados à mão."}</p>
@@ -414,12 +429,82 @@ function desenharJornadaSelecionada() {
                 <tbody>${linhas || `<tr><td colspan="5" class="ajuda">Sem equipas ativas.</td></tr>`}</tbody>
             </table>
         </div>
-        ${fechada ? "" : `
+        ${emDesempate ? desenharDesempate(jornada) : ""}
+        ${bloqueada ? "" : `
             <div class="barra-acoes depois">
                 <button class="botao primario" data-fechar="${jornada.id}"
                     ${jornada.resultados.length ? "" : "disabled"}>Fechar jornada</button>
-                <span class="ajuda">Empates ficam com a mesma posição (desempate manual ainda por implementar).</span>
+                <span class="ajuda">Se ficarem equipas empatadas, a jornada espera pelo desempate antes de fechar.</span>
             </div>`}`;
+}
+
+/* ------------------------------------------------------------ desempate --- */
+
+/* Os grupos de equipas que ficaram com a mesma pontuação, do melhor para o
+   pior. A ordem dentro de cada grupo é a que o gestor está a montar; só é
+   enviada ao servidor quando ele confirma. */
+function prepararDesempate(jornada) {
+    if (estado.desempate && estado.desempate.jornadaId === jornada.id) {
+        return estado.desempate;
+    }
+
+    const porPontuacao = new Map();
+    jornada.resultados.forEach((resultado) => {
+        if (!porPontuacao.has(resultado.pontuacao)) {
+            porPontuacao.set(resultado.pontuacao, []);
+        }
+        porPontuacao.get(resultado.pontuacao).push(resultado);
+    });
+
+    const grupos = [...porPontuacao.entries()]
+        .filter(([, resultados]) => resultados.length > 1)
+        .sort((a, b) => b[0] - a[0])
+        .map(([pontuacao, resultados]) => ({
+            pontuacao,
+            equipas: resultados.map((r) => ({ id: r.equipaId, nome: r.equipa }))
+        }));
+
+    estado.desempate = { jornadaId: jornada.id, grupos };
+    return estado.desempate;
+}
+
+function desenharDesempate(jornada) {
+    const desempate = prepararDesempate(jornada);
+
+    const grupos = desempate.grupos.map((grupo, indiceGrupo) => `
+        <div class="grupo-empate">
+            <h4>${plural(grupo.equipas.length, "equipa", "equipas")} com ${grupo.pontuacao} ${grupo.pontuacao === 1 ? "ponto" : "pontos"}</h4>
+            <ol class="ordem-empate">
+                ${grupo.equipas.map((equipa, indice) => `
+                    <li>
+                        <span>${texto(equipa.nome)}</span>
+                        <span class="mover-empate">
+                            <button class="botao pequeno" title="Subir" aria-label="Subir ${texto(equipa.nome)}"
+                                data-desempate-mover="cima" data-desempate-grupo="${indiceGrupo}"
+                                data-desempate-indice="${indice}" ${indice === 0 ? "disabled" : ""}>&uarr;</button>
+                            <button class="botao pequeno" title="Descer" aria-label="Descer ${texto(equipa.nome)}"
+                                data-desempate-mover="baixo" data-desempate-grupo="${indiceGrupo}"
+                                data-desempate-indice="${indice}"
+                                ${indice === grupo.equipas.length - 1 ? "disabled" : ""}>&darr;</button>
+                        </span>
+                    </li>
+                `).join("")}
+            </ol>
+        </div>
+    `).join("");
+
+    return `
+        <div class="painel-desempate">
+            <h3 class="titulo-seccao">Desempate</h3>
+            <p class="ajuda">
+                A ordem que deixares aqui é a que fica na tabela, de cima para baixo. Só depois
+                de confirmares é que a jornada fecha e conta para o bloco de dívida.
+            </p>
+            ${grupos}
+            <div class="barra-acoes depois">
+                <button class="botao primario" data-confirmar-desempate="${jornada.id}">Confirmar desempate</button>
+            </div>
+        </div>`;
 }
 
 /* -------------------------------------------------------------- dívidas --- */
@@ -694,7 +779,8 @@ document.querySelectorAll(".separador")
 document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
         "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], " +
-        "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador]"
+        "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
+        "[data-desempate-mover], [data-confirmar-desempate]"
     );
     if (!alvo) {
         return;
@@ -757,12 +843,47 @@ document.addEventListener("click", (evento) => {
             return;
         }
         executar(async () => {
-            await api(`/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
+            const jornada = await api(
+                `/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
+            estado.desempate = null;
             await carregarDetalhe();
             await carregarLigas();
             // Pode ter fechado um bloco de dívida sozinha, se a liga tiver regra.
             await atualizarDividasSeAbertas();
-            mostrarAlerta("Jornada fechada.", "sucesso");
+            mostrarAlerta(jornada.estado === "DESEMPATE"
+                ? "Há equipas empatadas: desfaz o empate para a jornada fechar."
+                : "Jornada fechada.", jornada.estado === "DESEMPATE" ? "erro" : "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.desempateMover) {
+        const grupo = estado.desempate.grupos[Number(alvo.dataset.desempateGrupo)];
+        const indice = Number(alvo.dataset.desempateIndice);
+        const destino = alvo.dataset.desempateMover === "cima" ? indice - 1 : indice + 1;
+        if (destino < 0 || destino >= grupo.equipas.length) {
+            return;
+        }
+        [grupo.equipas[indice], grupo.equipas[destino]] = [grupo.equipas[destino], grupo.equipas[indice]];
+        desenharJornadaSelecionada();
+        return;
+    }
+
+    if (alvo.dataset.confirmarDesempate) {
+        // Uma lista só, com todos os grupos por ordem: o servidor volta a
+        // ordenar por pontuação, portanto isto nunca troca equipas entre
+        // pontuações diferentes.
+        const ordem = estado.desempate.grupos.flatMap((grupo) => grupo.equipas.map((equipa) => equipa.id));
+        executar(async () => {
+            await api(`/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.confirmarDesempate}/desempate`, {
+                method: "POST",
+                body: JSON.stringify({ ordem })
+            });
+            estado.desempate = null;
+            await carregarDetalhe();
+            await carregarLigas();
+            await atualizarDividasSeAbertas();
+            mostrarAlerta("Desempate resolvido e jornada fechada.", "sucesso");
         });
         return;
     }

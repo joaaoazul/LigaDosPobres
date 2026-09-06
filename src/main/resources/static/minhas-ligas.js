@@ -74,6 +74,7 @@ function badgeEstado(estadoTexto) {
         DESISTENTE: "vermelho",
         ABERTA: "verde",
         FECHADA: "azul",
+        DESEMPATE: "amarelo",
         TREINO: "amarelo",
         OFICIAL: "azul"
     };
@@ -235,6 +236,10 @@ function desenharJornadaSelecionada() {
     }
 
     const fechada = jornada.estado === "FECHADA";
+    const emDesempate = jornada.estado === "DESEMPATE";
+    // Em desempate as posições já estão atribuídas (partilhadas por quem
+    // empatou), por isso ordena-se por elas e não pela pontuação.
+    const comPosicoes = fechada || emDesempate;
     const pontosPorEquipa = new Map(jornada.resultados.map((r) => [r.equipaId, r]));
 
     const linhas = estado.detalhe.equipas
@@ -243,8 +248,8 @@ function desenharJornadaSelecionada() {
         .sort((a, b) => {
             const ra = pontosPorEquipa.get(a.id);
             const rb = pontosPorEquipa.get(b.id);
-            const va = fechada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
-            const vb = fechada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
+            const va = comPosicoes ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
+            const vb = comPosicoes ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
             return va - vb;
         })
         .map((equipa) => {
@@ -259,9 +264,11 @@ function desenharJornadaSelecionada() {
 
     painel.innerHTML = `
         <h3>Jornada ${jornada.numero} ${badgeEstado(jornada.estado)} ${badgeEstado(jornada.tipo)}</h3>
-        <p class="ajuda">${fechada
-            ? "Jornada fechada — posições atribuídas por pontuação."
-            : "Jornada ainda aberta — o gestor ainda pode alterar estes resultados."}</p>
+        <p class="ajuda">${emDesempate
+            ? "Há equipas empatadas: o gestor tem de desfazer o empate para a jornada fechar."
+            : (fechada
+                ? "Jornada fechada — posições atribuídas por pontuação."
+                : "Jornada ainda aberta — o gestor ainda pode alterar estes resultados.")}</p>
         <div class="tabela-rolavel">
             <table>
                 <thead>

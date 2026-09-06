@@ -16,8 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class JornadaService {
@@ -101,6 +106,14 @@ public class JornadaService {
         if(jornada.getEstadoJ() == EstadoJornada.FECHADA){
             throw new IllegalStateException("A jornada já está fechada.");
         }
+        // Sem isto, mexer nas pontuações depois de o empate ter sido detetado
+        // invalidava-o em silêncio: o empate deixava de existir (ou passavam a
+        // ser outras equipas) e o desempate submetido a seguir já não batia
+        // certo com nada.
+        if(jornada.getEstadoJ() == EstadoJornada.DESEMPATE){
+            throw new IllegalStateException(
+                    "Esta jornada está à espera de desempate. Resolve o empate antes de mexer nas pontuações.");
+        }
         if(equipa.getEstado() != EstadoEquipa.ATIVA){
             throw new IllegalStateException("Não é possível inserir resultados de uma equipa desistente.");
         }
@@ -133,8 +146,13 @@ public class JornadaService {
 
     /**
      * Fecha a jornada e atribui as posições por ordem decrescente de pontuação.
-     * Equipas empatadas ficam, para já, com a mesma posição — a resolução de
-     * empates é feita pelo {@link DesempateService}.
+     *
+     * <p>Se sobrarem equipas empatadas, a jornada NÃO fecha: fica em
+     * {@link EstadoJornada#DESEMPATE} à espera de {@link #resolverDesempate},
+     * e nenhum bloco de dívida é cobrado. É de propósito — o valor de cada
+     * bloco sai da posição de cada equipa na jornada, por isso cobrar antes de
+     * o empate estar desfeito era cobrar a mais a umas e a menos a outras, e
+     * já com o dinheiro registado não havia forma limpa de corrigir.
      */
     @Transactional
     public Jornada fecharJornada(Jornada jornada){
@@ -144,10 +162,88 @@ public class JornadaService {
         if(jornada.getEstadoJ() == EstadoJornada.FECHADA){
             throw new IllegalStateException("Esta jornada já se encontra fechada.");
         }
+        if(jornada.getEstadoJ() == EstadoJornada.DESEMPATE){
+            throw new IllegalStateException(
+                    "Esta jornada está à espera de desempate. Resolve o empate para a fechar.");
+        }
         if(jornada.getResultadoJ().isEmpty()){
             throw new IllegalStateException("Não é possível fechar uma jornada sem resultados.");
         }
 
+        atribuirPosicoesPorPontuacao(jornada);
+
+        if(!resultadosEmpatados(jornada).isEmpty()){
+            jornada.setEstadoJ(EstadoJornada.DESEMPATE);
+            jornadaRepository.guardar(jornada);
+            return jornada;
+        }
+
+        jornada.setEstadoJ(EstadoJornada.FECHADA);
+        jornadaRepository.guardar(jornada);
+
+        fecharBlocoSeForACaso(jornada);
+
+        return jornada;
+    }
+
+    /**
+     * Desfaz o empate de uma jornada com a ordem que o gestor deu, fecha-a, e
+     * só então deixa o bloco ser cobrado.
+     *
+     * <p>{@code ordem} tem de conter exactamente as equipas empatadas. A
+     * pontuação continua a mandar na ordenação; a ordem dada só decide entre
+     * quem tem a mesma pontuação, por isso uma lista mal ordenada nunca
+     * consegue trocar equipas entre pontuações diferentes.
+     */
+    @Transactional
+    public Jornada resolverDesempate(Jornada jornada, List<UUID> ordem){
+        if(jornada == null){
+            throw new IllegalArgumentException("Não existe uma jornada válida.");
+        }
+        if(jornada.getEstadoJ() != EstadoJornada.DESEMPATE){
+            throw new IllegalStateException("Esta jornada não está à espera de desempate.");
+        }
+        if(ordem == null || ordem.isEmpty()){
+            throw new IllegalArgumentException("Indica a ordem das equipas empatadas.");
+        }
+
+        List<ResultadoJornada> empatados = resultadosEmpatados(jornada);
+        Set<UUID> equipasEmpatadas = empatados.stream()
+                .map(resultado -> resultado.getEquipa().getId())
+                .collect(Collectors.toSet());
+        Set<UUID> equipasIndicadas = new HashSet<>(ordem);
+
+        if(equipasIndicadas.size() != ordem.size() || !equipasIndicadas.equals(equipasEmpatadas)){
+            throw new IllegalArgumentException(
+                    "A ordem tem de indicar, uma só vez, exactamente as equipas empatadas.");
+        }
+
+        Map<UUID, Integer> lugarNaOrdem = new HashMap<>();
+        for(int i = 0; i < ordem.size(); i++){
+            lugarNaOrdem.put(ordem.get(i), i);
+        }
+
+        List<ResultadoJornada> ordenados = new ArrayList<>(jornada.getResultadoJ());
+        ordenados.sort(Comparator.comparingInt(ResultadoJornada::getPontuacao).reversed()
+                .thenComparingInt(resultado -> lugarNaOrdem.getOrDefault(resultado.getEquipa().getId(), 0)));
+
+        // Já não há posições partilhadas: depois do desempate cada equipa tem
+        // a sua, e é essa que o fecho do bloco vai cobrar.
+        for(int i = 0; i < ordenados.size(); i++){
+            ordenados.get(i).setPosicao(i + 1);
+        }
+        empatados.forEach(resultado -> resultado.setDesempateManual(true));
+
+        jornada.setEstadoJ(EstadoJornada.FECHADA);
+        jornadaRepository.guardar(jornada);
+
+        fecharBlocoSeForACaso(jornada);
+
+        return jornada;
+    }
+
+    /** Posições por pontuação decrescente, com os empatados a partilhar a posição. */
+    private void atribuirPosicoesPorPontuacao(Jornada jornada){
         List<ResultadoJornada> ordenados = new ArrayList<>(jornada.getResultadoJ());
         ordenados.sort(Comparator.comparingInt(ResultadoJornada::getPontuacao).reversed());
 
@@ -161,13 +257,20 @@ public class JornadaService {
             }
             resultado.setPosicao(posicao);
         }
+    }
 
-        jornada.setEstadoJ(EstadoJornada.FECHADA);
-        jornadaRepository.guardar(jornada);
-
-        fecharBlocoSeForACaso(jornada);
-
-        return jornada;
+    /**
+     * Os resultados que partilham pontuação com pelo menos outro. Inclui
+     * equipas desistentes que tenham resultado nesta jornada: a posição delas
+     * aparece na tabela como a de qualquer outra, mesmo não sendo cobrada.
+     */
+    private List<ResultadoJornada> resultadosEmpatados(Jornada jornada){
+        return jornada.getResultadoJ().stream()
+                .collect(Collectors.groupingBy(ResultadoJornada::getPontuacao))
+                .values().stream()
+                .filter(grupo -> grupo.size() > 1)
+                .flatMap(List::stream)
+                .toList();
     }
 
     /**

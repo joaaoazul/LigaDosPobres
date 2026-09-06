@@ -682,6 +682,77 @@ td.numero, th.numero { text-align: right; }
     gap: var(--e4);
 }
 
+/* ----------------------------------------------------------- desempate --- */
+
+/* Uma jornada empatada está a meio caminho: já não se editam pontuações, mas
+   também ainda não fechou. O painel leva a régua de sinal para se perceber
+   que falta ali uma decisão. */
+.painel-desempate {
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-left: 2px solid var(--espera);
+    border-radius: var(--r-g);
+    margin-top: var(--e4);
+    padding: var(--e4);
+}
+
+.grupo-empate {
+    margin-top: var(--e4);
+}
+
+.grupo-empate h4 {
+    font-family: "Archivo Narrow", sans-serif;
+    font-size: var(--t-micro);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+    margin: 0 0 var(--e2);
+}
+
+/* Numerada de propósito: o número é a posição em que a equipa vai ficar. */
+.ordem-empate {
+    counter-reset: lugar;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--e1);
+}
+
+.ordem-empate li {
+    align-items: center;
+    background: var(--painel);
+    border: 1px solid var(--regua);
+    border-radius: var(--r);
+    display: flex;
+    gap: var(--e3);
+    justify-content: space-between;
+    padding: var(--e2) var(--e3);
+}
+
+.ordem-empate li::before {
+    counter-increment: lugar;
+    content: counter(lugar);
+    font-family: "Archivo Narrow", sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--tinta-fraca);
+    min-width: 1.5em;
+}
+
+.ordem-empate li span:first-of-type {
+    flex: 1;
+    font-weight: 600;
+}
+
+.mover-empate {
+    display: flex;
+    flex: none;
+    gap: var(--e1);
+}
+
 .ajuda {
     color: var(--tinta-media);
     font-size: var(--t-min);

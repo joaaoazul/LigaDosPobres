@@ -10,6 +10,7 @@ import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.JornadaService;
 import com.ligarecord.web.dto.InserirResultadoRequest;
 import com.ligarecord.web.dto.JornadaDto;
+import com.ligarecord.web.dto.ResolverDesempateRequest;
 import com.ligarecord.web.dto.ResultadoDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -109,6 +110,20 @@ public class JornadaController {
                              @PathVariable UUID ligaId,
                              @PathVariable UUID jornadaId) {
         return JornadaDto.de(jornadaService.fecharJornada(jornada(autenticado, ligaId, jornadaId)));
+    }
+
+    /**
+     * Desfaz o empate de uma jornada que ficou à espera dele. Só depois disto
+     * é que a jornada fecha e conta para o bloco de dívida.
+     */
+    @PostMapping("/{jornadaId}/desempate")
+    @Transactional
+    public JornadaDto resolverDesempate(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                        @PathVariable UUID ligaId,
+                                        @PathVariable UUID jornadaId,
+                                        @RequestBody ResolverDesempateRequest pedido) {
+        Jornada jornada = jornada(autenticado, ligaId, jornadaId);
+        return JornadaDto.de(jornadaService.resolverDesempate(jornada, pedido.ordem()));
     }
 
     private Liga liga(GestorAutenticado autenticado, UUID ligaId) {
