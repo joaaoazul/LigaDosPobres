@@ -192,6 +192,13 @@ document.addEventListener("click", (evento) => {
     }
 
     if (alvo.dataset.copiar) {
+        // Fora de https o navigator.clipboard nem sequer existe, e sem esta
+        // verificação o clique rebentava com um TypeError silencioso em vez
+        // de dizer ao administrador o que fazer.
+        if (!navigator.clipboard) {
+            mostrarAlerta("Não foi possível copiar. Seleciona o código à mão.");
+            return;
+        }
         navigator.clipboard.writeText(alvo.dataset.copiar)
             .then(() => mostrarAlerta("Código copiado.", "sucesso"))
             .catch(() => mostrarAlerta("Não foi possível copiar. Seleciona o código à mão."));

@@ -282,7 +282,10 @@ function desenharJornadaSelecionada() {
             const rb = pontosPorEquipa.get(b.id);
             const va = comPosicoes ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
             const vb = comPosicoes ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
-            return va - vb;
+            // Duas equipas sem resultado davam Infinity menos Infinity, ou
+            // seja NaN, e um comparador com NaN deixa a ordem ao acaso. Como
+            // NaN é falso, o nome desempata.
+            return (va - vb) || a.nome.localeCompare(b.nome, "pt");
         })
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);

@@ -30,6 +30,11 @@
 }
 
 :root {
+    /* O que o browser desenha por nós e a folha não alcança: as barras de
+       rolamento, as setinhas dos campos numéricos, o menu do selector de
+       ficheiros. Sem isto vinha tudo em claro, encostado a um tema escuro. */
+    color-scheme: dark;
+
     /* --- fundo: grafite quente. Não o azul-preto de toda a gente. --- */
     --ground: #141518;
     --painel: #1a1c20;
@@ -199,18 +204,30 @@ h1, h2, h3 {
     color: var(--tinta-fraca);
 }
 
+/* A placa central da bola. Um <polygon> sem regra nenhuma é preenchido a preto
+   pelo browser, que era o que estava a acontecer: uma mancha escura dentro do
+   círculo, em vez da placa. Segue a cor do desenho, mais apagada que o traço. */
+.bola-grande .placa {
+    fill: currentColor;
+    opacity: 0.3;
+}
+
+/* Cinco atalhos e um nome não cabem na largura de um telemóvel. Sem quebra de
+   linha ficavam a transbordar para fora do ecrã: a 390px o "Sair" caía a 90px
+   de distância da margem direita, fora de alcance, e a página passava a rolar
+   na horizontal. Quebram para a linha de baixo e ficam todos à mão. */
 .sessao {
     display: flex;
     align-items: center;
-    gap: var(--e3);
+    flex-wrap: wrap;
+    gap: var(--e2) var(--e3);
+    justify-content: flex-end;
 }
 
 .sessao span {
     color: var(--tinta-media);
     font-size: var(--t-min);
 }
-
-.sessao a.botao { text-decoration: none; }
 
 /* -------------------------------------------------------------- layout --- */
 
@@ -317,19 +334,42 @@ input:disabled {
     cursor: not-allowed;
 }
 
+/* O Chrome pinta os campos preenchidos pelo gestor de passwords com um amarelo
+   claro que ignora background e color. A sombra interior é a única forma de lá
+   chegar: cobre o fundo do campo com a nossa cor, e o text-fill-color trata da
+   letra. Sem isto, entrar com a password guardada acendia dois retângulos
+   brancos no meio do cartão escuro. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: inset 0 0 0 100px var(--ground);
+    -webkit-text-fill-color: var(--tinta);
+    caret-color: var(--tinta);
+}
+
 /* -------------------------------------------------------------- botões --- */
 
+/* Metade destes botões são <button> e a outra metade são <a> (a navegação do
+   topo). O <button> não herda o line-height do corpo e o <a> herda, o que dava
+   dois botões lado a lado com 28,4 e 30,35 pixéis de altura. Fixar aqui o
+   line-height e a caixa põe os dois exactamente à mesma medida. */
 .botao {
+    align-items: center;
     background: var(--painel-alto);
     border: 1px solid var(--regua-forte);
     border-radius: var(--r);
     color: var(--tinta);
     cursor: pointer;
+    display: inline-flex;
     font-family: "Archivo Narrow", sans-serif;
     font-size: var(--t-corpo);
     font-weight: 600;
+    justify-content: center;
     letter-spacing: 0.03em;
+    line-height: 1.25;
     padding: 9px 15px;
+    text-align: center;
+    text-decoration: none;
     transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
@@ -726,6 +766,20 @@ td.numero, th.numero { text-align: right; }
     gap: var(--e4);
 }
 
+/* A regra de dívida é a configuração da liga, não os seus dados: fica na sua
+   própria caixa, acima da lista de equipas, com a mesma moldura dos outros
+   painéis interiores. Sem isto o formulário ficava solto por cima da grelha,
+   sem nada a dizer onde acabava. */
+.painel-regra-divida {
+    background: var(--ground);
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    margin-bottom: var(--e5);
+    padding: var(--e4);
+}
+
+.painel-regra-divida .formulario { margin-bottom: 0; }
+
 /* ----------------------------------------------------------- desempate --- */
 
 /* Uma jornada empatada está a meio caminho: já não se editam pontuações, mas
@@ -925,7 +979,11 @@ td.numero, th.numero { text-align: right; }
     align-items: center;
     display: flex;
     justify-content: center;
+    /* 100vh no telemóvel conta a barra de endereço como se ela não existisse,
+       e o cartão fica um bocado abaixo do ecrã. dvh mede o que se vê mesmo;
+       vh fica como recurso para quem ainda não o entende. */
     min-height: 100vh;
+    min-height: 100dvh;
     padding: var(--e5);
 }
 

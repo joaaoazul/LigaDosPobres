@@ -89,6 +89,21 @@ async function executar(acao) {
     }
 }
 
+/* A área de transferência não existe fora de https (nem no localhost de alguns
+   browsers), e quando existe pode recusar se a janela não estiver em foco.
+   Devolve se conseguiu, para a mensagem não prometer uma cópia que não houve. */
+async function copiar(valor) {
+    if (!navigator.clipboard) {
+        return false;
+    }
+    try {
+        await navigator.clipboard.writeText(valor);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function plural(n, singular, pluralForma) {
     return `${n} ${n === 1 ? singular : pluralForma}`;
 }
@@ -418,7 +433,11 @@ function desenharJornadaSelecionada() {
             const rb = pontosPorEquipa.get(b.id);
             const va = bloqueada ? (ra && ra.posicao ? ra.posicao : Infinity) : (ra ? -ra.pontuacao : Infinity);
             const vb = bloqueada ? (rb && rb.posicao ? rb.posicao : Infinity) : (rb ? -rb.pontuacao : Infinity);
-            return va - vb;
+            // Entre duas equipas ainda sem resultado, va - vb dá Infinity menos
+            // Infinity, que é NaN. Um comparador que devolve NaN deixa a ordem
+            // por conta do motor, e era isso que baralhava a lista numa jornada
+            // acabada de abrir. NaN é falso, portanto o nome decide.
+            return (va - vb) || a.nome.localeCompare(b.nome, "pt");
         })
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);
@@ -675,6 +694,57 @@ function desenharDetalheDivida() {
 
 /* --------------------------------------------------------------- ações ---- */
 
+/* Lançar uma jornada é escrever vinte números seguidos, e é a coisa que mais
+   se faz nesta aplicação. Por isso o Enter grava, e o cursor salta sozinho
+   para a equipa seguinte.
+ *
+ * A equipa seguinte é decidida ANTES de gravar, pela ordem que o gestor tem à
+ * frente. Depois de gravar a tabela reordena-se pelas pontuações, por isso o
+ * campo é procurado outra vez pelo id da equipa e não pela posição na lista.
+ */
+function guardarPontuacao(equipaId, saltarParaSeguinte) {
+    const campo = document.querySelector(`[data-pontuacao="${equipaId}"]`);
+    if (!campo || campo.value === "") {
+        mostrarAlerta("Indica uma pontuação.");
+        return;
+    }
+
+    const campos = [...document.querySelectorAll("[data-pontuacao]")];
+    const seguinte = campos[campos.indexOf(campo) + 1];
+
+    executar(async () => {
+        await api(`/api/ligas/${estado.ligaId}/jornadas/${estado.jornadaId}/resultados`, {
+            method: "PUT",
+            body: JSON.stringify({ equipaId, pontuacao: Number(campo.value) })
+        });
+        await recarregar();
+        mostrarAlerta("Resultado guardado.", "sucesso");
+
+        if (saltarParaSeguinte && seguinte) {
+            const redesenhado = document.querySelector(`[data-pontuacao="${seguinte.dataset.pontuacao}"]`);
+            if (redesenhado) {
+                redesenhado.focus();
+                redesenhado.select();
+            }
+        }
+    });
+}
+
+// O Enter num campo de pontuação vale por carregar em Guardar. São campos
+// soltos numa tabela, não um formulário, por isso o browser não faz isto
+// sozinho: sem esta linha, o Enter não fazia rigorosamente nada.
+document.addEventListener("keydown", (evento) => {
+    if (evento.key !== "Enter") {
+        return;
+    }
+    const campo = evento.target.closest("[data-pontuacao]");
+    if (!campo) {
+        return;
+    }
+    evento.preventDefault();
+    guardarPontuacao(campo.dataset.pontuacao, true);
+});
+
 function selecionarTab(tab) {
     estado.tab = tab;
     document.querySelectorAll(".separador")
@@ -855,22 +925,7 @@ document.addEventListener("click", (evento) => {
     }
 
     if (alvo.dataset.guardar) {
-        const campo = document.querySelector(`[data-pontuacao="${alvo.dataset.guardar}"]`);
-        if (campo.value === "") {
-            mostrarAlerta("Indica uma pontuação.");
-            return;
-        }
-        executar(async () => {
-            await api(`/api/ligas/${estado.ligaId}/jornadas/${estado.jornadaId}/resultados`, {
-                method: "PUT",
-                body: JSON.stringify({
-                    equipaId: alvo.dataset.guardar,
-                    pontuacao: Number(campo.value)
-                })
-            });
-            await recarregar();
-            mostrarAlerta("Resultado guardado.", "sucesso");
-        });
+        guardarPontuacao(alvo.dataset.guardar, false);
         return;
     }
 
@@ -971,8 +1026,10 @@ document.addEventListener("click", (evento) => {
                 method: "POST",
                 body: JSON.stringify({ diasValidade: null })
             });
-            navigator.clipboard?.writeText(convite.codigo).catch(() => {});
-            mostrarAlerta(`Convite criado e copiado: ${convite.codigo}`, "sucesso");
+            const copiado = await copiar(convite.codigo);
+            mostrarAlerta(copiado
+                ? `Convite criado e copiado: ${convite.codigo}`
+                : `Convite criado: ${convite.codigo}`, "sucesso");
         });
     }
 });
