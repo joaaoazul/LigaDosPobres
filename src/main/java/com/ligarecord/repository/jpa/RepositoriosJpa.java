@@ -128,11 +128,6 @@ public final class RepositoriosJpa {
         }
 
         @Override
-        public List<Jornada> listarJornadas(Liga liga) {
-            return jpa.findByLigaOrderByNumJornada(liga);
-        }
-
-        @Override
         public Optional<Jornada> buscarPorIdEGestor(UUID id, UUID gestorId) {
             return jpa.findByIdAndLigaGestorId(id, gestorId);
         }
