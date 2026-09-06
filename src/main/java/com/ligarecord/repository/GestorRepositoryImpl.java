@@ -2,54 +2,36 @@ package com.ligarecord.repository;
 
 import com.ligarecord.domain.Gestor;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class GestorRepositoryImpl implements GestorRepository {
-
-    private final List<Gestor> gestores = new ArrayList<>();
+public class GestorRepositoryImpl extends RepositorioEmMemoria<Gestor> implements GestorRepository {
 
     @Override
     public Gestor guardar(Gestor gestor) {
-        for (int i = 0; i < gestores.size(); i++) {
-            if (gestores.get(i).getId().equals(gestor.getId())) {
-                gestores.set(i, gestor);
-                return gestor;
-            }
-        }
-        gestores.add(gestor);
-        return gestor;
+        return super.guardar(gestor);
     }
 
     @Override
     public Optional<Gestor> buscarPorEmail(String email) {
-        for (Gestor gestor : gestores) {
-            if (gestor.getEmail().equalsIgnoreCase(email)) {
-                return Optional.of(gestor);
-            }
-        }
-        return Optional.empty();
+        return entidades.stream().filter(gestor -> gestor.getEmail().equalsIgnoreCase(email)).findFirst();
     }
 
     @Override
     public List<Gestor> listarTodos() {
-        return new ArrayList<>(gestores);
+        // Mesma ordem que a consulta JPA real (findAllByOrderByCriadoEmAsc).
+        return entidades.stream().sorted(Comparator.comparing(Gestor::getCriadoEm)).toList();
     }
 
     @Override
     public long contarAdminsAtivos() {
-        return gestores.stream().filter(g -> g.isAdmin() && g.isAtivo()).count();
+        return entidades.stream().filter(g -> g.isAdmin() && g.isAtivo()).count();
     }
 
     @Override
     public Optional<Gestor> buscarPorId(UUID id) {
-        for (Gestor gestor : gestores) {
-            if (gestor.getId().equals(id)) {
-                return Optional.of(gestor);
-            }
-        }
-        return Optional.empty();
+        return super.buscarPorId(id);
     }
 }

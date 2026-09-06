@@ -2,55 +2,37 @@ package com.ligarecord.repository;
 
 import com.ligarecord.domain.ConviteTreinador;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class ConviteTreinadorRepositoryImpl implements ConviteTreinadorRepository {
-
-    private final List<ConviteTreinador> convites = new ArrayList<>();
+public class ConviteTreinadorRepositoryImpl extends RepositorioEmMemoria<ConviteTreinador>
+        implements ConviteTreinadorRepository {
 
     @Override
     public ConviteTreinador guardar(ConviteTreinador convite) {
-        for (int i = 0; i < convites.size(); i++) {
-            if (convites.get(i).getId().equals(convite.getId())) {
-                convites.set(i, convite);
-                return convite;
-            }
-        }
-        convites.add(convite);
-        return convite;
+        return super.guardar(convite);
     }
 
     @Override
     public Optional<ConviteTreinador> buscarPorCodigo(String codigo) {
-        for (ConviteTreinador convite : convites) {
-            if (convite.getCodigo().equals(codigo)) {
-                return Optional.of(convite);
-            }
-        }
-        return Optional.empty();
+        return entidades.stream().filter(convite -> convite.getCodigo().equals(codigo)).findFirst();
     }
 
     @Override
     public Optional<ConviteTreinador> buscarPorIdEGestor(UUID id, UUID gestorId) {
-        for (ConviteTreinador convite : convites) {
-            if (convite.getId().equals(id) && convite.getCriadoPor().getId().equals(gestorId)) {
-                return Optional.of(convite);
-            }
-        }
-        return Optional.empty();
+        return entidades.stream()
+                .filter(convite -> convite.getId().equals(id) && convite.getCriadoPor().getId().equals(gestorId))
+                .findFirst();
     }
 
     @Override
     public List<ConviteTreinador> listarPorGestor(UUID gestorId) {
-        List<ConviteTreinador> resultado = new ArrayList<>();
-        for (ConviteTreinador convite : convites) {
-            if (convite.getCriadoPor().getId().equals(gestorId)) {
-                resultado.add(convite);
-            }
-        }
-        return resultado;
+        // Mesma ordem que a consulta JPA real (findByCriadoPorIdOrderByCriadoEmDesc).
+        return entidades.stream()
+                .filter(convite -> convite.getCriadoPor().getId().equals(gestorId))
+                .sorted(Comparator.comparing(ConviteTreinador::getCriadoEm).reversed())
+                .toList();
     }
 }

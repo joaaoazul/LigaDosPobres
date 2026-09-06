@@ -2,49 +2,33 @@ package com.ligarecord.repository;
 
 import com.ligarecord.domain.Convite;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class ConviteRepositoryImpl implements ConviteRepository {
-
-    private final List<Convite> convites = new ArrayList<>();
+public class ConviteRepositoryImpl extends RepositorioEmMemoria<Convite> implements ConviteRepository {
 
     @Override
     public Convite guardar(Convite convite) {
-        for (int i = 0; i < convites.size(); i++) {
-            if (convites.get(i).getId().equals(convite.getId())) {
-                convites.set(i, convite);
-                return convite;
-            }
-        }
-        convites.add(convite);
-        return convite;
+        return super.guardar(convite);
     }
 
     @Override
     public Optional<Convite> buscarPorCodigo(String codigo) {
-        for (Convite convite : convites) {
-            if (convite.getCodigo().equals(codigo)) {
-                return Optional.of(convite);
-            }
-        }
-        return Optional.empty();
+        return entidades.stream().filter(convite -> convite.getCodigo().equals(codigo)).findFirst();
     }
 
     @Override
     public Optional<Convite> buscarPorId(UUID id) {
-        for (Convite convite : convites) {
-            if (convite.getId().equals(id)) {
-                return Optional.of(convite);
-            }
-        }
-        return Optional.empty();
+        return super.buscarPorId(id);
     }
 
     @Override
     public List<Convite> listarTodos() {
-        return new ArrayList<>(convites);
+        // Mesma ordem que a consulta JPA real (findAllByOrderByCriadoEmDesc).
+        return entidades.stream()
+                .sorted(Comparator.comparing(Convite::getCriadoEm).reversed())
+                .toList();
     }
 }
