@@ -317,8 +317,16 @@ Páginas: `index.html` (gestor), `minhas-ligas.html` e `minhas-dividas.html`
 ### Folha de estilos
 
 Tema escuro, com um sistema de tokens no topo do `styles.css` (cores, escala
-tipográfica, sete valores de espaçamento). Duas famílias, Archivo e Archivo
-Narrow.
+tipográfica, sete valores de espaçamento). Um só tipo de letra, a Outfit,
+alojada na própria aplicação (`static/fontes/`) para a CSP poder continuar a
+ser `default-src 'self'`.
+
+Aqui esteve o par Archivo + Archivo Narrow e a hierarquia fazia-se com duas
+larguras. A Outfit tem uma largura só, por isso o que separa um rótulo de uma
+frase passou a ser o tamanho, as versaletes e o espaçamento entre letras. Como
+é geométrica e mais larga em maiúsculas, todo o `letter-spacing` dos rótulos foi
+encolhido cerca de um terço: manter o que a Narrow levava punha as etiquetas a
+rebentar as colunas.
 
 Há **um só acento**, o laranja `--sinal`, e usa-se apenas onde carrega
 informação: o líder da classificação, o separador activo e o foco do teclado.

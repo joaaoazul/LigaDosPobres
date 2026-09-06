@@ -21,25 +21,23 @@ import sys
 import time
 
 CSS = u"""
-@font-face { font-family:"Archivo"; src:url("FONTDIR/archivo.woff2") format("woff2");
-             font-weight:400 700; font-display:swap; }
-@font-face { font-family:"Archivo Narrow"; src:url("FONTDIR/archivo-narrow.woff2") format("woff2");
-             font-weight:400 700; font-display:swap; }
+@font-face { font-family:"Outfit"; src:url("FONTDIR/outfit.woff2") format("woff2");
+             font-weight:100 900; font-display:swap; }
 
 @page { size:A4; margin:19mm 17mm 20mm; }
 
 :root { --sinal:#d8410b; --tinta:#16181c; --media:#5a626c; --fraca:#8b939d; --regua:#dcdfe4; }
 
 * { box-sizing:border-box; }
-body { font-family:"Archivo",system-ui,sans-serif; font-size:10.2pt; line-height:1.55;
+body { font-family:"Outfit",system-ui,sans-serif; font-size:10.2pt; line-height:1.55;
        color:var(--tinta); margin:0; }
 .numero, td.n { font-variant-numeric:tabular-nums; }
 
-h1,h2,h3,h4 { font-family:"Archivo Narrow","Archivo",sans-serif; font-weight:700;
+h1,h2,h3,h4 { font-family:"Outfit",sans-serif; font-weight:700;
               line-height:1.2; margin:0; }
 h1 { font-size:23pt; letter-spacing:-.01em; border-bottom:2.5pt solid var(--sinal);
      padding-bottom:5mm; margin-bottom:7mm; }
-h2 { font-size:14pt; text-transform:uppercase; letter-spacing:.06em;
+h2 { font-size:14pt; text-transform:uppercase; letter-spacing:.045em;
      margin:9mm 0 3mm; padding-bottom:1.6mm; border-bottom:.6pt solid var(--regua);
      break-after:avoid; }
 h3 { font-size:11.2pt; margin:6mm 0 2mm; break-after:avoid; }
@@ -63,8 +61,8 @@ table { border-collapse:collapse; width:100%; margin:0 0 4mm; font-size:9.4pt;
         break-inside:avoid; }
 th,td { border-bottom:.5pt solid var(--regua); padding:1.8mm 2.4mm; text-align:left;
         vertical-align:top; }
-th { font-family:"Archivo Narrow",sans-serif; font-size:8.4pt; font-weight:700;
-     text-transform:uppercase; letter-spacing:.07em; color:var(--media);
+th { font-family:"Outfit",sans-serif; font-size:8.4pt; font-weight:700;
+     text-transform:uppercase; letter-spacing:.05em; color:var(--media);
      border-bottom:1pt solid var(--fraca); }
 
 blockquote { margin:0 0 4mm; padding:2.5mm 4mm; background:#fdf6f2;

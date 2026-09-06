@@ -2,31 +2,47 @@
    Liga dos Pobres — folha de estilos
 
    Direcção: "painel". A classificação é um marcador de estádio, não uma
-   tabela de dashboard. Um só sistema tipográfico em duas larguras, réguas
+   tabela de dashboard. Um só tipo de letra em toda a aplicação, réguas
    finas, numerais tabulares, e um único acento de sinalética industrial
    usado apenas onde carrega informação: o líder, o separador activo e o
    foco do teclado. Tudo o resto é cinzento e cala-se.
 
+   Aqui esteve o par Archivo + Archivo Narrow, e a hierarquia fazia-se com
+   duas larguras. A Outfit tem uma largura só, por isso o que distingue um
+   rótulo de uma frase passou a ser o tamanho, as versaletes e o
+   espaçamento entre letras. Como a Outfit é geométrica e mais larga em
+   maiúsculas, o espaçamento dos rótulos foi encolhido: manter o que a
+   Narrow levava punha as etiquetas a rebentar as colunas.
+
    As fontes são servidas pela própria aplicação (ver fontes/). Não há
    pedidos a terceiros: assim a Content-Security-Policy pode continuar a
    ser default-src 'self' sem abrir excepções para tipos de letra.
-   Archivo e Archivo Narrow, Omnibus-Type, licença SIL Open Font 1.1.
+   Outfit, Smartsheet Inc., licença SIL Open Font 1.1.
    ========================================================================= */
 
+/* Um ficheiro por sub-conjunto, como o Google Fonts os serve. O latin chega
+   para português; o latin-ext só é descarregado se aparecer um nome com uma
+   letra que não esteja no primeiro, e é por isso que leva unicode-range. */
 @font-face {
-    font-family: "Archivo";
-    src: url("fontes/archivo.woff2") format("woff2");
-    font-weight: 400 700;
+    font-family: "Outfit";
+    src: url("fontes/outfit.woff2") format("woff2");
+    font-weight: 100 900;
     font-style: normal;
     font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                   U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: "Archivo Narrow";
-    src: url("fontes/archivo-narrow.woff2") format("woff2");
-    font-weight: 400 700;
+    font-family: "Outfit";
+    src: url("fontes/outfit-ext.woff2") format("woff2");
+    font-weight: 100 900;
     font-style: normal;
     font-display: swap;
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                   U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                   U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 :root {
@@ -104,7 +120,7 @@ body {
     margin: 0;
     background: var(--ground);
     color: var(--tinta);
-    font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
     font-size: var(--t-corpo);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -162,7 +178,7 @@ h1, h2, h3 {
 }
 
 .marca h1 {
-    font-family: "Archivo Narrow", "Archivo", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-titulo);
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -192,9 +208,9 @@ h1, h2, h3 {
 .tagline {
     margin: 0;
     color: var(--tinta-media);
-    font-family: "Archivo Narrow", "Archivo", sans-serif;
+    font-family: "Outfit", sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.13em;
     font-size: var(--t-min);
 }
 
@@ -269,10 +285,10 @@ h1, h2, h3 {
 }
 
 .painel-lateral h2 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     color: var(--tinta-fraca);
     margin-bottom: var(--e3);
@@ -288,10 +304,10 @@ h1, h2, h3 {
 }
 
 .formulario label {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--tinta-media);
     margin-top: var(--e2);
@@ -361,7 +377,7 @@ input:-webkit-autofill:focus {
     color: var(--tinta);
     cursor: pointer;
     display: inline-flex;
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-corpo);
     font-weight: 600;
     justify-content: center;
@@ -469,7 +485,7 @@ input:-webkit-autofill:focus {
 }
 
 .cabecalho-liga h2 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-grande);
     font-weight: 700;
     letter-spacing: 0;
@@ -565,16 +581,16 @@ input:-webkit-autofill:focus {
 }
 
 .rotulo-pote {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     color: var(--tinta-fraca);
 }
 
 .valor-pote strong {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-grande);
     font-weight: 700;
     line-height: 1;
@@ -596,10 +612,10 @@ input:-webkit-autofill:focus {
     border: 1px solid var(--regua);
     border-radius: var(--r);
     color: var(--tinta-media);
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
     font-weight: 600;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     padding: 3px 8px;
     white-space: nowrap;
@@ -634,10 +650,10 @@ input:-webkit-autofill:focus {
     border-bottom: 2px solid transparent;
     color: var(--tinta-fraca);
     cursor: pointer;
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-min);
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: var(--e3) var(--e4);
     margin-bottom: -1px;
@@ -665,11 +681,11 @@ th, td {
 }
 
 th {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     color: var(--tinta-fraca);
     font-size: var(--t-micro);
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     border-bottom-color: var(--regua-forte);
 }
@@ -699,7 +715,7 @@ td.numero, th.numero { text-align: right; }
 .marcador .col-pos { width: 62px; }
 
 .marcador .pos {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-marcador);
     font-weight: 700;
     line-height: 1;
@@ -721,7 +737,7 @@ td.numero, th.numero { text-align: right; }
 .marcador .col-pts { width: 90px; text-align: right; }
 
 .marcador .pts {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-marcador);
     font-weight: 700;
     line-height: 1;
@@ -799,10 +815,10 @@ td.numero, th.numero { text-align: right; }
 }
 
 .grupo-empate h4 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--tinta-fraca);
     margin: 0 0 var(--e2);
@@ -833,7 +849,7 @@ td.numero, th.numero { text-align: right; }
 .ordem-empate li::before {
     counter-increment: lugar;
     content: counter(lugar);
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     color: var(--tinta-fraca);
@@ -914,7 +930,7 @@ td.numero, th.numero { text-align: right; }
 }
 
 .detalhe-jornada h3 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-med);
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -932,7 +948,7 @@ td.numero, th.numero { text-align: right; }
 }
 
 .vazio h2 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-med);
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -1020,7 +1036,7 @@ td.numero, th.numero { text-align: right; }
 }
 
 .marca-auth h1 {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-titulo);
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -1041,10 +1057,10 @@ td.numero, th.numero { text-align: right; }
 }
 
 .titulo-seccao {
-    font-family: "Archivo Narrow", sans-serif;
+    font-family: "Outfit", sans-serif;
     font-size: var(--t-med);
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     margin-bottom: var(--e1);
 }
@@ -1130,6 +1146,12 @@ td.numero, th.numero { text-align: right; }
     .marcador .col-pos { width: 44px; }
     .marcador .col-pts { width: 62px; }
     .marcador .col-equipa .equipa { font-size: var(--t-corpo); }
+
+    /* A coluna do estado sai no telemóvel. A tabela não cabia, e o que ficava
+       de fora, à direita, eram os pontos: a única coisa que este ecrã existe
+       para mostrar. A informação não se perde, porque a única linha com estado
+       diferente é a de quem desistiu, e essa já vem riscada. */
+    .marcador .col-estado { display: none; }
 
     .vazio { padding: var(--e5) var(--e3); }
 }

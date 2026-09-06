@@ -322,7 +322,7 @@ function desenharClassificacao(classificacao) {
                 <tr>
                     <th class="col-pos">Pos</th>
                     <th>Equipa</th>
-                    <th>Estado</th>
+                    <th class="col-estado">Estado</th>
                     <th class="col-pts">Pts</th>
                 </tr>
             </thead>
@@ -334,7 +334,7 @@ function desenharClassificacao(classificacao) {
                             <span class="equipa">${texto(linha.equipa)}</span>
                             <span class="treinador">${texto(linha.treinador)}</span>
                         </td>
-                        <td>${badgeEstado(linha.estado)}</td>
+                        <td class="col-estado">${badgeEstado(linha.estado)}</td>
                         <td class="col-pts"><span class="pts">${linha.pontos}</span></td>
                     </tr>
                 `).join("")}
