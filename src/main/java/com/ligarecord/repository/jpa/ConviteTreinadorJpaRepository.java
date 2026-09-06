@@ -10,12 +10,17 @@ import java.util.UUID;
 
 public interface ConviteTreinadorJpaRepository extends JpaRepository<ConviteTreinador, UUID> {
 
-    @EntityGraph(attributePaths = {"treinador"})
+    @EntityGraph(attributePaths = {"treinador", "equipa", "criadoPor"})
     Optional<ConviteTreinador> findByCodigo(String codigo);
 
-    /** O caminho criadoPor.id faz a autorização acontecer dentro do SQL. */
-    Optional<ConviteTreinador> findByIdAndCriadoPorId(UUID id, UUID gestorId);
+    /** O caminho equipa.id faz a autorização acontecer dentro do SQL. */
+    Optional<ConviteTreinador> findByIdAndEquipaId(UUID id, UUID equipaId);
 
-    @EntityGraph(attributePaths = {"treinador", "criadoPor", "usadoPor"})
-    List<ConviteTreinador> findByCriadoPorIdOrderByCriadoEmDesc(UUID gestorId);
+    @EntityGraph(attributePaths = {"treinador", "equipa"})
+    List<ConviteTreinador> findByTreinadorIdAndUsadoEmIsNullAndRevogadoEmIsNullOrderByCriadoEmDesc(
+            UUID treinadorId);
+
+    @EntityGraph(attributePaths = {"treinador", "equipa"})
+    List<ConviteTreinador> findByEquipaLigaIdAndUsadoEmIsNullAndRevogadoEmIsNullOrderByCriadoEmDesc(
+            UUID ligaId);
 }

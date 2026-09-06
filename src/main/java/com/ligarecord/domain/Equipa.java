@@ -24,8 +24,10 @@ public class Equipa extends EntidadeBase {
     @Column(nullable = false)
     private String nome;
 
+    /** Único desde a V9: uma linha de {@link Treinador} é o lugar desta equipa
+     *  e de mais nenhuma. Partilhada, um convite ligava duas equipas de uma vez. */
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, optional = false)
-    @JoinColumn(name = "treinador_id", nullable = false)
+    @JoinColumn(name = "treinador_id", nullable = false, unique = true)
     private Treinador treinador;
 
     @ManyToOne(fetch = FetchType.LAZY)

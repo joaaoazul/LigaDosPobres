@@ -14,10 +14,17 @@ public interface ConviteTreinadorRepository {
     Optional<ConviteTreinador> buscarPorCodigo(String codigo);
 
     /**
-     * Filtrado pelo gestor que criou o convite. Quem se esquecer de verificar a
-     * autorização obtém um resultado vazio, não o convite de outro gestor.
+     * Filtrado pela equipa a que o convite pertence, e não pelo gestor que o
+     * criou: o convite é do lugar, e quem manda nele é quem manda na equipa
+     * hoje — que pode não ser quem o emitiu, se a liga entretanto mudou de
+     * gestor. Quem se esquecer de verificar a autorização obtém um resultado
+     * vazio, não o convite de outra equipa.
      */
-    Optional<ConviteTreinador> buscarPorIdEGestor(UUID id, UUID gestorId);
+    Optional<ConviteTreinador> buscarPorIdEEquipa(UUID id, UUID equipaId);
 
-    List<ConviteTreinador> listarPorGestor(UUID gestorId);
+    /** Por usar, por revogar — a expiração é decidida em código, com o relógio da aplicação. */
+    List<ConviteTreinador> listarPendentesPorTreinador(UUID treinadorId);
+
+    /** Os pendentes de uma liga inteira, para a tabela de equipas do gestor. */
+    List<ConviteTreinador> listarPendentesPorLiga(UUID ligaId);
 }

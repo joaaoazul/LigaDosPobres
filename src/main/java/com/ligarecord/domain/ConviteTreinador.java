@@ -12,13 +12,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Convite de uso único para ligar uma conta ({@link Gestor}) a um
- * {@link Treinador} já existente. Criado pelo gestor dono da liga a que
- * pertence a equipa do treinador — nunca pelo treinador.
+ * Convite de uso único a um lugar: "treinas esta equipa". Criado pelo gestor
+ * dono da liga a que a equipa pertence — nunca pelo treinador, que nesse
+ * momento ainda não tem conta nenhuma.
+ *
+ * <p>Guarda a {@link Equipa} e não só o {@link Treinador} porque é isso que o
+ * convite afirma, e é isso que quem o recebe precisa de ler antes de aceitar:
+ * o nome da equipa e o da liga. O treinador vem da equipa e nunca é escolhido
+ * à parte — um convite cujo treinador não fosse o daquela equipa não queria
+ * dizer nada.
  *
  * <p>Quem aceita pode não ter conta nenhuma ainda (cria uma de raiz) ou já ser
  * gestor de outra liga, ou treinador de outra equipa (liga o convite à conta
- * que já tem, sem criar um segundo login).
+ * que já tem, sem criar um segundo login). A identidade da pessoa é a conta;
+ * cada {@link Treinador} é o lugar que ela ocupa numa equipa.
  *
  * <p>Tal como o {@link Convite}, nunca é apagado: fica o registo de quem
  * convidou quem, e quando.
@@ -36,6 +43,10 @@ public class ConviteTreinador extends EntidadeBase {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "treinador_id", nullable = false)
     private Treinador treinador;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "equipa_id", nullable = false)
+    private Equipa equipa;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "criado_por", nullable = false)
@@ -61,10 +72,12 @@ public class ConviteTreinador extends EntidadeBase {
         // exigido pelo Hibernate
     }
 
-    public ConviteTreinador(UUID id, String codigo, Treinador treinador, Gestor criadoPor, Instant expiraEm) {
+    public ConviteTreinador(UUID id, String codigo, Equipa equipa, Gestor criadoPor, Instant expiraEm) {
         this.id = id;
         this.codigo = codigo;
-        this.treinador = treinador;
+        this.equipa = equipa;
+        // Nunca recebido de fora: é sempre o treinador da equipa convidada.
+        this.treinador = equipa.getTreinador();
         this.criadoPor = criadoPor;
         this.criadoEm = Instant.now();
         this.expiraEm = expiraEm;
@@ -81,6 +94,10 @@ public class ConviteTreinador extends EntidadeBase {
 
     public Treinador getTreinador() {
         return treinador;
+    }
+
+    public Equipa getEquipa() {
+        return equipa;
     }
 
     public Gestor getCriadoPor() {

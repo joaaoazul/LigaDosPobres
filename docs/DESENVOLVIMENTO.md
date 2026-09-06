@@ -55,8 +55,18 @@ gravadas e a mesma entidade duas vezes na sessão.
 
 ### Contas
 
-`Gestor` é a única entidade com credenciais. `Treinador` não tem password: é
-alguém que treina uma equipa, criado pelo gestor.
+`Gestor` é a única entidade com credenciais. `Treinador` não tem password.
+
+**`Treinador` não é a pessoa: é o lugar de treinador de uma equipa.** A pessoa é
+a conta. Uma linha de `Treinador` por equipa — `equipa.treinador_id` é único
+desde a V9 — e quem treina três equipas tem três linhas, todas a apontar à mesma
+conta. É por isso que a pergunta "que equipas treino eu" se faz por conta e
+devolve uma lista de treinadores:
+
+```java
+treinadorRepository.buscarPorConta(conta).stream()
+        .flatMap(treinador -> equipaRepository.buscarPorTreinador(treinador).stream())
+```
 
 `Treinador.conta` é um `@ManyToOne` opcional e **não único** para `Gestor`. Daí
 sai o que interessa:
@@ -65,13 +75,34 @@ sai o que interessa:
 - a mesma conta pode treinar várias equipas, em ligas diferentes;
 - quem gere uma liga e treina uma equipa usa um só login.
 
+`Treinador.nome` é o rótulo que o gestor escreveu, e continua a ser o nome
+mostrado mesmo depois de haver conta ligada — a lista de equipas é do gestor, e
+o nome da conta é outra coisa, o da pessoa. Corrige-se com
+`PATCH .../equipas/{id}/treinador`.
+
 Há dois tipos de convite, com entidades separadas de propósito:
 
 | | `Convite` | `ConviteTreinador` |
 |---|---|---|
 | Cria | administrador | gestor dono da liga |
-| Para | conta de gestor | ligar um treinador concreto a uma conta |
-| Aberto? | sim, quem tiver o código escolhe quem é | não, já nasce apontado a um treinador |
+| Para | conta de gestor | ocupar o lugar de treinador de uma equipa |
+| Aberto? | sim, quem tiver o código escolhe quem é | não, já nasce apontado a uma equipa |
+
+Três regras do `ConviteTreinadorService` que valem a pena guardar:
+
+- **Emitir é idempotente.** Se já houver convite por usar para aquele lugar, é
+  esse que volta. Duas credenciais válidas para a mesma equipa é o estado que se
+  quer evitar, não um detalhe de interface.
+- **Não há convites sem prazo.** `diasValidade` a `null` usa
+  `VALIDADE_OMISSAO_DIAS` (30). Um link destes vive numa conversa de WhatsApp
+  para sempre.
+- **Aceitar revoga o que sobrou** (`revogarPendentes`), porque o lugar passou a
+  estar ocupado. A verificação `treinador.temConta()` em `TreinadorContaService`
+  continua lá para o caso de dois pedidos correrem ao mesmo tempo.
+
+A autorização sobre um convite é **pela equipa**, não por quem o emitiu: uma
+liga pode mudar de gestor (`AlterarGestorRequest`) e o convite continua a ser
+daquela equipa.
 
 ### `podeCriarLigas`
 
@@ -259,6 +290,16 @@ produção, começa por aqui.
   registado. O código tem 24 bytes aleatórios, vale uma hora, serve uma vez, e
   é guardado em SHA-256 e não em claro. Máximo de três pedidos por conta por
   hora.
+- **Convite de treinador acessível sem sessão** (`ConviteTreinadorPublicoController`
+  e `convite.html`). Tem de ser: quem chega pelo link ainda não tem conta para
+  entrar. O que o protege é o código — 24 bytes aleatórios, que não se
+  adivinham — e o que devolve é o mínimo para a pessoa se reconhecer no convite:
+  quem convidou, que equipa, que liga. Sem email nenhum, sem o código de volta,
+  e com a mesma resposta para um código inventado, gasto, revogado ou expirado.
+  O código viaja no endereço, como no link de recuperação: fica no histórico do
+  browser, e é um risco aceite — o link está na conversa onde o gestor o mandou,
+  que dura muito mais do que o histórico, e tirá-lo dali estragava o caso de
+  quem tem de ir entrar primeiro e voltar a abrir o mesmo link.
 - **Logos** são validados pelos primeiros bytes (`ImagemSuportada`), não pelo
   `Content-Type` que o cliente declara. SVG fica de fora, para não servirmos
   scripts do nosso próprio domínio.
@@ -279,6 +320,14 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V5 | dívidas, blocos e regra |
 | V6 | permissão de criar ligas |
 | V7 | marca de jornada já incluída num bloco |
+| V8 | recuperação de password por email |
+| V9 | convite ao lugar: `equipa.treinador_id` único e `convite_treinador.equipa_id` |
+
+A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
+encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
+casos que a aplicação não produz, mas que só quem conhece os dados pode
+resolver. Como o PostgreSQL faz DDL transaccional e o Flyway corre cada migração
+numa transação, uma falha destas não deixa nada a meio.
 
 **Nunca edites uma migração já aplicada em produção.** O Flyway guarda o
 checksum e recusa arrancar se ele mudar. Acrescenta uma migração nova.
@@ -312,7 +361,11 @@ Escapa sempre o que vem do servidor com `texto()` antes de o meter em HTML.
 
 Páginas: `index.html` (gestor), `minhas-ligas.html` e `minhas-dividas.html`
 (treinador), `admin.html`, `login.html`, `registo.html`,
-`registo-treinador.html`, `conta.html`.
+`registo-treinador.html`, `convite.html`, `conta.html`.
+
+A `convite.html` é a única que decide o que mostrar depois de falar com o
+servidor: lê o convite pelo código do endereço e, conforme haja ou não sessão
+aberta, oferece criar conta ou juntar a equipa à conta que já existe.
 
 ### Folha de estilos
 
@@ -342,7 +395,7 @@ azul.
 mvn test
 ```
 
-126 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+162 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 
@@ -430,6 +483,14 @@ dados de produção.
 
 ## 10. Por implementar
 
+- **Convite por email.** O `Treinador` não guarda email, por isso o gestor tem
+  de entregar o link à mão. O passo seguinte é um campo opcional de email no
+  lugar de treinador e o envio automático pelo `EnviadorDeEmail` que já existe,
+  com travão de envios por lugar e por janela de tempo, à maneira do
+  `RecuperacaoService`.
+- **Convidar a liga toda de uma vez**, depois de haver email: um pedido que
+  emite ou reutiliza os convites de todas as equipas sem conta e devolve, por
+  equipa, o que foi enviado e o que ficou por link.
 - Verificação de email no registo. O convite já trava o registo aberto, que é o
   que a confirmação costuma proteger; o que fica por resolver é o email mal
   escrito, e para esse o remendo é o administrador corrigi-lo à mão.

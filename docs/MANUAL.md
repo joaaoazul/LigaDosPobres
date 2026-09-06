@@ -53,24 +53,29 @@ Cada código serve uma vez só. Se te enganares a escrever, pede outro.
 ### 2.2 Criar conta de treinador
 
 O convite de treinador é dado pelo gestor da liga onde treinas, não por um
-administrador.
+administrador, e é sempre para uma equipa em concreto: "treinas o Bairro FC, na
+Liga do Café".
 
-1. Na página de entrada, carrega em **Cria a tua conta aqui**, na linha
-   "Convite de treinador?".
-2. Preenche o código, o nome, o email e a password.
+1. **Abre o link** que o gestor te enviou. A página diz-te quem te convidou e
+   para que equipa.
+2. Preenche o nome, o email e a password.
+
+Não tens de escrever código nenhum: ele vai dentro do link. Se o link já não
+funcionar, o convite expirou ou foi revogado — pede outro ao gestor.
 
 Uma conta criada assim **não pode criar ligas próprias**. Se precisares disso,
 um administrador tem de te dar essa permissão.
 
 ### 2.3 Já tens conta e recebeste um convite de treinador
 
-Não crie uma segunda conta. Liga o convite à que já tens:
-
-1. Entra com a tua conta.
-2. Vai a **Password**, no canto superior direito.
-3. Na secção **Ligar convite de treinador**, escreve o código e confirma.
+Não crias uma segunda conta. Abre o link do convite já com sessão iniciada: a
+página oferece **Aceitar com a minha conta** e a equipa passa a aparecer na que
+já tens. Se ainda não tinhas sessão, entra primeiro e volta a abrir o link.
 
 A partir daí, a mesma conta gere as tuas ligas e mostra as equipas que treinas.
+
+(O caminho antigo continua a existir: em **Password**, na secção **Ligar convite
+de treinador**, colando o código à mão.)
 
 ### 2.4 Mudar a password
 
@@ -146,9 +151,36 @@ Duas coisas acontecem ao mesmo tempo:
 
 ### 4.2 Convidar o treinador
 
-O botão **Convidar treinador** gera um código e copia-o para a área de
-transferência. Entrega-o ao treinador para ele criar conta (secção 2.2) ou
-ligar à conta que já tem (secção 2.3).
+A coluna **Conta** diz-te em que pé está cada equipa:
+
+| O que lá está | O que quer dizer |
+| --- | --- |
+| Sem convite | ninguém foi convidado ainda |
+| Convite pendente | há um convite por usar (passa o rato por cima para veres até quando) |
+| Ligada | o treinador já tem conta e vê a equipa |
+
+O botão **Convidar treinador** cria o convite e **copia o link** para a área de
+transferência — é esse link que envias, por WhatsApp ou como quiseres. O
+treinador abre-o e cria conta (secção 2.2) ou liga-o à que já tem (secção 2.3).
+
+Carregar outra vez no mesmo botão — agora **Copiar link** — dá-te o mesmo link,
+não um segundo convite. Isso é de propósito: dois convites válidos para a mesma
+equipa eram duas chaves da mesma porta, e a primeira ficava por aí sem ninguém
+saber onde.
+
+**Os convites duram 30 dias.** Passado esse prazo o link deixa de funcionar e
+basta convidar outra vez.
+
+**Revogar** invalida o link que já deste — usa-o se o mandaste para o sítio
+errado. A seguir podes emitir um novo.
+
+**Editar**, ao lado do nome do treinador, corrige o nome que escreveste ao
+inscrever a equipa. É o nome que a liga mostra, mesmo depois de o treinador ter
+conta: o nome da conta é dele, este é o teu rótulo.
+
+**Desligar conta** corta o acesso de quem lá estava — para quando um treinador
+sai da equipa. A dívida da equipa não vai atrás: é da equipa, não de quem a
+treina. Depois disso podes convidar o treinador novo.
 
 ### 4.3 Desistência
 

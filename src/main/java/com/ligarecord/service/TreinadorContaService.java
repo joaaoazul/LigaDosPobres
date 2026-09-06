@@ -102,5 +102,10 @@ public class TreinadorContaService {
         treinador.setConta(conta);
         treinadorRepository.guardar(treinador);
         conviteService.consumir(convite, conta);
+
+        // O lugar acabou de ficar ocupado: qualquer outro convite ainda por
+        // usar para ele deixou de servir. Sem isto ficava válido para sempre e
+        // só dava um conflito no dia em que alguém o tentasse usar.
+        conviteService.revogarPendentes(treinador);
     }
 }
