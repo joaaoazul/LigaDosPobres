@@ -54,7 +54,10 @@ public class JornadaController {
     @Transactional(readOnly = true)
     public List<JornadaDto> listar(@AuthenticationPrincipal GestorAutenticado autenticado,
                                    @PathVariable UUID ligaId) {
-        return liga(autenticado, ligaId).getJornadas().stream().map(JornadaDto::de).toList();
+        return liga(autenticado, ligaId).getJornadas().stream()
+                .sorted(Jornada.ORDEM_CRONOLOGICA)
+                .map(JornadaDto::de)
+                .toList();
     }
 
     @PostMapping

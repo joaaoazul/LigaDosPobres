@@ -32,6 +32,14 @@ public class Liga extends EntidadeBase {
     @OrderBy("nome")
     private List<Equipa> equipas = new ArrayList<>();
 
+    /**
+     * {@code numJornada} reinicia em 1 quando as jornadas de treino terminam
+     * e começam as oficiais, por isso esta ordem NÃO é a ordem cronológica
+     * real assim que a liga tiver as duas — quem precisar dessa ordem (por
+     * exemplo, para mostrar a lista de jornadas) tem de ordenar de novo com
+     * {@link Jornada#ORDEM_CRONOLOGICA}, não confiar nesta coleção tal como
+     * vem.
+     */
     @OneToMany(mappedBy = "liga", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("numJornada")
     private List<Jornada> jornadas = new ArrayList<>();

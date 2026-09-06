@@ -15,12 +15,27 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "jornada")
 public class Jornada extends EntidadeBase {
+
+    /**
+     * A ordem real em que as jornadas acontecem: todas as de treino antes de
+     * todas as oficiais (garantido por {@code JornadaService.abrirJornada}),
+     * e dentro de cada tipo por número. {@code numJornada} sozinho não chega
+     * — reinicia em 1 quando as oficiais começam — e o {@code @OrderBy} da
+     * coleção em {@link Liga} não sabe disso, por isso quem precisar da
+     * ordem verdadeira (mostrar a lista de jornadas, por exemplo) tem de
+     * ordenar explicitamente com isto em vez de confiar na coleção tal como
+     * vem.
+     */
+    public static final Comparator<Jornada> ORDEM_CRONOLOGICA = Comparator
+            .comparing((Jornada j) -> j.tipoJornada == EstadoJornadaTreino.OFICIAL)
+            .thenComparingInt(j -> j.numJornada);
 
     @Id
     private UUID id;
