@@ -266,6 +266,11 @@ public final class RepositoriosJpa {
         }
 
         @Override
+        public Optional<ConviteTreinador> buscarPorId(UUID id) {
+            return jpa.findWithDadosById(id);
+        }
+
+        @Override
         public Optional<ConviteTreinador> buscarPorIdEEquipa(UUID id, UUID equipaId) {
             return jpa.findByIdAndEquipaId(id, equipaId);
         }

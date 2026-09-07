@@ -2,6 +2,7 @@ package com.ligarecord.web.dto;
 
 import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.service.ConviteTreinadorService;
+import com.ligarecord.service.EmissaoDeConvitesService;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -48,6 +49,29 @@ public record ConviteTreinadorDto(
                 convite.getUsadoEm(),
                 envio == null ? null : envio.name(),
                 convite.getEnviadoPara()
+        );
+    }
+
+    /**
+     * A partir do registo da emissão, que é o que sobra depois de a transação
+     * que emitiu ter fechado. Um convite acabado de emitir está sempre
+     * disponível — foi o serviço que o garantiu ao devolvê-lo.
+     */
+    public static ConviteTreinadorDto deEmissao(EmissaoDeConvitesService.PorEntregar emitido,
+                                                String link,
+                                                ConviteTreinadorService.Envio envio) {
+        return new ConviteTreinadorDto(
+                emitido.conviteId(),
+                emitido.codigo(),
+                link,
+                emitido.treinador(),
+                emitido.equipa(),
+                "DISPONIVEL",
+                emitido.criadoEm(),
+                emitido.expiraEm(),
+                null,
+                envio == null ? null : envio.name(),
+                envio == ConviteTreinadorService.Envio.ENVIADO ? emitido.email() : null
         );
     }
 

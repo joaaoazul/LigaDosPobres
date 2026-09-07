@@ -8,6 +8,7 @@ import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.email.EnviadorDeEmail;
+import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class EnvioDeConviteTest {
     }
 
     private EnviadorDeTeste enviador;
+    private ConviteTreinadorRepository conviteRepository;
     private ConviteTreinadorService conviteService;
     private Gestor gestor;
     private Treinador treinador;
@@ -49,8 +51,8 @@ class EnvioDeConviteTest {
     @BeforeEach
     void setUp() {
         enviador = new EnviadorDeTeste();
-        conviteService = new ConviteTreinadorService(
-                new ConviteTreinadorRepositoryImpl(), enviador,
+        conviteRepository = new ConviteTreinadorRepositoryImpl();
+        conviteService = new ConviteTreinadorService(conviteRepository, enviador,
                 new LinksDaAplicacao("https://liga.exemplo.pt"));
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
@@ -65,7 +67,7 @@ class EnvioDeConviteTest {
 
     @Test
     void semEmailNaoTentaEnviar() {
-        assertEquals(ConviteTreinadorService.Envio.SEM_EMAIL, conviteService.enviarPorEmail(convite()));
+        assertEquals(ConviteTreinadorService.Envio.SEM_EMAIL, conviteService.enviarPorEmail(convite().getId()));
         assertTrue(enviador.enviadas.isEmpty());
     }
 
@@ -74,7 +76,7 @@ class EnvioDeConviteTest {
         treinador.setEmail("joao@exemplo.pt");
         ConviteTreinador convite = convite();
 
-        assertEquals(ConviteTreinadorService.Envio.ENVIADO, conviteService.enviarPorEmail(convite));
+        assertEquals(ConviteTreinadorService.Envio.ENVIADO, conviteService.enviarPorEmail(convite.getId()));
         assertEquals(1, enviador.enviadas.size());
 
         EnviadorDeTeste.Mensagem mensagem = enviador.enviadas.get(0);
@@ -97,7 +99,7 @@ class EnvioDeConviteTest {
         enviador.consegue = false;
         ConviteTreinador convite = convite();
 
-        assertEquals(ConviteTreinadorService.Envio.FALHOU, conviteService.enviarPorEmail(convite));
+        assertEquals(ConviteTreinadorService.Envio.FALHOU, conviteService.enviarPorEmail(convite.getId()));
         assertEquals(0, convite.getEnvios());
         assertFalse(convite.estaRevogado());
         // e o convite continua a valer pelo link
@@ -109,8 +111,8 @@ class EnvioDeConviteTest {
         treinador.setEmail("joao@exemplo.pt");
         ConviteTreinador convite = convite();
 
-        assertEquals(ConviteTreinadorService.Envio.ENVIADO, conviteService.enviarPorEmail(convite));
-        assertEquals(ConviteTreinadorService.Envio.LIMITE_ATINGIDO, conviteService.enviarPorEmail(convite));
+        assertEquals(ConviteTreinadorService.Envio.ENVIADO, conviteService.enviarPorEmail(convite.getId()));
+        assertEquals(ConviteTreinadorService.Envio.LIMITE_ATINGIDO, conviteService.enviarPorEmail(convite.getId()));
         assertEquals(1, enviador.enviadas.size());
     }
 
@@ -125,15 +127,32 @@ class EnvioDeConviteTest {
             convite.marcarEnviado("joao@exemplo.pt");
         }
 
-        assertEquals(ConviteTreinadorService.Envio.LIMITE_ATINGIDO, conviteService.enviarPorEmail(convite));
+        assertEquals(ConviteTreinadorService.Envio.LIMITE_ATINGIDO, conviteService.enviarPorEmail(convite.getId()));
         assertTrue(enviador.enviadas.isEmpty());
+    }
+
+    /**
+     * Um convite anterior à V9 não tinha prazo nenhum. A V11 arruma os dados,
+     * mas se algum escapar não pode rebentar a mensagem — e rebentava, com um
+     * NullPointerException a formatar a data, que saía como erro no ecrã de
+     * quem carregou no botão.
+     */
+    @Test
+    void umConviteSemPrazoAindaAssimEEnviado() {
+        treinador.setEmail("joao@exemplo.pt");
+        ConviteTreinador semPrazo = conviteRepository.guardar(new ConviteTreinador(
+                UUID.randomUUID(), "codigo-antigo", equipa, gestor, null));
+
+        assertEquals(ConviteTreinadorService.Envio.ENVIADO,
+                conviteService.enviarPorEmail(semPrazo.getId()));
+        assertTrue(enviador.enviadas.get(0).texto().contains("codigo-antigo"));
     }
 
     /** O email vai para o contacto do lugar, e não para o da conta de quem o emitiu. */
     @Test
     void enviaParaOEmailDoLugarENaoParaODoGestor() {
         treinador.setEmail("Joao@Exemplo.PT");
-        conviteService.enviarPorEmail(convite());
+        conviteService.enviarPorEmail(convite().getId());
 
         assertEquals("Joao@Exemplo.PT", enviador.enviadas.get(0).para());
     }

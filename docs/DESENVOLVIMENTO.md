@@ -92,13 +92,31 @@ Três regras do `ConviteTreinadorService` que valem a pena guardar:
 
 - **Emitir é idempotente.** Se já houver convite por usar para aquele lugar, é
   esse que volta. Duas credenciais válidas para a mesma equipa é o estado que se
-  quer evitar, não um detalhe de interface.
+  quer evitar, não um detalhe de interface — e desde a V11 quem o garante é um
+  índice único parcial em `convite_treinador (treinador_id) where usado_em is
+  null and revogado_em is null`, porque procurar-e-depois-inserir é uma corrida:
+  dois pedidos ao mesmo tempo passavam os dois pela procura. Quem perde a corrida
+  leva um 409 do `GlobalExceptionHandler`, e o botão fica desligado enquanto o
+  pedido corre para não ser preciso chegar lá.
 - **Não há convites sem prazo.** `diasValidade` a `null` usa
   `VALIDADE_OMISSAO_DIAS` (30). Um link destes vive numa conversa de WhatsApp
   para sempre.
 - **Aceitar revoga o que sobrou** (`revogarPendentes`), porque o lugar passou a
   estar ocupado. A verificação `treinador.temConta()` em `TreinadorContaService`
   continua lá para o caso de dois pedidos correrem ao mesmo tempo.
+
+**Emitir e enviar são duas transações, sempre** — no convite de uma equipa e no
+da liga toda. É por isso que existe o `EmissaoDeConvitesService`, que só emite e
+devolve registos, e que nenhum dos dois controladores de emissão é
+`@Transactional`: o convite é gravado primeiro, e só depois é que o email sai. Ao
+contrário, uma falha a gravar deixava uma mensagem entregue a apontar para um
+convite que não existe, e um email não se retira depois de sair. É também a razão
+de o `enviarPorEmail` receber um id: as entidades da transação anterior não
+sobrevivem ao commit.
+
+No lote, cada envio vai ainda dentro do seu próprio `try`. Os convites já estão
+emitidos nessa altura, e a resposta é a única cópia dos links que o gestor tem
+para entregar à mão: uma excepção num deles não pode levar os outros com ela.
 
 A autorização sobre um convite é **pela equipa**, não por quem o emitiu: uma
 liga pode mudar de gestor (`AlterarGestorRequest`) e o convite continua a ser
@@ -330,6 +348,7 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V8 | recuperação de password por email |
 | V9 | convite ao lugar: `equipa.treinador_id` único e `convite_treinador.equipa_id` |
 | V10 | email do treinador e rasto do envio do convite |
+| V11 | um convite vivo por lugar (índice único) e prazo nos que não tinham |
 
 A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
 encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
@@ -403,7 +422,7 @@ azul.
 mvn test
 ```
 
-180 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+187 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 
@@ -502,10 +521,6 @@ dados de produção.
 
 ## 10. Por implementar
 
-- **Convidar a liga toda de uma vez**: um pedido que emite ou reutiliza os
-  convites de todas as equipas sem conta e devolve, por equipa, o que foi
-  enviado e o que ficou por link. Os emails têm de sair **depois do commit** —
-  uma falha de rede a meio não pode desfazer convites já emitidos.
 - Verificação de email no registo. O convite já trava o registo aberto, que é o
   que a confirmação costuma proteger; o que fica por resolver é o email mal
   escrito, e para esse o remendo é o administrador corrigi-lo à mão.

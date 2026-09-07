@@ -14,6 +14,12 @@ public interface ConviteTreinadorRepository {
     Optional<ConviteTreinador> buscarPorCodigo(String codigo);
 
     /**
+     * Sem filtro nenhum: só é chamado com um id que a transação anterior
+     * acabou de emitir, para o reler já noutra — a que envia o email.
+     */
+    Optional<ConviteTreinador> buscarPorId(UUID id);
+
+    /**
      * Filtrado pela equipa a que o convite pertence, e não pelo gestor que o
      * criou: o convite é do lugar, e quem manda nele é quem manda na equipa
      * hoje — que pode não ser quem o emitiu, se a liga entretanto mudou de

@@ -13,6 +13,9 @@ public interface ConviteTreinadorJpaRepository extends JpaRepository<ConviteTrei
     @EntityGraph(attributePaths = {"treinador", "equipa", "criadoPor"})
     Optional<ConviteTreinador> findByCodigo(String codigo);
 
+    @EntityGraph(attributePaths = {"treinador", "equipa", "criadoPor"})
+    Optional<ConviteTreinador> findWithDadosById(UUID id);
+
     /** O caminho equipa.id faz a autorização acontecer dentro do SQL. */
     Optional<ConviteTreinador> findByIdAndEquipaId(UUID id, UUID equipaId);
 
