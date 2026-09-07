@@ -171,10 +171,40 @@ function formatoMoeda(valor) {
     return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(valor ?? 0);
 }
 
-/* Espelha ClassificacaoService.calcularValor no backend: o valor do escalão
-   para esta posição, segundo a regra da liga. Usado só para mostrar uma
-   prévia (a cobrança a sério continua a ser feita no servidor). */
-function calcularValorEscalao(regra, posicao) {
+/* A tabela de valores tal como o EscalaColada a lê no servidor: uma linha por
+   posição, com vírgula ou ponto decimal e o € opcional. Aqui só se lê o que o
+   servidor já validou e devolveu, mas a leitura é a mesma para não haver duas
+   ideias diferentes do que é uma linha válida. */
+const LINHA_DA_TABELA = /^\s*(\d{1,3})\s*[-–—:.]\s*(\d+(?:[.,]\d{1,2})?)\s*(?:€|EUR|eur)?\s*$/;
+
+function lerTabela(texto) {
+    return String(texto ?? "")
+        .split(/\r?\n/)
+        .map((linha) => LINHA_DA_TABELA.exec(linha))
+        .filter(Boolean)
+        .map((encontrado) => Number(encontrado[2].replace(",", ".")));
+}
+
+/* Espelha RegraDivida.valorDaPosicao no backend: o valor desta posição pela
+   escala em vigor — a tabela, se a regra usa uma, senão a fórmula. Usado só
+   para mostrar uma prévia (a cobrança a sério continua a ser feita no
+   servidor).
+
+   Enquanto isto só sabia a fórmula, uma liga por tabela via a coluna Valor
+   inteira a 0,00 €: os campos da fórmula estão todos a zero numa regra dessas,
+   e a conta dava zero para toda a gente.
+
+   Abaixo do fim da tabela repete-se a última linha, como lá: quem entra para
+   lá das posições escritas paga o que paga o último. */
+function valorDaPosicao(regra, posicao) {
+    if (regra.escala === "TABELA") {
+        const tabela = lerTabela(regra.tabela);
+        if (!tabela.length) {
+            return null;
+        }
+        return posicao <= tabela.length ? tabela[posicao - 1] : tabela[tabela.length - 1];
+    }
+
     const escalao = Math.floor((posicao - 1) / regra.equipasPorEscalao);
     const valor = regra.valorInicial + regra.incremento * escalao;
     return Math.min(valor, regra.valorMaximo);
@@ -200,8 +230,45 @@ function calcularPosicoesPreview(resultados) {
 
 /* ------------------------------------------------------------- carregar --- */
 
+/* Qual a liga a abrir quando a página carrega.
+
+   Enquanto não havia nenhuma, quem tinha uma liga só entrava sempre no mesmo
+   ecrã vazio a dizer-lhe para escolher uma da lista ao lado — a única que lá
+   estava. Guarda-se a última aberta porque quem gere duas ou três ligas passa
+   os dias numa delas.
+
+   O localStorage pode rebentar (janela privada, cookies bloqueados) e isto é
+   uma comodidade, não uma funcionalidade: se falhar, abre-se a primeira. */
+const LIGA_GUARDADA = "quota.liga-gerida";
+
+function ligaLembrada() {
+    try {
+        return window.localStorage.getItem(LIGA_GUARDADA);
+    } catch {
+        return null;
+    }
+}
+
+function lembrarLiga(id) {
+    try {
+        window.localStorage.setItem(LIGA_GUARDADA, id);
+    } catch {
+        /* sem memória, paciência */
+    }
+}
+
+function escolherLigaInicial() {
+    if (estado.ligaId || !estado.ligas.length) {
+        return;
+    }
+    const guardada = ligaLembrada();
+    const lembrada = estado.ligas.find((liga) => liga.id === guardada);
+    estado.ligaId = (lembrada || estado.ligas[0]).id;
+}
+
 async function carregarLigas() {
     estado.ligas = await api("/api/ligas");
+    escolherLigaInicial();
     desenharLigas();
 }
 
@@ -261,7 +328,7 @@ function desenharLigas() {
         <li>
             <button class="cartao-liga ${liga.id === estado.ligaId ? "selecionado" : ""}" data-liga="${liga.id}">
                 <strong>${texto(liga.nome)}</strong>
-                <small>${liga.equipasAtivas}/${liga.maxEquipas} equipas &middot; ${plural(liga.totalJornadas, "jornada", "jornadas")}</small>
+                <small>${liga.totalEquipas}/${liga.maxEquipas} equipas &middot; ${plural(liga.totalJornadas, "jornada", "jornadas")}</small>
                 ${badgeEstado(liga.estado)}
             </button>
         </li>
@@ -408,24 +475,28 @@ function desenharEquipas(equipas, desativada) {
                 ${equipas.map((equipa) => `
                     <tr class="${equipa.estado === "DESISTENTE" ? "linha-desistente" : ""}">
                         <td><strong>${texto(equipa.nome)}</strong></td>
-                        <td>
-                            ${texto(equipa.treinador)}
-                            <button class="botao pequeno" data-editar-treinador="${equipa.id}"
-                                data-nome-treinador="${texto(equipa.treinador)}"
-                                data-email-treinador="${texto(equipa.treinadorEmail || "")}"
-                                ${desativada ? "disabled" : ""}>
-                                Editar
-                            </button>
-                            <span class="ajuda">${equipa.treinadorEmail ? texto(equipa.treinadorEmail) : "sem email"}</span>
+                        <td class="celula-treinador">
+                            <div class="nome-treinador">
+                                <span>${texto(equipa.treinador)}</span>
+                                <button class="botao pequeno" data-editar-treinador="${equipa.id}"
+                                    data-nome-treinador="${texto(equipa.treinador)}"
+                                    data-email-treinador="${texto(equipa.treinadorEmail || "")}"
+                                    ${desativada ? "disabled" : ""}>
+                                    Editar
+                                </button>
+                            </div>
+                            <span class="ajuda email-treinador">${equipa.treinadorEmail ? texto(equipa.treinadorEmail) : "sem email"}</span>
                         </td>
                         <td>${badgeEstado(equipa.estado)}</td>
                         <td>${badgeConta(equipa)}</td>
                         <td class="numero">
-                            ${acoesDaConta(equipa, desativada)}
-                            <button class="botao pequeno perigo" data-desistencia="${equipa.id}"
-                                ${equipa.estado !== "ATIVA" || desativada ? "disabled" : ""}>
-                                Desistência
-                            </button>
+                            <div class="acoes-linha">
+                                ${acoesDaConta(equipa, desativada)}
+                                <button class="botao pequeno perigo" data-desistencia="${equipa.id}"
+                                    ${equipa.estado !== "ATIVA" || desativada ? "disabled" : ""}>
+                                    Desistência
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join("")}
@@ -583,6 +654,11 @@ function desenharJornadaSelecionada() {
     const posicaoPreviaPorEquipa = bloqueada ? null : calcularPosicoesPreview(jornada.resultados);
     const regra = estado.regraDivida;
 
+    // Uma jornada de treino numa liga que não cobra treinos não pesa em bloco
+    // nenhum: a coluna do valor fica vazia em vez de anunciar uma cobrança que
+    // não vai acontecer.
+    const cobraEsta = Boolean(regra) && (regra.cobraTreino || !jornada.treino);
+
     const linhas = estado.detalhe.equipas
         .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
         .slice()
@@ -605,12 +681,17 @@ function desenharJornadaSelecionada() {
             const posicaoDaJornada = bloqueada
                 ? (resultado ? resultado.posicao : null)
                 : posicaoPreviaPorEquipa.get(equipa.id);
-            const valor = (regra && equipa.estado === "ATIVA" && posicaoDaJornada)
-                ? formatoMoeda(calcularValorEscalao(regra, posicaoDaJornada))
-                : "-";
+            const valorDesta = (cobraEsta && equipa.estado === "ATIVA" && posicaoDaJornada)
+                ? valorDaPosicao(regra, posicaoDaJornada)
+                : null;
+            const valor = valorDesta === null ? "&ndash;" : formatoMoeda(valorDesta);
             return `
                 <tr>
-                    <td class="posicao">${resultado && resultado.posicao ? resultado.posicao : "&ndash;"}</td>
+                    <td class="posicao">${posicaoDaJornada
+                        ? (bloqueada
+                            ? posicaoDaJornada
+                            : `<span class="previa" title="Posição se a jornada fechasse agora">${posicaoDaJornada}</span>`)
+                        : "&ndash;"}</td>
                     <td><strong>${texto(equipa.nome)}</strong></td>
                     <td class="numero">
                         ${podeEditar
@@ -639,9 +720,11 @@ function desenharJornadaSelecionada() {
     painel.innerHTML = `
         <h3>Jornada ${jornada.numero} ${badgeEstado(jornada.estado)} ${badgeEstado(jornada.tipo)}</h3>
         <p class="ajuda">${estadoDaJornada}</p>
-        <p class="ajuda">${regra
-            ? "A coluna Valor é o que esta jornada pesa no bloco, segundo a regra da liga. Quando o bloco fechar, soma-se ao valor das outras jornadas que o compõem."
-            : "Sem regra de dívida definida nesta liga: os blocos são cobrados à mão."}</p>
+        <p class="ajuda">${!regra
+            ? "Sem regra de dívida definida nesta liga: os blocos são cobrados à mão."
+            : cobraEsta
+                ? "A coluna Valor é o que esta jornada pesa no bloco, segundo a regra da liga. Quando o bloco fechar, soma-se ao valor das outras jornadas que o compõem."
+                : "Esta jornada é de treino e a regra da liga não cobra jornadas de treino: não pesa em bloco nenhum."}</p>
         <div class="tabela-rolavel">
             <table>
                 <thead>
@@ -803,17 +886,19 @@ function desenharCobrancas() {
     }
 
     lista.innerHTML = cobrancas.map((cobranca) => `
-        <div class="lote-convites">
-            <p>
-                <strong>${texto(cobranca.nome)}</strong>
-                &middot; jornada oficial ${cobranca.jornadaOficial}
-                &middot; ${badgeCobranca(cobranca.estado)}
-            </p>
+        <div class="cartao-cobranca">
+            <div class="cabecalho-cobranca">
+                <span>
+                    <strong>${texto(cobranca.nome)}</strong>
+                    &middot; jornada oficial ${cobranca.jornadaOficial}
+                </span>
+                ${badgeCobranca(cobranca.estado)}
+                ${cobranca.estado === "COBRADA" ? "" : `
+                    <button class="botao pequeno perigo" data-remover-cobranca="${texto(cobranca.nome)}">
+                        Remover
+                    </button>`}
+            </div>
             ${cobranca.estado === "A_ESPERA_DE_DESEMPATE" ? desenharEmpates(cobranca) : ""}
-            ${cobranca.estado === "COBRADA" ? "" : `
-                <button class="botao pequeno perigo" data-remover-cobranca="${texto(cobranca.nome)}">
-                    Remover
-                </button>`}
         </div>
     `).join("");
 }
@@ -1236,6 +1321,7 @@ document.addEventListener("click", (evento) => {
 
     if (alvo.dataset.liga) {
         estado.ligaId = alvo.dataset.liga;
+        lembrarLiga(estado.ligaId);
         estado.jornadaId = null;
         estado.equipaDividaId = null;
         // Os links são da liga anterior: não podem ficar aqui a dar a ideia
@@ -1516,10 +1602,12 @@ async function iniciar() {
         // Conta sem permissão para criar ligas (normalmente uma conta que só
         // aceitou um convite de treinador). O servidor já recusa o pedido de
         // qualquer forma; isto só evita mostrar um formulário que ia falhar.
-        $("#form-liga").classList.add("oculto");
+        $("#bloco-nova-liga").classList.add("oculto");
         $("#aviso-sem-permissao").classList.remove("oculto");
     }
     await carregarLigas();
+    // A liga escolhida na linha de cima ainda não tem detalhe nenhum lido.
+    await carregarDetalhe();
 }
 
 $("#btn-sair").addEventListener("click", () => {

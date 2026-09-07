@@ -64,11 +64,15 @@ function data(valor) {
     return valor ? new Date(valor).toLocaleDateString("pt-PT") : "&ndash;";
 }
 
+/* O CSS põe estas etiquetas em maiúsculas, mas a maiúscula tem de vir do
+   texto certo: "NAO" sem til era a única palavra mal escrita da aplicação, e
+   ATIVO e DESATIVADO eram as únicas etiquetas de estado sem cor nenhuma. */
 function badge(estadoTexto) {
     const cores = {
         DISPONIVEL: "verde", USADO: "azul", REVOGADO: "vermelho",
         EXPIRADO: "amarelo", ADMIN: "amarelo", GESTOR: "",
-        SIM: "verde", NAO: "vermelho"
+        ATIVO: "verde", DESATIVADO: "vermelho",
+        Sim: "verde", "Não": "vermelho"
     };
     return `<span class="badge ${cores[estadoTexto] ?? ""}">${texto(estadoTexto)}</span>`;
 }
@@ -126,7 +130,7 @@ function desenharGestores() {
                         <td>${texto(g.email)}</td>
                         <td>${badge(g.papel)}</td>
                         <td>${g.ativo ? badge("ATIVO") : badge("DESATIVADO")}</td>
-                        <td>${badge(g.podeCriarLigas ? "SIM" : "NAO")}</td>
+                        <td>${badge(g.podeCriarLigas ? "Sim" : "Não")}</td>
                         <td>${data(g.criadoEm)}</td>
                         <td class="numero">
                             ${proprio ? `<span class="ajuda">a tua conta</span>` : `

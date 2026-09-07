@@ -285,6 +285,10 @@ h1, h2, h3 {
     -webkit-overflow-scrolling: touch;
 }
 
+/* O título da lista de ligas vem depois do formulário: precisa de ar por
+   cima para não se colar ao botão de criar. */
+.painel-lateral .titulo-lista { margin-top: var(--e5); }
+
 .painel-lateral h2 {
     font-family: "Outfit", sans-serif;
     font-size: var(--t-micro);
@@ -335,7 +339,14 @@ h1, h2, h3 {
     display: none;
 }
 
-input {
+/* Os três campos com que se escreve, com o mesmo desenho. Durante muito
+   tempo só o <input> estava aqui: o <select> da escala e as duas caixas de
+   tabela de valores ficavam com o que o browser lhes dá por omissão — um
+   cinzento claro e, na textarea, letra monoespaçada de outro tipo de letra.
+   No meio de um tema escuro liam-se como um pedaço de outra aplicação. */
+input,
+select,
+textarea {
     background: var(--ground);
     border: 1px solid var(--regua);
     border-radius: var(--r);
@@ -347,17 +358,26 @@ input {
     transition: border-color 0.12s ease;
 }
 
-input::placeholder { color: var(--tinta-fraca); }
+input::placeholder,
+textarea::placeholder { color: var(--tinta-fraca); }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
     outline: none;
     border-color: var(--sinal);
 }
 
-input:disabled {
+input:disabled,
+select:disabled,
+textarea:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* A seta do <select> é desenhada pelo browser e segue o color-scheme; o que
+   faltava era só o resto da caixa. O cursor diz que aquilo abre. */
+select { cursor: pointer; }
 
 /* O Chrome pinta os campos preenchidos pelo gestor de passwords com um amarelo
    claro que ignora background e color. A sombra interior é a única forma de lá
@@ -705,6 +725,32 @@ tbody tr:last-child td { border-bottom: none; }
 
 td.numero, th.numero { text-align: right; }
 
+/* Uma célula com o nome e, por baixo, o email. Sem isto o nome, o botão de
+   editar e o email eram três coisas soltas na mesma linha de texto, e a
+   linha partia-se onde calhava: "sem" no fim de uma linha e "email" no
+   princípio da seguinte. */
+.celula-treinador .nome-treinador {
+    display: flex;
+    align-items: center;
+    gap: var(--e2);
+    flex-wrap: wrap;
+}
+
+.celula-treinador .email-treinador {
+    display: block;
+    margin-top: 2px;
+}
+
+/* Os botões de acção de uma linha: encostados à direita como o resto da
+   coluna, mas a mudar de linha em conjunto em vez de deixarem um botão
+   pendurado a meio. */
+.acoes-linha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--e1);
+    justify-content: flex-end;
+}
+
 .linha-desistente td { color: var(--tinta-fraca); }
 
 .linha-desistente strong,
@@ -774,9 +820,14 @@ td.numero, th.numero { text-align: right; }
     flex-basis: 100%;
 }
 
+/* Uma caixa alta o bastante para se ver o princípio da tabela sem rolar. A
+   altura é contada em linhas e não em pixéis, e por isso o line-height tem de
+   estar fixado aqui: o de uma textarea é "normal" e não herda o do corpo, o
+   que dava linhas mais juntas do que as do resto da aplicação. */
 .largura-toda textarea {
     width: 100%;
-    min-height: 120px;
+    line-height: 1.5;
+    min-height: calc(6 * 1.5em + 20px);
     font-variant-numeric: tabular-nums;
     resize: vertical;
 }
@@ -809,6 +860,28 @@ td.numero, th.numero { text-align: right; }
     margin-bottom: var(--e5);
     overflow-x: auto;
 }
+
+/* Uma cobrança de época: uma linha de identificação e, só quando há um empate
+   por desfazer, a lista para o resolver. O nome, a jornada e o estado ficam na
+   mesma linha do botão de remover — era um bloco de três linhas para dizer
+   três palavras. */
+.cartao-cobranca {
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    padding: var(--e3);
+    margin-bottom: var(--e3);
+}
+
+.cabecalho-cobranca {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--e2);
+}
+
+/* O botão encosta-se à direita, longe do resto: remover uma cobrança apaga
+   dinheiro por cobrar, não é para se acertar sem querer. */
+.cabecalho-cobranca .botao { margin-left: auto; }
 
 .barra-acoes {
     display: flex;
@@ -846,6 +919,15 @@ td.numero, th.numero { text-align: right; }
 }
 
 .painel-regra-divida .formulario { margin-bottom: 0; }
+
+/* Duas secções na mesma caixa: a regra e as cobranças de época. O botão de
+   guardar a primeira ficava colado ao título da segunda, e lia-se como se
+   fosse dela. Uma régua fina e ar por cima separam-nas. */
+.painel-regra-divida .formulario + .titulo-seccao {
+    border-top: 1px solid var(--regua);
+    margin-top: var(--e5);
+    padding-top: var(--e5);
+}
 
 /* ----------------------------------------------------------- desempate --- */
 
@@ -999,6 +1081,12 @@ td.numero, th.numero { text-align: right; }
 
 .detalhe-jornada input[type="number"] { width: 84px; }
 
+/* A posição que uma jornada aberta teria se fechasse agora. A coluna já a
+   sabia — era com ela que se calculava o valor ao lado — e mostrava um traço
+   na mesma. Em cinzento porque ainda não é a posição de ninguém: muda a cada
+   pontuação que o gestor escreve. */
+.previa { color: var(--tinta-fraca); }
+
 /* --------------------------------------------------- vazios e alertas --- */
 
 .vazio {
@@ -1125,7 +1213,13 @@ td.numero, th.numero { text-align: right; }
     margin-bottom: var(--e1);
 }
 
-.conteudo-admin .ajuda {
+/* O parágrafo de ajuda por baixo de cada título de secção. Isto já foi
+   `.conteudo-admin .ajuda`, e apanhava também os <span class="ajuda"> que
+   vivem dentro de um título ou de uma célula — o "(tu)" ao lado do nome, o
+   "sem prazo" da coluna de validade, o "· Liga dos Pobres" a seguir ao nome
+   da equipa. Todos eles passavam a bloco e caíam para a linha de baixo, o
+   último a deixar um "·" pendurado a começar a linha. */
+.conteudo-admin p.ajuda {
     display: block;
     margin-bottom: var(--e4);
     max-width: 70ch;
@@ -1177,11 +1271,27 @@ td.numero, th.numero { text-align: right; }
     .formulario.em-linha .botao { width: 100%; }
 
     /* Os separadores rolam em vez de se partirem em duas linhas. Sem barra
-       à vista: num ecrã de toque ela não serve para nada e só suja. */
+       à vista: num ecrã de toque ela não serve para nada e só suja.
+
+       Só que sem barra também não havia sinal nenhum de que rolavam, e num
+       telemóvel de 390px o quarto separador — Dívidas — ficava inteiro fora
+       do ecrã. Quem não soubesse que ele existia não o encontrava.
+
+       Os quatro fundos são o truque do local/scroll: os dois primeiros são da
+       cor do painel e rolam agarrados ao conteúdo (local), os dois últimos são
+       o clarão e ficam colados às bordas da caixa (scroll). Encostado ao
+       princípio, o tapa-fundo da esquerda está por cima do clarão da esquerda
+       e não se vê nada desse lado; mal se rola, sai de cima dele e o clarão
+       aparece. Cada lado acende-se exactamente quando há conteúdo para lá. */
     .separadores {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        background:
+            linear-gradient(to right, var(--painel) 55%, transparent) left center / 26px 100% no-repeat local,
+            linear-gradient(to left, var(--painel) 55%, transparent) right center / 26px 100% no-repeat local,
+            linear-gradient(to right, rgba(240, 241, 243, 0.12), transparent) left center / 18px 100% no-repeat scroll,
+            linear-gradient(to left, rgba(240, 241, 243, 0.12), transparent) right center / 18px 100% no-repeat scroll;
     }
 
     .separadores::-webkit-scrollbar { display: none; }
