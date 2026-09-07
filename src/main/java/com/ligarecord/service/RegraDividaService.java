@@ -36,7 +36,7 @@ public class RegraDividaService {
                               BigDecimal incremento, int equipasPorEscalao, BigDecimal valorMaximo,
                               int jornadasPorBloco) {
         return definir(liga, valorInscricao, valorInicial, incremento, equipasPorEscalao,
-                valorMaximo, jornadasPorBloco, EscalaDivida.FORMULA, null, true);
+                valorMaximo, jornadasPorBloco, EscalaDivida.FORMULA, null, true, null);
     }
 
     /**
@@ -51,7 +51,8 @@ public class RegraDividaService {
     public RegraDivida definir(Liga liga, BigDecimal valorInscricao, BigDecimal valorInicial,
                               BigDecimal incremento, int equipasPorEscalao, BigDecimal valorMaximo,
                               int jornadasPorBloco, EscalaDivida escala,
-                              List<BigDecimal> tabela, boolean cobraTreino) {
+                              List<BigDecimal> tabela, boolean cobraTreino,
+                              List<RegraDivida.CobrancaPedida> cobrancas) {
         if (liga == null) {
             throw new IllegalArgumentException("A liga é obrigatória.");
         }
@@ -64,6 +65,27 @@ public class RegraDividaService {
             }
             for (BigDecimal valor : tabela) {
                 exigirNaoNegativo(valor, "Um valor da tabela");
+            }
+        }
+        if (cobrancas != null) {
+            for (RegraDivida.CobrancaPedida cobranca : cobrancas) {
+                if (cobranca.nome() == null || cobranca.nome().isBlank()) {
+                    throw new IllegalArgumentException("Cada cobrança precisa de um nome.");
+                }
+                if (cobranca.jornadaOficial() < 1) {
+                    throw new IllegalArgumentException(
+                            "A jornada da cobrança \"" + cobranca.nome() + "\" tem de ser pelo menos 1.");
+                }
+                if (cobranca.tabela() == null || cobranca.tabela().isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "A cobrança \"" + cobranca.nome() + "\" precisa da tabela de valores.");
+                }
+            }
+            long nomesDistintos = cobrancas.stream()
+                    .map(cobranca -> cobranca.nome().trim().toLowerCase())
+                    .distinct().count();
+            if (nomesDistintos != cobrancas.size()) {
+                throw new IllegalArgumentException("Duas cobranças não podem ter o mesmo nome.");
             }
         }
         exigirNaoNegativo(valorInscricao, "O valor de inscrição");
@@ -97,6 +119,11 @@ public class RegraDividaService {
         regra.setCobraTreino(cobraTreino);
         if (escala == EscalaDivida.TABELA) {
             regra.substituirTabela(tabela);
+        }
+        // A null deixa as cobranças como estão: um cliente que só quer mexer nos
+        // valores não tem de reenviar o Inverno e o Verão para não os perder.
+        if (cobrancas != null) {
+            regra.acertarCobrancas(cobrancas);
         }
 
         return regraDividaRepository.guardar(regra);

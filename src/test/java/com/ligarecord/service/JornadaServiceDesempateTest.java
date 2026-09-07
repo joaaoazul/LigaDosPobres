@@ -54,7 +54,9 @@ class JornadaServiceDesempateTest {
 
         regraDividaService = new RegraDividaService(regraDividaRepository);
         dividaService = new DividaService(dividaRepository, new ClassificacaoService());
-        jornadaService = new JornadaService(jornadaRepository, regraDividaService, dividaService);
+        jornadaService = new JornadaService(jornadaRepository, regraDividaService,
+                new CobrancaPeriodoService(new ClassificacaoService(), dividaService),
+                dividaService);
 
         Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
         liga = new Liga(UUID.randomUUID(), "Liga de Teste", 10, EstadoLiga.ATIVA, gestor);

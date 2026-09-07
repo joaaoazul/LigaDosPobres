@@ -85,6 +85,11 @@ public class RegraDivida extends EntidadeBase {
     @OrderBy("posicao")
     private List<EscalaValor> tabela = new ArrayList<>();
 
+    /** As cobranças presas a uma jornada — o "Inverno" e o "Verão" de algumas ligas. */
+    @OneToMany(mappedBy = "regra", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("jornadaOficial")
+    private List<CobrancaPeriodo> cobrancas = new ArrayList<>();
+
     protected RegraDivida() {
         // exigido pelo Hibernate
     }
@@ -177,6 +182,62 @@ public class RegraDivida extends EntidadeBase {
 
     public List<EscalaValor> getTabela() {
         return tabela;
+    }
+
+    public List<CobrancaPeriodo> getCobrancas() {
+        return cobrancas;
+    }
+
+    /**
+     * Acerta a lista de cobranças pela que o gestor guardou, casando pelo nome.
+     *
+     * <p>Casar pelo nome e não substituir tudo é o que impede uma cobrança já
+     * feita de voltar a nascer por cobrar — e de ser cobrada duas vezes. Uma
+     * cobrança já feita não muda de jornada nem de tabela: o dinheiro já está
+     * lançado, e mudá-la em silêncio deixava a dívida a dizer uma coisa e a
+     * regra outra.
+     */
+    public void acertarCobrancas(List<CobrancaPedida> pedidas) {
+        for (CobrancaPeriodo existente : new ArrayList<>(cobrancas)) {
+            boolean continuaPedida = pedidas.stream()
+                    .anyMatch(pedida -> pedida.nome().equalsIgnoreCase(existente.getNome()));
+            if (!continuaPedida) {
+                if (existente.estaCobrada()) {
+                    throw new IllegalStateException(
+                            "A cobrança \"" + existente.getNome() + "\" já foi feita e não pode ser removida.");
+                }
+                cobrancas.remove(existente);
+            }
+        }
+
+        for (CobrancaPedida pedida : pedidas) {
+            CobrancaPeriodo cobranca = cobrancas.stream()
+                    .filter(existente -> existente.getNome().equalsIgnoreCase(pedida.nome()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (cobranca == null) {
+                cobranca = new CobrancaPeriodo(UUID.randomUUID(), this, pedida.nome(), pedida.jornadaOficial());
+                cobranca.substituirTabela(pedida.tabela());
+                cobrancas.add(cobranca);
+                continue;
+            }
+
+            if (cobranca.estaCobrada()) {
+                if (cobranca.getJornadaOficial() != pedida.jornadaOficial()) {
+                    throw new IllegalStateException(
+                            "A cobrança \"" + cobranca.getNome() + "\" já foi feita; a jornada não pode mudar.");
+                }
+                continue;
+            }
+
+            cobranca.setJornadaOficial(pedida.jornadaOficial());
+            cobranca.substituirTabela(pedida.tabela());
+        }
+    }
+
+    /** O que o gestor pediu para uma cobrança, antes de haver entidade nenhuma. */
+    public record CobrancaPedida(String nome, int jornadaOficial, List<BigDecimal> tabela) {
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.ligarecord.web.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * {@code escala} diz de onde sai o valor de cada posição: {@code "FORMULA"}
@@ -8,7 +9,8 @@ import java.math.BigDecimal;
  * como texto, uma linha por posição, tal como o gestor a tem escrita.
  *
  * <p>{@code escala} e {@code cobraTreino} a null valem o que a aplicação sempre
- * fez: fórmula, e treino cobrado como qualquer outra jornada.
+ * fez: fórmula, e treino cobrado como qualquer outra jornada. {@code cobrancas}
+ * a null deixa as que existem como estão; uma lista vazia apaga-as.
  */
 public record DefinirRegraDividaRequest(
         BigDecimal valorInscricao,
@@ -19,5 +21,6 @@ public record DefinirRegraDividaRequest(
         Integer jornadasPorBloco,
         String escala,
         String tabela,
-        Boolean cobraTreino) {
+        Boolean cobraTreino,
+        List<CobrancaPedidaRequest> cobrancas) {
 }

@@ -64,12 +64,20 @@ public class RegraDividaController {
                 ? EscalaColada.ler(pedido.tabela())
                 : null;
         boolean cobraTreino = pedido.cobraTreino() == null || pedido.cobraTreino();
+        List<RegraDivida.CobrancaPedida> cobrancas = pedido.cobrancas() == null
+                ? null
+                : pedido.cobrancas().stream()
+                        .map(pedida -> new RegraDivida.CobrancaPedida(
+                                pedida.nome() == null ? null : pedida.nome().trim(),
+                                pedida.jornadaOficial() == null ? 0 : pedida.jornadaOficial(),
+                                EscalaColada.ler(pedida.tabela())))
+                        .toList();
 
         Liga liga = liga(autenticado, ligaId);
         RegraDivida regra = regraDividaService.definir(liga,
                 pedido.valorInscricao(), pedido.valorInicial(), pedido.incremento(),
                 pedido.equipasPorEscalao(), pedido.valorMaximo(), pedido.jornadasPorBloco(),
-                escala, tabela, cobraTreino);
+                escala, tabela, cobraTreino, cobrancas);
         return RegraDividaDto.de(regra);
     }
 

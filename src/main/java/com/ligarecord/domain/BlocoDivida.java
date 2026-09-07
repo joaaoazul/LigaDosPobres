@@ -43,6 +43,13 @@ public class BlocoDivida extends EntidadeBase {
     @Column(nullable = false)
     private BigDecimal valor;
 
+    /**
+     * Só as cobranças com nome próprio o preenchem ("Inverno"). Nos blocos de
+     * inscrição e de período fica nulo: aí o número do bloco já diz tudo.
+     */
+    @Column(name = "nome")
+    private String nome;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoDivida estado;
@@ -55,6 +62,11 @@ public class BlocoDivida extends EntidadeBase {
 
     protected BlocoDivida() {
         // exigido pelo Hibernate
+    }
+
+    public BlocoDivida(UUID id, int numeroBloco, TipoBloco tipo, BigDecimal valor, String nome) {
+        this(id, numeroBloco, tipo, valor);
+        this.nome = nome;
     }
 
     public BlocoDivida(UUID id, int numeroBloco, TipoBloco tipo, BigDecimal valor) {
@@ -85,6 +97,10 @@ public class BlocoDivida extends EntidadeBase {
 
     public TipoBloco getTipo() {
         return tipo;
+    }
+
+    public String getNome() {
+        return nome;
     }
 
     public BigDecimal getValor() {

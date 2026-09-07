@@ -362,6 +362,32 @@ Duas opções, no fundo do mesmo formulário:
 
 São independentes, e valem só para esta liga.
 
+#### Cobranças de época (Inverno, Verão)
+
+Algumas ligas têm, por cima do que se paga em cada jornada, uma cobrança a meio
+da época e outra no fim: cada equipa paga conforme o **lugar em que está na
+classificação geral** naquele momento.
+
+Em **Cobranças de época** dás-lhe um nome, a **jornada oficial** em que cai e a
+sua própria tabela — que não é a das jornadas: pode ir de 0€ a 10€ enquanto a
+semanal vai de 0€ a 2,50€.
+
+> A jornada é a **oficial**, não a contagem desde o início. Se a tua prova tem
+> 34 jornadas e as cinco primeiras são de treino, o meio da época (a 17ª) é a
+> **12ª oficial**, e o fim (a 34ª) é a **29ª oficial**.
+
+Quando essa jornada fecha, cada equipa leva um bloco com o nome à frente — na
+lista de dívidas lês "Inverno", não "Bloco 12".
+
+**Se houver empate**, a cobrança fica à espera. Duas equipas com os mesmos
+pontos ficariam em lugares diferentes por ordem alfabética, e isso aqui é
+dinheiro: a app mostra-te as equipas empatadas e ordena-las tu, como já fazes
+nas jornadas. Só depois é que cobra. Se as posições empatadas pagarem o mesmo,
+não te pergunta nada.
+
+Uma cobrança **já feita** não se apaga nem muda de jornada: o dinheiro está
+lançado.
+
 Podes alterar a regra a meio da época. As jornadas já cobradas não são
 recalculadas: a alteração vale daí para a frente. Isso inclui as opções do
 treino: se ligares a cobrança do treino a meio, as jornadas de treino que ainda

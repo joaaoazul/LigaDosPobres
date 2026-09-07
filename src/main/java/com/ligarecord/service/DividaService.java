@@ -74,6 +74,22 @@ public class DividaService {
     }
 
     /**
+     * Acrescenta à dívida da equipa um bloco de uma cobrança com nome próprio —
+     * o "Inverno" e o "Verão" de algumas ligas.
+     */
+    @Transactional
+    public BlocoDivida registarCobranca(Equipa equipa, String nome, BigDecimal valor) {
+        if (valor == null || valor.signum() < 0) {
+            throw new IllegalArgumentException("O valor da cobrança não pode ser negativo.");
+        }
+
+        Divida divida = dividaOuNova(equipa);
+        BlocoDivida bloco = divida.registarCobranca(nome, valor);
+        dividaRepository.guardarDivida(divida);
+        return bloco;
+    }
+
+    /**
      * Diz se as jornadas fechadas ainda não incluídas num bloco já chegam
      * para fechar um bloco novo, segundo a periodicidade atual da regra.
      * Conta só as pendentes, não o total de sempre: {@link RegraDividaService#definir}

@@ -16,6 +16,8 @@ const estado = {
     // Resultado do último "convidar em falta": fica à vista até ser fechado ou
     // até se mudar de liga, porque leva os links que o gestor vai copiar.
     convitesEmMassa: null,
+    // As cobranças de época (Inverno/Verão) e em que pé estão.
+    cobrancas: [],
     equipaDividaId: null,
     // Ordem que o gestor está a montar para desfazer um empate, antes de a
     // confirmar. Só existe enquanto a jornada escolhida estiver em desempate.
@@ -153,10 +155,16 @@ function badgeEstado(estadoTexto) {
     return `<span class="badge ${cores[estadoTexto] || ""}">${texto(nomes[estadoTexto] || estadoTexto)}</span>`;
 }
 
-function badgeTipoBloco(tipo) {
-    return tipo === "INSCRICAO"
-        ? `<span class="badge azul">Inscrição</span>`
-        : `<span class="badge">Período</span>`;
+function badgeTipoBloco(tipo, nome) {
+    if (tipo === "INSCRICAO") {
+        return `<span class="badge azul">Inscrição</span>`;
+    }
+    // As cobranças de época levam o nome que o gestor lhes deu: na dívida
+    // lê-se "Inverno", que é o que ele e o treinador reconhecem.
+    if (tipo === "CLASSIFICACAO") {
+        return `<span class="badge amarelo">${texto(nome || "Época")}</span>`;
+    }
+    return `<span class="badge">Período</span>`;
 }
 
 function formatoMoeda(valor) {
@@ -214,6 +222,9 @@ async function carregarDetalhe() {
     // definida o pedido dá 404 — não é um erro, é o estado normal de uma
     // liga que ainda cobra tudo à mão.
     estado.regraDivida = await api(`/api/ligas/${estado.ligaId}/regra-divida`).catch(() => null);
+    // O estado de cada cobrança depende da classificação de agora, por isso
+    // vem do servidor e não da regra que acabámos de ler.
+    estado.cobrancas = await api(`/api/ligas/${estado.ligaId}/cobrancas`).catch(() => []);
 
     desenharDetalhe();
 }
@@ -776,6 +787,79 @@ function desenharRegraDivida() {
         ? estado.detalhe.liga.pontosTreinoContam
         : true;
     mostrarCamposDaEscala();
+    desenharCobrancas();
+}
+
+/* As cobranças de época e o que falta a cada uma. A que estiver travada por um
+   empate mostra as equipas a ordenar aqui mesmo: é o único sítio em que a
+   classificação geral decide dinheiro, e por isso o único em que se desempata. */
+function desenharCobrancas() {
+    const lista = $("#lista-cobrancas");
+    const cobrancas = estado.cobrancas || [];
+
+    if (!cobrancas.length) {
+        lista.innerHTML = `<p class="ajuda">Sem cobranças de época nesta liga.</p>`;
+        return;
+    }
+
+    lista.innerHTML = cobrancas.map((cobranca) => `
+        <div class="lote-convites">
+            <p>
+                <strong>${texto(cobranca.nome)}</strong>
+                &middot; jornada oficial ${cobranca.jornadaOficial}
+                &middot; ${badgeCobranca(cobranca.estado)}
+            </p>
+            ${cobranca.estado === "A_ESPERA_DE_DESEMPATE" ? desenharEmpates(cobranca) : ""}
+            ${cobranca.estado === "COBRADA" ? "" : `
+                <button class="botao pequeno perigo" data-remover-cobranca="${texto(cobranca.nome)}">
+                    Remover
+                </button>`}
+        </div>
+    `).join("");
+}
+
+function badgeCobranca(estadoCobranca) {
+    if (estadoCobranca === "COBRADA") {
+        return `<span class="badge verde">Cobrada</span>`;
+    }
+    if (estadoCobranca === "A_ESPERA_DE_DESEMPATE") {
+        return `<span class="badge amarelo">À espera de desempate</span>`;
+    }
+    return `<span class="badge">Por cobrar</span>`;
+}
+
+/* A mesma mecânica do desempate de uma jornada: setas para ordenar, e uma lista
+   só que o servidor volta a arrumar por pontos. */
+function desenharEmpates(cobranca) {
+    return `
+        <p class="ajuda">
+            Estas equipas estão empatadas e pagariam valores diferentes. Ordena-as e a
+            cobrança segue.
+        </p>
+        ${cobranca.empates.map((empate) => `
+            <table>
+                <thead><tr><th>${empate.pontos} pontos</th><th>Lugar</th><th></th></tr></thead>
+                <tbody>
+                    ${empate.equipas.map((equipa, indice) => `
+                        <tr>
+                            <td>${texto(equipa.equipa)}</td>
+                            <td class="numero">${equipa.posicao}º</td>
+                            <td class="numero">
+                                <button class="botao pequeno" data-cobranca-mover="${cobranca.id}"
+                                    data-equipa="${equipa.equipaId}" data-sentido="-1"
+                                    ${indice === 0 ? "disabled" : ""}>↑</button>
+                                <button class="botao pequeno" data-cobranca-mover="${cobranca.id}"
+                                    data-equipa="${equipa.equipaId}" data-sentido="1"
+                                    ${indice === empate.equipas.length - 1 ? "disabled" : ""}>↓</button>
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `).join("")}
+        <button class="botao pequeno primario" data-cobranca-confirmar="${cobranca.id}">
+            Confirmar ordem e cobrar
+        </button>`;
 }
 
 /* A fórmula e a tabela são maneiras alternativas de dizer a mesma coisa, e ver
@@ -823,7 +907,7 @@ function desenharDetalheDivida() {
     const linhasBlocos = divida.blocos.map((bloco) => `
         <tr>
             <td class="numero">${bloco.numeroBloco}</td>
-            <td>${badgeTipoBloco(bloco.tipo)}</td>
+            <td>${badgeTipoBloco(bloco.tipo, bloco.nome)}</td>
             <td class="numero">${formatoMoeda(bloco.valor)}</td>
             <td>${badgeEstado(bloco.estado)}</td>
             <td class="numero">${bloco.estado === "PENDENTE"
@@ -925,6 +1009,53 @@ function selecionarTab(tab) {
 
 $("#regra-escala").addEventListener("change", mostrarCamposDaEscala);
 
+/* Acrescentar uma cobrança guarda logo a regra: uma cobrança que ficasse só no
+   ecrã, à espera de outro botão, perdia-se ao recarregar e ninguém dava por
+   isso senão no dia em que ela não acontecesse. */
+$("#form-cobranca").addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    const nome = $("#cobranca-nome").value.trim();
+    const jornada = Number($("#cobranca-jornada").value || 0);
+    const tabela = $("#cobranca-tabela").value.trim();
+
+    if (!nome || jornada < 1 || !tabela) {
+        mostrarAlerta("A cobrança precisa de nome, jornada oficial e tabela.");
+        return;
+    }
+
+    executar(async () => {
+        await guardarCobrancas([
+            ...(estado.cobrancas || []).map((c) => ({ nome: c.nome, jornadaOficial: c.jornadaOficial, tabela: c.tabela })),
+            { nome, jornadaOficial: jornada, tabela }
+        ]);
+        $("#cobranca-nome").value = "";
+        $("#cobranca-jornada").value = "";
+        $("#cobranca-tabela").value = "";
+        mostrarAlerta(`Cobrança "${nome}" guardada.`, "sucesso");
+    });
+});
+
+/* A regra e as cobranças guardam-se no mesmo pedido: são a mesma regra. */
+async function guardarCobrancas(cobrancas) {
+    const r = estado.regraDivida;
+    await api(`/api/ligas/${estado.ligaId}/regra-divida`, {
+        method: "PUT",
+        body: JSON.stringify({
+            valorInscricao: r ? r.valorInscricao : 0,
+            valorInicial: r ? r.valorInicial : 0,
+            incremento: r ? r.incremento : 0,
+            equipasPorEscalao: r ? r.equipasPorEscalao : 1,
+            valorMaximo: r ? r.valorMaximo : 0,
+            jornadasPorBloco: r ? r.jornadasPorBloco : 1,
+            escala: r ? r.escala : "FORMULA",
+            tabela: r ? r.tabela : null,
+            cobraTreino: r ? r.cobraTreino : true,
+            cobrancas
+        })
+    });
+    await recarregar();
+}
+
 $("#form-regra-divida").addEventListener("submit", (evento) => {
     evento.preventDefault();
     executar(async () => {
@@ -948,7 +1079,12 @@ $("#form-regra-divida").addEventListener("submit", (evento) => {
                 jornadasPorBloco: Number($("#regra-jornadas").value || 1),
                 escala: $("#regra-escala").value,
                 tabela: $("#regra-tabela").value,
-                cobraTreino: $("#regra-cobra-treino").checked
+                cobraTreino: $("#regra-cobra-treino").checked,
+                cobrancas: (estado.cobrancas || []).map((cobranca) => ({
+                    nome: cobranca.nome,
+                    jornadaOficial: cobranca.jornadaOficial,
+                    tabela: cobranca.tabela
+                }))
             })
         });
         await recarregar();
@@ -1091,6 +1227,7 @@ document.addEventListener("click", (evento) => {
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
         "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
         "[data-copiar-convites], [data-fechar-convites], " +
+        "[data-remover-cobranca], [data-cobranca-mover], [data-cobranca-confirmar], " +
         "[data-desempate-mover], [data-confirmar-desempate]"
     );
     if (!alvo) {
@@ -1292,6 +1429,54 @@ document.addEventListener("click", (evento) => {
     if (alvo.dataset.fecharConvites) {
         estado.convitesEmMassa = null;
         desenharResultadoEmMassa(null);
+        return;
+    }
+
+    if (alvo.dataset.removerCobranca) {
+        if (!confirm(`Remover a cobrança "${alvo.dataset.removerCobranca}"?`)) {
+            return;
+        }
+        executar(async () => {
+            await guardarCobrancas((estado.cobrancas || [])
+                .filter((c) => c.nome !== alvo.dataset.removerCobranca)
+                .map((c) => ({ nome: c.nome, jornadaOficial: c.jornadaOficial, tabela: c.tabela })));
+            mostrarAlerta("Cobrança removida.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.cobrancaMover) {
+        const cobranca = (estado.cobrancas || []).find((c) => c.id === alvo.dataset.cobrancaMover);
+        if (!cobranca) {
+            return;
+        }
+        const grupo = cobranca.empates.find((e) => e.equipas.some((q) => q.equipaId === alvo.dataset.equipa));
+        const indice = grupo.equipas.findIndex((q) => q.equipaId === alvo.dataset.equipa);
+        const destino = indice + Number(alvo.dataset.sentido);
+        if (destino < 0 || destino >= grupo.equipas.length) {
+            return;
+        }
+        [grupo.equipas[indice], grupo.equipas[destino]] = [grupo.equipas[destino], grupo.equipas[indice]];
+        desenharCobrancas();
+        return;
+    }
+
+    if (alvo.dataset.cobrancaConfirmar) {
+        const cobranca = (estado.cobrancas || []).find((c) => c.id === alvo.dataset.cobrancaConfirmar);
+        if (!cobranca) {
+            return;
+        }
+        // Uma lista só, com todos os grupos por ordem: o servidor volta a
+        // arrumá-las dentro do seu grupo de pontos.
+        const ordem = cobranca.empates.flatMap((e) => e.equipas.map((q) => q.equipaId));
+        executarNoBotao(alvo, async () => {
+            await api(`/api/ligas/${estado.ligaId}/cobrancas/${cobranca.id}/desempate`, {
+                method: "POST",
+                body: JSON.stringify({ ordem })
+            });
+            await recarregar();
+            mostrarAlerta(`Desempate resolvido. "${cobranca.nome}" cobrada.`, "sucesso");
+        });
         return;
     }
 
