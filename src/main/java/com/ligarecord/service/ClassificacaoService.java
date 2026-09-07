@@ -20,8 +20,12 @@ import java.util.UUID;
 public class ClassificacaoService {
 
     /**
-     * Soma os pontos de todas as jornadas da liga e ordena as equipas por pontos
+     * Soma os pontos das jornadas da liga e ordena as equipas por pontos
      * decrescentes. As equipas desistentes ficam sempre nas últimas posições.
+     *
+     * <p>Que jornadas contam depende da liga: por omissão contam todas, mas há
+     * ligas em que o treino é um aquecimento e a tabela só começa a contar
+     * quando as oficiais arrancam (ver {@link Liga#isPontosTreinoContam()}).
      */
     public List<ClassificacaoGeral> calcularClassificacao (Liga liga){
         if (liga == null){
@@ -34,6 +38,9 @@ public class ClassificacaoService {
         }
 
         for (Jornada jornada : liga.getJornadas()){
+            if (jornada.iseTreino() && !liga.isPontosTreinoContam()){
+                continue;
+            }
             for (ResultadoJornada resultado : jornada.getResultadoJ()){
                 UUID equipaId = resultado.getEquipa().getId();
                 pontosPorEquipa.merge(equipaId, resultado.getPontuacao(), Integer::sum);
@@ -74,15 +81,15 @@ public class ClassificacaoService {
     }
 
     /**
-     * O valor do período para quem está nesta posição, segundo a regra da
-     * liga: sobe {@code incremento} a cada {@code equipasPorEscalao}
-     * posições, a partir de {@code valorInicial}, sem nunca passar de
-     * {@code valorMaximo}.
+     * O valor do período para quem está nesta posição, segundo a regra da liga
+     * — da fórmula ou da tabela, conforme a escala que a regra usa.
+     *
+     * <p>A conta em si vive na {@link RegraDivida}, que é quem sabe qual das
+     * duas está em vigor. Isto fica como porta de entrada porque é por aqui que
+     * o resto da aplicação lhe chama.
      */
     public BigDecimal calcularValor(RegraDivida regra, int posicao) {
-        int escalao = (posicao - 1) / regra.getEquipasPorEscalao();
-        BigDecimal valor = regra.getValorInicial().add(regra.getIncremento().multiply(BigDecimal.valueOf(escalao)));
-        return valor.min(regra.getValorMaximo());
+        return regra.valorDaPosicao(posicao);
     }
 
 

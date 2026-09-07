@@ -1,21 +1,41 @@
 package com.ligarecord.domain;
 
+import com.ligarecord.domain.enums.EscalaDivida;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Como uma liga cobra as suas equipas: uma inscrição única na entrada, e
- * depois um valor por período de jornadas que sobe por escalão de
+ * depois um valor por período de jornadas que sobe com a posição na
  * classificação — quem vai melhor paga menos. Cada liga tem a sua própria
- * regra, porque o valor e os escalões variam de liga para liga.
+ * regra, porque os valores variam de liga para liga.
+ *
+ * <p>De onde sai esse valor é a {@link EscalaDivida}:
+ *
+ * <ul>
+ *   <li><b>Fórmula</b> — {@code valorInicial + incremento × escalão}, travada
+ *       no {@code valorMaximo}. Uma rampa de degraus todos do mesmo tamanho.
+ *   <li><b>Tabela</b> — uma linha por posição, escrita à mão. Existe porque há
+ *       ligas cuja tabela não é uma rampa regular (sobe 0,20€ por lugar até ao
+ *       7º e 0,10€ daí em diante, por exemplo), e obrigá-las a uma fórmula era
+ *       torcer a liga para caber no programa.
+ * </ul>
  *
  * <p>Uma liga sem regra definida não tem cobrança automática nenhuma: o
  * gestor continua a fechar blocos e a cobrar a inscrição à mão.
@@ -48,6 +68,22 @@ public class RegraDivida extends EntidadeBase {
 
     @Column(name = "jornadas_por_bloco", nullable = false)
     private int jornadasPorBloco;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EscalaDivida escala = EscalaDivida.FORMULA;
+
+    /**
+     * Há ligas em que as jornadas de treino não são cobradas. Nas que já
+     * existiam são — o manual diz "para efeitos de dinheiro e de classificação,
+     * as duas contam igual" — e é por isso que o valor por omissão é este.
+     */
+    @Column(name = "cobra_treino", nullable = false)
+    private boolean cobraTreino = true;
+
+    @OneToMany(mappedBy = "regra", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("posicao")
+    private List<EscalaValor> tabela = new ArrayList<>();
 
     protected RegraDivida() {
         // exigido pelo Hibernate
@@ -121,6 +157,81 @@ public class RegraDivida extends EntidadeBase {
 
     public void setJornadasPorBloco(int jornadasPorBloco) {
         this.jornadasPorBloco = jornadasPorBloco;
+    }
+
+    public EscalaDivida getEscala() {
+        return escala;
+    }
+
+    public void setEscala(EscalaDivida escala) {
+        this.escala = escala;
+    }
+
+    public boolean isCobraTreino() {
+        return cobraTreino;
+    }
+
+    public void setCobraTreino(boolean cobraTreino) {
+        this.cobraTreino = cobraTreino;
+    }
+
+    public List<EscalaValor> getTabela() {
+        return tabela;
+    }
+
+    /**
+     * Substitui a tabela inteira: o gestor cola a lista que tem no papel e é
+     * essa que passa a valer, do 1º ao último.
+     *
+     * <p><b>Reaproveita as linhas que já existem em vez de as apagar e voltar
+     * a criar.</b> Apagar e recriar parece mais simples e não funciona: no
+     * mesmo commit o Hibernate grava as inserções antes das remoções, e as
+     * linhas novas esbarram na unicidade {@code (regra_id, posicao)} das
+     * antigas — guardar a mesma regra duas vezes dava um conflito. É a mesma
+     * armadilha que o {@code GlobalExceptionHandler} descreve para os blocos
+     * da dívida.
+     */
+    public void substituirTabela(List<BigDecimal> valoresPorPosicao) {
+        for (int i = 0; i < valoresPorPosicao.size(); i++) {
+            if (i < tabela.size()) {
+                tabela.get(i).definirValor(valoresPorPosicao.get(i));
+            } else {
+                tabela.add(new EscalaValor(UUID.randomUUID(), this, i + 1, valoresPorPosicao.get(i)));
+            }
+        }
+        // A tabela nova pode ser mais curta do que a anterior; o que sobra pelo
+        // fundo sai (as posições são sempre contíguas a partir do 1).
+        while (tabela.size() > valoresPorPosicao.size()) {
+            tabela.remove(tabela.size() - 1);
+        }
+    }
+
+    /**
+     * O valor desta posição segundo a escala em vigor.
+     *
+     * <p>Abaixo do fim da tabela repete-se a última linha: uma liga pode
+     * receber uma equipa a mais do que as linhas que o gestor escreveu, e a
+     * alternativa — não cobrar nada a quem ficar para lá do fim — premiava
+     * exactamente quem ficou em último. É também o que a fórmula já faz, com o
+     * valor máximo.
+     */
+    public BigDecimal valorDaPosicao(int posicao) {
+        if (escala == EscalaDivida.TABELA) {
+            if (tabela.isEmpty()) {
+                throw new IllegalStateException("A regra usa uma tabela, mas a tabela está vazia.");
+            }
+            return tabela.stream()
+                    .filter(linha -> linha.getPosicao() == posicao)
+                    .map(EscalaValor::getValor)
+                    .findFirst()
+                    .orElseGet(() -> tabela.stream()
+                            .max(Comparator.comparingInt(EscalaValor::getPosicao))
+                            .orElseThrow()
+                            .getValor());
+        }
+
+        int escalao = (posicao - 1) / equipasPorEscalao;
+        return valorInicial.add(incremento.multiply(BigDecimal.valueOf(escalao))).min(valorMaximo);
     }
 
     @Override

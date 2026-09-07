@@ -14,7 +14,8 @@ public record LigaDto(
         int totalEquipas,
         int equipasAtivas,
         int totalJornadas,
-        boolean temLogo) {
+        boolean temLogo,
+        boolean pontosTreinoContam) {
 
     public static LigaDto de(Liga liga) {
         int ativas = 0;
@@ -31,7 +32,8 @@ public record LigaDto(
                 liga.getEquipas().size(),
                 ativas,
                 liga.getJornadas().size(),
-                liga.temLogo()
+                liga.temLogo(),
+                liga.isPontosTreinoContam()
         );
     }
 }

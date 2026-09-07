@@ -326,6 +326,14 @@ h1, h2, h3 {
     gap: var(--e1);
 }
 
+/* A regra acima é mais específica do que `.oculto` (0,2,1 contra 0,1,0), por
+   isso esconder um campo destes com a classe não fazia nada — ficava lá, com o
+   display que a regra de cima lhe dá. Acontece nos campos da fórmula e da
+   tabela da regra de dívida, que se escondem um ao outro. */
+.formulario.em-linha > div.oculto {
+    display: none;
+}
+
 input {
     background: var(--ground);
     border: 1px solid var(--regua);
@@ -758,6 +766,37 @@ td.numero, th.numero { text-align: right; }
 .marcador tr.linha-desistente .pts { color: var(--tinta-fraca); }
 
 /* ------------------------------------------------------------ jornadas --- */
+
+/* Um campo que ocupa a linha inteira dentro de um formulário em linha — a
+   tabela de valores e as opções da regra, que não cabem numa coluna estreita. */
+.largura-toda {
+    flex-basis: 100%;
+}
+
+.largura-toda textarea {
+    width: 100%;
+    min-height: 120px;
+    font-variant-numeric: tabular-nums;
+    resize: vertical;
+}
+
+/* Uma opção de sim/não: a caixa e o texto na mesma linha, e o texto a não
+   ficar com o ar de rótulo de campo, que aqui enganava. */
+.opcao {
+    display: flex;
+    align-items: center;
+    gap: var(--e2);
+    margin-top: var(--e2);
+    font-size: var(--t-min);
+    color: var(--tinta-media);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.opcao input {
+    width: auto;
+    margin: 0;
+}
 
 /* O resultado de convidar a liga toda. Fica entre o formulário e a tabela de
    equipas, dentro de uma régua para se ler como uma coisa à parte — é um

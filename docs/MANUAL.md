@@ -234,7 +234,11 @@ As primeiras cinco jornadas são de **treino**, e as seguintes são **oficiais**
 Cada tipo tem a sua própria numeração, por isso vais ver uma "Jornada 1" de
 treino e, mais tarde, uma "Jornada 1" oficial. É normal.
 
-Para efeitos de dinheiro e de classificação, as duas contam igual.
+Por omissão, para efeitos de dinheiro e de classificação, as duas contam igual.
+Há ligas em que não: em **Dívidas** podes desligar as duas coisas — que as
+jornadas de treino sejam cobradas, e que os pontos delas contem para a
+classificação. Nessas ligas o treino é um aquecimento e a tabela só começa a
+contar quando as oficiais arrancam.
 
 ### 5.2 O ciclo de uma jornada
 
@@ -302,6 +306,9 @@ No separador **Dívidas**.
 É aqui que dizes como a tua liga cobra. Enquanto não definires uma regra, a
 aplicação não cobra nada sozinha e tu lanças tudo à mão.
 
+A primeira escolha é **de onde sai o valor de cada posição**: por fórmula ou por
+tabela.
+
 | Campo | O que significa |
 |---|---|
 | **Inscrição** | Valor cobrado uma vez, quando a equipa entra na liga. |
@@ -323,8 +330,42 @@ e assim por diante, até ao valor máximo.
 > é um erro. Se quiseres que cada posição pague um valor diferente, põe 1 equipa
 > por escalão.
 
+#### Por tabela, quando a fórmula não chega
+
+Nem todas as ligas sobem sempre o mesmo de posição para posição. Se a tua sobe
+0,20€ por lugar até ao 7º e 0,10€ daí em diante, não há fórmula que diga aquilo
+— escolhe **Por tabela** e escreve os valores:
+
+```
+1-0€
+2-0,10€
+3-0,30€
+...
+21-2,50€
+```
+
+Uma linha por posição, do 1º ao último, **sem saltos**. Podes colar a lista tal
+como a tens escrita: vírgula ou ponto, com ou sem €, tanto faz. Se faltar uma
+posição a aplicação diz-te qual, em vez de adivinhar.
+
+Se entrar uma equipa a mais do que as linhas que escreveste, quem ficar para lá
+do fim paga o valor da última linha.
+
+#### As jornadas de treino
+
+Duas opções, no fundo do mesmo formulário:
+
+- **Cobrar também as jornadas de treino.** Ligado, é o que a aplicação sempre
+  fez. Desligado, as cinco primeiras jornadas não geram dívida nenhuma.
+- **Os pontos das jornadas de treino contam para a classificação.** Desligado, a
+  tabela recomeça do zero quando as oficiais arrancam.
+
+São independentes, e valem só para esta liga.
+
 Podes alterar a regra a meio da época. As jornadas já cobradas não são
-recalculadas: a alteração vale daí para a frente.
+recalculadas: a alteração vale daí para a frente. Isso inclui as opções do
+treino: se ligares a cobrança do treino a meio, as jornadas de treino que ainda
+não tinham sido cobradas entram no bloco seguinte.
 
 ### 7.2 Blocos
 

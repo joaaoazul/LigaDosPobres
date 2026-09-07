@@ -3,6 +3,7 @@ package com.ligarecord.service;
 import com.ligarecord.domain.ClassificacaoGeral;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.Treinador;
@@ -67,6 +68,40 @@ Equipa real = new Equipa(UUID.randomUUID(), "RealDesistente", david, ligaTeste, 
         assertEquals(new BigDecimal("2.50"), classificacaoService.calcularValor(regra, 26));
         // 7º escalão passaria dos 2.50 sem o tecto — fica preso nele
         assertEquals(new BigDecimal("2.50"), classificacaoService.calcularValor(regra, 31));
+    }
+
+
+    /**
+     * Há ligas em que o treino é um aquecimento: quando as oficiais começam, a
+     * tabela recomeça do zero. Nas outras — as que já existiam — os pontos do
+     * treino contam, e é esse o valor por omissão.
+     */
+    @Test
+    public void podeIgnorarOsPontosDasJornadasDeTreino() {
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+
+        Equipa umaEquipa = new Equipa(UUID.randomUUID(), "Uma",
+                new Treinador(UUID.randomUUID(), "Treinador"), liga, EstadoEquipa.ATIVA);
+        liga.adicionarEquipa(umaEquipa);
+
+        JornadaService jornadaService = new JornadaService(
+                new com.ligarecord.repository.JornadaRepositoryImpl(),
+                new RegraDividaService(new com.ligarecord.repository.RegraDividaRepositoryImpl()),
+                new DividaService(new com.ligarecord.repository.DividaRepositoryImpl(),
+                        new ClassificacaoService()));
+
+        // As cinco primeiras são de treino, por desenho da aplicação.
+        Jornada treino = jornadaService.abrirJornada(liga);
+        jornadaService.inserirResultado(treino, umaEquipa, 7);
+        jornadaService.fecharJornada(treino);
+
+        ClassificacaoService servico = new ClassificacaoService();
+
+        assertEquals(7, servico.calcularClassificacao(liga).get(0).getPontosAcumulados());
+
+        liga.setPontosTreinoContam(false);
+        assertEquals(0, servico.calcularClassificacao(liga).get(0).getPontosAcumulados());
     }
 
 }

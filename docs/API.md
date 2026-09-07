@@ -371,14 +371,47 @@ estiver à espera de desempate.
 `RegraDividaDto`, ou `404` se a liga ainda não tiver regra. **`404` aqui é
 normal**, não é erro: é o estado de uma liga que cobra tudo à mão.
 
+### `PATCH /api/ligas/{ligaId}`
+```json
+{ "pontosTreinoContam": false }
+```
+Muda o formato da liga. Campos a `null` ficam como estão. `pontosTreinoContam` a
+`false` faz a classificação ignorar os pontos das jornadas de treino — é do
+formato da prova, não da cobrança, e por isso vive aqui e não na regra de dívida.
+`200` devolve `LigaDto`.
+
 ### `PUT /api/ligas/{ligaId}/regra-divida`
 Cria ou substitui. Todos os campos são obrigatórios.
 ```json
 { "valorInscricao": 15.00, "valorInicial": 0.00, "incremento": 0.50,
-  "equipasPorEscalao": 5, "valorMaximo": 2.50, "jornadasPorBloco": 5 }
+  "equipasPorEscalao": 5, "valorMaximo": 2.50, "jornadasPorBloco": 5,
+  "escala": "FORMULA", "tabela": null, "cobraTreino": true }
 ```
 `equipasPorEscalao` e `jornadasPorBloco` são inteiros com mínimo 1, os valores
 não podem ser negativos e `valorMaximo` não pode ser inferior a `valorInicial`.
+
+**`escala`** diz de onde sai o valor de cada posição:
+
+- `"FORMULA"` (ou ausente) — `valorInicial + incremento × escalão`, travado no
+  `valorMaximo`. É o que a aplicação sempre fez.
+- `"TABELA"` — os valores vêm da `tabela`, uma linha por posição:
+
+  ```
+  1-0€
+  2-0,10€
+  3-0,30€
+  ```
+
+  Do 1º ao último **sem saltos** — uma tabela com buracos dá `400` a dizer qual
+  a posição que falta. Aceita vírgula ou ponto decimal, com ou sem `€`. Quem
+  ficar para lá da última linha paga o valor dela. Os campos da fórmula
+  continuam a ser guardados, para quem voltar atrás não ter de os reescrever.
+
+**`cobraTreino`** a `false` deixa as jornadas de treino de fora dos blocos.
+Ausente vale `true`, que é o comportamento de sempre.
+
+A resposta devolve a `tabela` de volta em texto, na mesma forma, para o gestor a
+reler e corrigir.
 
 Pode ser alterada a meio da época. As jornadas já cobradas não são
 recalculadas.

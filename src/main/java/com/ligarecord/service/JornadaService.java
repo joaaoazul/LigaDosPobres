@@ -280,7 +280,7 @@ public class JornadaService {
     private void fecharBlocoSeForACaso(Jornada jornada) {
         Liga liga = jornada.getLiga();
         regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {
-            List<Jornada> pendentes = jornadasPendentesDeBloco(liga);
+            List<Jornada> pendentes = jornadasPendentesDeBloco(liga, regra);
             if (dividaService.prontoParaFecharBloco(pendentes, regra)) {
                 dividaService.processarFechoBloco(regra, pendentes);
                 pendentes.forEach(j -> {
@@ -293,14 +293,22 @@ public class JornadaService {
 
     /**
      * As jornadas já fechadas da liga que ainda não entraram em nenhum
-     * bloco. Basta o estado {@link Jornada#isIncluidaEmBloco()}: como cada
+     * bloco, e que a regra desta liga manda cobrar. Basta o estado
+     * {@link Jornada#isIncluidaEmBloco()}: como cada
      * jornada fica marcada assim que o seu bloco fecha, isto não depende da
      * ordem de {@code liga.getJornadas()} nem se perde se o gestor mudar
      * {@code jornadasPorBloco} a meio da época.
      */
-    private List<Jornada> jornadasPendentesDeBloco(Liga liga) {
+    private List<Jornada> jornadasPendentesDeBloco(Liga liga, RegraDivida regra) {
         return liga.getJornadas().stream()
                 .filter(j -> j.getEstadoJ() == EstadoJornada.FECHADA && !j.isIncluidaEmBloco())
+                // Há ligas em que o treino não se paga. Nessas, uma jornada de
+                // treino nunca é candidata a bloco nenhum — e fica por marcar,
+                // o que só tem consequência se o gestor ligar a cobrança de
+                // treino mais tarde: as que ficaram para trás entram no bloco
+                // seguinte. É o mesmo que já acontece ao mudar as jornadas por
+                // bloco a meio da época, e é dele a decisão.
+                .filter(j -> regra.isCobraTreino() || !j.iseTreino())
                 .toList();
     }
 

@@ -1,6 +1,8 @@
 package com.ligarecord.web;
 
 import com.ligarecord.domain.Liga;
+import com.ligarecord.domain.enums.EscalaDivida;
+import com.ligarecord.service.EscalaColada;
 import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.security.GestorAutenticado;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -55,11 +59,33 @@ public class RegraDividaController {
             throw new IllegalArgumentException("Todos os campos da regra são obrigatórios.");
         }
 
+        EscalaDivida escala = escala(pedido.escala());
+        List<BigDecimal> tabela = escala == EscalaDivida.TABELA
+                ? EscalaColada.ler(pedido.tabela())
+                : null;
+        boolean cobraTreino = pedido.cobraTreino() == null || pedido.cobraTreino();
+
         Liga liga = liga(autenticado, ligaId);
         RegraDivida regra = regraDividaService.definir(liga,
                 pedido.valorInscricao(), pedido.valorInicial(), pedido.incremento(),
-                pedido.equipasPorEscalao(), pedido.valorMaximo(), pedido.jornadasPorBloco());
+                pedido.equipasPorEscalao(), pedido.valorMaximo(), pedido.jornadasPorBloco(),
+                escala, tabela, cobraTreino);
         return RegraDividaDto.de(regra);
+    }
+
+    /**
+     * Sem escala indicada fica a fórmula, que é o que a aplicação sempre fez:
+     * um cliente antigo não pode ficar de repente a mandar tabelas vazias.
+     */
+    private EscalaDivida escala(String pedida) {
+        if (pedida == null || pedida.isBlank()) {
+            return EscalaDivida.FORMULA;
+        }
+        try {
+            return EscalaDivida.valueOf(pedida.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("A escala tem de ser FORMULA ou TABELA.");
+        }
     }
 
     private Liga liga(GestorAutenticado autenticado, UUID ligaId) {
