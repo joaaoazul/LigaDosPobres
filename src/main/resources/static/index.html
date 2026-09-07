@@ -132,28 +132,54 @@
                     <p class="ajuda" id="regra-divida-ajuda">Sem regra definida: os blocos e a inscrição são cobrados à mão.</p>
                     <form id="form-regra-divida" class="formulario em-linha">
                         <div>
+                            <label for="regra-escala">Valor por posição</label>
+                            <select id="regra-escala">
+                                <option value="FORMULA">Por fórmula</option>
+                                <option value="TABELA">Por tabela</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="regra-inscricao">Inscrição</label>
                             <input id="regra-inscricao" type="number" min="0" step="0.01" placeholder="0.00">
                         </div>
-                        <div>
+                        <div class="campo-formula">
                             <label for="regra-inicial">Valor inicial</label>
                             <input id="regra-inicial" type="number" min="0" step="0.01" placeholder="0.00">
                         </div>
-                        <div>
+                        <div class="campo-formula">
                             <label for="regra-incremento">Incremento</label>
                             <input id="regra-incremento" type="number" min="0" step="0.01" placeholder="0.50">
                         </div>
-                        <div>
+                        <div class="campo-formula">
                             <label for="regra-escalao">Equipas por escalão</label>
                             <input id="regra-escalao" type="number" min="1" step="1" placeholder="5">
                         </div>
-                        <div>
+                        <div class="campo-formula">
                             <label for="regra-maximo">Valor máximo</label>
                             <input id="regra-maximo" type="number" min="0" step="0.01" placeholder="2.50">
                         </div>
                         <div>
                             <label for="regra-jornadas">Jornadas por bloco</label>
                             <input id="regra-jornadas" type="number" min="1" step="1" placeholder="5">
+                        </div>
+                        <div class="campo-tabela oculto largura-toda">
+                            <label for="regra-tabela">Tabela de valores</label>
+                            <textarea id="regra-tabela" rows="6" spellcheck="false"
+                                placeholder="1-0€&#10;2-0,10€&#10;3-0,30€&#10;…"></textarea>
+                            <span class="ajuda">
+                                Uma linha por posição, do 1º ao último, sem saltos. Podes colar a lista
+                                tal como a tens escrita. Quem ficar para lá da última linha paga o valor dela.
+                            </span>
+                        </div>
+                        <div class="largura-toda">
+                            <label class="opcao">
+                                <input id="regra-cobra-treino" type="checkbox" checked>
+                                Cobrar também as jornadas de treino
+                            </label>
+                            <label class="opcao">
+                                <input id="liga-pontos-treino" type="checkbox" checked>
+                                Os pontos das jornadas de treino contam para a classificação
+                            </label>
                         </div>
                         <button type="submit" class="botao primario">Guardar regra</button>
                     </form>

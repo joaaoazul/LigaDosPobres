@@ -67,6 +67,18 @@ public class Liga extends EntidadeBase {
     @JoinColumn(name = "gestor_id", nullable = false)
     private Gestor gestor;
 
+    /**
+     * Há ligas em que as jornadas de treino são um aquecimento: quando as
+     * oficiais começam, a tabela recomeça do zero. Nas ligas que já existiam os
+     * pontos contam — o manual diz "para efeitos de dinheiro e de
+     * classificação, as duas contam igual" — e é esse o valor por omissão.
+     *
+     * <p>Vive aqui e não na regra de dívida porque é do formato da prova, não
+     * da cobrança: uma liga sem regra nenhuma continua a ter classificação.
+     */
+    @Column(name = "pontos_treino_contam", nullable = false)
+    private boolean pontosTreinoContam = true;
+
     protected Liga() {
         // exigido pelo Hibernate
     }
@@ -79,6 +91,14 @@ public class Liga extends EntidadeBase {
         this.maxEquipas = maxEquipas;
         this.estado = estado;
         this.gestor = gestor;
+    }
+
+    public boolean isPontosTreinoContam() {
+        return pontosTreinoContam;
+    }
+
+    public void setPontosTreinoContam(boolean pontosTreinoContam) {
+        this.pontosTreinoContam = pontosTreinoContam;
     }
 
     @Override

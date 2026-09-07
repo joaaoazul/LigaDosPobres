@@ -768,6 +768,24 @@ function desenharRegraDivida() {
     $("#regra-escalao").value = r ? r.equipasPorEscalao : "";
     $("#regra-maximo").value = r ? r.valorMaximo : "";
     $("#regra-jornadas").value = r ? r.jornadasPorBloco : "";
+    $("#regra-escala").value = r ? r.escala : "FORMULA";
+    $("#regra-tabela").value = r && r.tabela ? r.tabela : "";
+    // Sem regra ainda, o que faz sentido é o que a aplicação sempre fez.
+    $("#regra-cobra-treino").checked = r ? r.cobraTreino : true;
+    $("#liga-pontos-treino").checked = estado.detalhe
+        ? estado.detalhe.liga.pontosTreinoContam
+        : true;
+    mostrarCamposDaEscala();
+}
+
+/* A fórmula e a tabela são maneiras alternativas de dizer a mesma coisa, e ver
+   as duas ao mesmo tempo só faz duvidar de qual é que manda. */
+function mostrarCamposDaEscala() {
+    const porTabela = $("#regra-escala").value === "TABELA";
+    document.querySelectorAll(".campo-formula")
+        .forEach((campo) => campo.classList.toggle("oculto", porTabela));
+    document.querySelectorAll(".campo-tabela")
+        .forEach((campo) => campo.classList.toggle("oculto", !porTabela));
 }
 
 function desenharListaEquipasDivida() {
@@ -905,9 +923,20 @@ function selecionarTab(tab) {
     }
 }
 
+$("#regra-escala").addEventListener("change", mostrarCamposDaEscala);
+
 $("#form-regra-divida").addEventListener("submit", (evento) => {
     evento.preventDefault();
     executar(async () => {
+        // Duas coisas diferentes num formulário só: a regra é da cobrança, os
+        // pontos do treino são do formato da liga. Primeiro a liga, porque a
+        // regra é a que o gestor veio aqui guardar e é a que tem de mandar a
+        // mensagem no fim.
+        await api(`/api/ligas/${estado.ligaId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ pontosTreinoContam: $("#liga-pontos-treino").checked })
+        });
+
         await api(`/api/ligas/${estado.ligaId}/regra-divida`, {
             method: "PUT",
             body: JSON.stringify({
@@ -916,7 +945,10 @@ $("#form-regra-divida").addEventListener("submit", (evento) => {
                 incremento: Number($("#regra-incremento").value || 0),
                 equipasPorEscalao: Number($("#regra-escalao").value || 1),
                 valorMaximo: Number($("#regra-maximo").value || 0),
-                jornadasPorBloco: Number($("#regra-jornadas").value || 1)
+                jornadasPorBloco: Number($("#regra-jornadas").value || 1),
+                escala: $("#regra-escala").value,
+                tabela: $("#regra-tabela").value,
+                cobraTreino: $("#regra-cobra-treino").checked
             })
         });
         await recarregar();

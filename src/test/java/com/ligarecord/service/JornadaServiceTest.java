@@ -210,4 +210,34 @@ class JornadaServiceTest {
         Optional<Divida> divida = dividaService.buscarPorEquipa(equipa);
         return divida.map(dividaService::calcularTotalDivida).orElse(BigDecimal.ZERO);
     }
+
+    /**
+     * Há ligas em que o treino é um aquecimento e não se paga. Como as cinco
+     * primeiras jornadas são sempre de treino, é aqui que isto se nota: com a
+     * cobrança de treino desligada, fechar uma delas não cria dívida nenhuma.
+     */
+    @Test
+    void comOTreinoPorCobrarAsJornadasDeTreinoNaoCriamDivida() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1,
+                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, false);
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
+
+        assertTrue(dividaService.buscarPorEquipa(segunda).isEmpty());
+        assertTrue(dividaService.buscarPorEquipa(terceira).isEmpty());
+    }
+
+    /** E com a cobrança ligada — o que as ligas que já existem fazem — cria. */
+    @Test
+    void comOTreinoCobradoAsJornadasDeTreinoCriamDivida() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1);
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
+
+        assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+    }
+
 }

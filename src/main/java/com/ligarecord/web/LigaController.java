@@ -18,6 +18,7 @@ import com.ligarecord.service.DividaService;
 import com.ligarecord.service.TreinadorService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
+import com.ligarecord.web.dto.AlterarLigaRequest;
 import com.ligarecord.web.dto.AlterarTreinadorRequest;
 import com.ligarecord.web.dto.ClassificacaoDto;
 import com.ligarecord.web.dto.CriarLigaRequest;
@@ -128,6 +129,25 @@ public class LigaController {
     public List<ClassificacaoDto> classificacao(@AuthenticationPrincipal GestorAutenticado autenticado,
                                                 @PathVariable UUID ligaId) {
         return classificacao(liga(autenticado, ligaId));
+    }
+
+    /**
+     * Muda o formato da liga. Hoje só uma coisa: se os pontos das jornadas de
+     * treino contam para a classificação. É do formato da prova e não da
+     * cobrança, por isso vive aqui e não na regra de dívida — uma liga sem
+     * regra nenhuma continua a ter classificação.
+     */
+    @PatchMapping("/{ligaId}")
+    @Transactional
+    public LigaDto alterar(@AuthenticationPrincipal GestorAutenticado autenticado,
+                           @PathVariable UUID ligaId,
+                           @RequestBody AlterarLigaRequest pedido) {
+        Liga liga = liga(autenticado, ligaId);
+        if (pedido.pontosTreinoContam() != null) {
+            liga.setPontosTreinoContam(pedido.pontosTreinoContam());
+            ligaRepository.guardarLiga(liga);
+        }
+        return LigaDto.de(liga);
     }
 
     @PostMapping("/{ligaId}/terminar")

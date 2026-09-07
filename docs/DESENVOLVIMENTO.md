@@ -160,15 +160,44 @@ partir de 1**. É daí que vem a armadilha da secção 4.1.
 `INSCRICAO` (uma vez) ou `PERIODO` (recorrente), com um valor e um estado.
 
 `RegraDivida` é opcional, uma por liga. Sem ela não há cobrança automática
-nenhuma. Com ela, o valor por posição é:
+nenhuma. Com ela, o valor por posição sai de uma de duas escalas
+(`RegraDivida.valorDaPosicao`):
+
+**Fórmula** — a de sempre, uma rampa de degraus iguais com tecto:
 
 ```
 escalao = (posicao - 1) / equipasPorEscalao        // divisão inteira
 valor   = min(valorInicial + incremento * escalao, valorMaximo)
 ```
 
-O mesmo cálculo está espelhado em `calcularValorEscalao` no `app.js`, mas só
-para a pré-visualização. **A cobrança a sério é sempre do servidor.**
+**Tabela** (`EscalaValor`, uma linha por posição) — para as ligas cuja tabela
+não é uma rampa regular. A que motivou isto sobe 0,20€ por lugar até ao 7º e
+0,10€ daí em diante, e não há fórmula que diga aquilo: obrigá-la a uma era
+torcer a liga para caber no programa. Abaixo do fim da tabela repete-se a última
+linha, que é o mesmo que o tecto faz na fórmula — não cobrar nada a quem fica
+para lá do fim premiava exactamente quem ficou em último.
+
+A tabela chega colada do telemóvel e é lida pelo `EscalaColada`, que aceita as
+formas que aparecem nessas notas (vírgula ou ponto, com ou sem €, hífen ou
+travessão) e recusa saltos: não há maneira honesta de adivinhar uma posição que
+falta. **`substituirTabela` reaproveita as linhas em vez de as apagar e
+recriar** — no mesmo commit o Hibernate grava as inserções antes das remoções e
+as linhas novas esbarram na unicidade `(regra_id, posicao)` das antigas, o que
+dava 409 ao guardar a mesma regra duas vezes. É a mesma armadilha dos números de
+bloco, mais abaixo.
+
+O cálculo da fórmula está espelhado em `calcularValorEscalao` no `app.js`, mas
+só para a pré-visualização. **A cobrança a sério é sempre do servidor.**
+
+Duas coisas que variam de liga para liga e que estavam assumidas no código:
+
+- `RegraDivida.cobraTreino` — se as jornadas de treino entram nos blocos.
+- `Liga.pontosTreinoContam` — se os pontos delas contam para a classificação.
+  Vive na liga e não na regra porque é do formato da prova: uma liga sem regra
+  nenhuma continua a ter classificação.
+
+Ambas nascem no comportamento antigo (`true`), para nenhuma liga a decorrer
+mudar de contas.
 
 `Divida.proximoNumeroBloco` é persistido e protegido por `@Version`, para duas
 transacções em simultâneo não gravarem dois blocos com o mesmo número. Na
@@ -349,6 +378,7 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V9 | convite ao lugar: `equipa.treinador_id` único e `convite_treinador.equipa_id` |
 | V10 | email do treinador e rasto do envio do convite |
 | V11 | um convite vivo por lugar (índice único) e prazo nos que não tinham |
+| V12 | escala por tabela, treino cobrado ou não, pontos de treino na classificação |
 
 A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
 encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
@@ -422,7 +452,7 @@ azul.
 mvn test
 ```
 
-187 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+206 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 
