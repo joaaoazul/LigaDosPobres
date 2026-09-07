@@ -29,6 +29,9 @@ public class ConviteService {
         if (admin == null) {
             throw new IllegalArgumentException("O convite tem de ter um autor.");
         }
+        if (nota != null && !nota.isBlank()) {
+            RegrasDeConta.textoValidado(nota, 160, "A nota do convite");
+        }
         if (diasValidade != null && (diasValidade < 1 || diasValidade > VALIDADE_MAXIMA_DIAS)) {
             throw new IllegalArgumentException(
                     "A validade tem de estar entre 1 e " + VALIDADE_MAXIMA_DIAS + " dias.");

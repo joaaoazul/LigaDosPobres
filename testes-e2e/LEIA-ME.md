@@ -18,6 +18,7 @@ python3 testes-e2e/e2e.py 5           # o fluxo todo, cinco vezes
 python3 testes-e2e/arestas.py 3       # limites, erros e autorização
 python3 testes-e2e/dinheiro.py 3      # concorrência sobre dinheiro
 python3 testes-e2e/corrida.py 8080 10 # fecho simultâneo da mesma jornada
+python3 testes-e2e/varrimento.py 3    # segurança, validação, upload e administração
 python3 testes-e2e/recuperar.py       # recuperação de password
 ```
 
@@ -41,4 +42,5 @@ O `recuperar.py` lê o link do log da aplicação (`/tmp/app.log`), que é onde 
 | `arestas.py` | liga cheia, pontuações inválidas, convites revogados e expirados, emitir em paralelo, registos recusados, empate na cobrança de época, posição para lá do fim da tabela, administração, recuperação |
 | `dinheiro.py` | fechar a mesma jornada em paralelo, pagar o mesmo bloco em paralelo, lançar blocos em paralelo, blocos de várias jornadas |
 | `corrida.py` | só a corrida do fecho, muitas vezes, a contar quantas cobranças saíram a dobrar |
+| `varrimento.py` | CSRF, JSON mal formado, tipos trocados, limites de texto, unicode e HTML nos nomes, upload de logo (PNG, SVG, ficheiro grande), regra alterada a meio da época, precisão dos cêntimos, administração |
 | `recuperar.py` | pedido, link, redefinição, corte das sessões abertas, código de uso único |
