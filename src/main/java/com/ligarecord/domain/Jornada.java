@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,6 +40,19 @@ public class Jornada extends EntidadeBase {
 
     @Id
     private UUID id;
+
+    /**
+     * Trava a corrida entre dois fechos da mesma jornada.
+     *
+     * <p>Sem isto, dois pedidos simultâneos liam-na aberta, passavam os dois
+     * pela verificação do estado, e cobravam o bloco duas vezes — um duplo
+     * clique no botão de fechar chegava. Quem perde a corrida esbarra aqui e
+     * leva um 409 do {@code GlobalExceptionHandler}, como já acontecia na
+     * {@link Divida}.
+     */
+    @Version
+    @Column(nullable = false)
+    private long versao;
 
     @Column(name = "num_jornada", nullable = false)
     private int numJornada;
