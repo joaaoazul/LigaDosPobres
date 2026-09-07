@@ -49,7 +49,9 @@ class JornadaServiceTest {
         ClassificacaoService classificacaoService = new ClassificacaoService();
         regraDividaService = new RegraDividaService(regraDividaRepository);
         dividaService = new DividaService(dividaRepository, classificacaoService);
-        jornadaService = new JornadaService(jornadaRepository, regraDividaService, dividaService);
+        jornadaService = new JornadaService(jornadaRepository, regraDividaService,
+                new CobrancaPeriodoService(new ClassificacaoService(), dividaService),
+                dividaService);
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
         liga = new Liga(UUID.randomUUID(), "Liga de Teste", 10, EstadoLiga.ATIVA, gestor);
@@ -220,7 +222,7 @@ class JornadaServiceTest {
     void comOTreinoPorCobrarAsJornadasDeTreinoNaoCriamDivida() {
         regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
                 new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1,
-                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, false);
+                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, false, null);
 
         jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
         jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));

@@ -157,7 +157,8 @@ partir de 1**. É daí que vem a armadilha da secção 4.1.
 ### Dívidas
 
 `Divida` tem uma equipa (um para um) e uma lista de `BlocoDivida`. Cada bloco é
-`INSCRICAO` (uma vez) ou `PERIODO` (recorrente), com um valor e um estado.
+`INSCRICAO` (uma vez), `PERIODO` (recorrente, pela posição em cada jornada do
+bloco) ou `CLASSIFICACAO` — as cobranças de época, que levam nome próprio.
 
 `RegraDivida` é opcional, uma por liga. Sem ela não há cobrança automática
 nenhuma. Com ela, o valor por posição sai de uma de duas escalas
@@ -204,6 +205,28 @@ transacções em simultâneo não gravarem dois blocos com o mesmo número. Na
 prática quem perde a corrida esbarra primeiro na restrição
 `bloco_divida_numero_unico`, porque o Hibernate grava as inserções antes das
 actualizações; ambos os casos dão 409 pelo `GlobalExceptionHandler`.
+
+### Cobranças de época
+
+`CobrancaPeriodo` é uma cobrança presa a uma jornada **oficial**, pela posição na
+**classificação geral** — o "Inverno" e o "Verão" de algumas ligas. Tem tabela
+própria, acontece uma vez (`cobradaEm`), e o bloco que cria leva o nome, para na
+dívida se ler "Inverno" e não "Bloco 12".
+
+A jornada é indicada pelo número oficial e não pela contagem corrida desde o
+início: as de treino podem ser mais ou menos do que se espera, e uma cobrança que
+escorregue uma jornada é dinheiro cobrado no sítio errado.
+
+**Um empate trava a cobrança** — mas só quando muda o valor. É a mesma regra que
+`fecharJornada` já aplica: cobrar com o empate por desfazer era cobrar a mais a
+umas e a menos a outras, e com o dinheiro lançado não há forma limpa de
+corrigir. A diferença é que aqui o desempate é da classificação geral, que fora
+disto não decide dinheiro nenhum e por isso continua ordenada por nome. Um
+empate entre lugares que pagam o mesmo não pergunta nada a ninguém.
+
+`acertarCobrancas` casa pelo nome em vez de substituir tudo: sem isso, guardar a
+regra outra vez fazia uma cobrança já feita renascer por cobrar — e ser cobrada
+duas vezes.
 
 ---
 
@@ -379,6 +402,7 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V10 | email do treinador e rasto do envio do convite |
 | V11 | um convite vivo por lugar (índice único) e prazo nos que não tinham |
 | V12 | escala por tabela, treino cobrado ou não, pontos de treino na classificação |
+| V13 | cobranças de época (Inverno/Verão) e o nome no bloco da dívida |
 
 A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
 encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
@@ -452,7 +476,7 @@ azul.
 mvn test
 ```
 
-206 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+217 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 

@@ -31,13 +31,16 @@ public class JornadaService {
 
     private JornadaRepository jornadaRepository;
     private final RegraDividaService regraDividaService;
+    private final CobrancaPeriodoService cobrancaPeriodoService;
     private final DividaService dividaService;
 
     public JornadaService(JornadaRepository jornadaRepository,
                           RegraDividaService regraDividaService,
+                          CobrancaPeriodoService cobrancaPeriodoService,
                           DividaService dividaService){
         this.jornadaRepository = jornadaRepository;
         this.regraDividaService = regraDividaService;
+        this.cobrancaPeriodoService = cobrancaPeriodoService;
         this.dividaService = dividaService;
     }
 
@@ -182,6 +185,7 @@ public class JornadaService {
         jornadaRepository.guardar(jornada);
 
         fecharBlocoSeForACaso(jornada);
+        cobrarPeriodoSeForACaso(jornada);
 
         return jornada;
     }
@@ -238,6 +242,7 @@ public class JornadaService {
         jornadaRepository.guardar(jornada);
 
         fecharBlocoSeForACaso(jornada);
+        cobrarPeriodoSeForACaso(jornada);
 
         return jornada;
     }
@@ -277,6 +282,29 @@ public class JornadaService {
      * Sem regra de dívida definida para a liga, não há cobrança automática
      * nenhuma — o gestor continua a fechar blocos à mão.
      */
+    /**
+     * As cobranças presas a esta jornada — o "Inverno" e o "Verão".
+     *
+     * <p>Só as oficiais as disparam, e pelo número oficial: as de treino podem
+     * ser mais ou menos do que se espera, e uma cobrança que escorregue uma
+     * jornada é dinheiro cobrado no sítio errado.
+     *
+     * <p>Se houver empate na classificação geral entre equipas que pagariam
+     * valores diferentes, a cobrança fica por fazer até o gestor desempatar —
+     * ver {@link CobrancaPeriodoService}.
+     */
+    private void cobrarPeriodoSeForACaso(Jornada jornada) {
+        if (jornada.iseTreino()) {
+            return;
+        }
+        Liga liga = jornada.getLiga();
+        regraDividaService.buscarPorLiga(liga).ifPresent(regra ->
+                regra.getCobrancas().stream()
+                        .filter(cobranca -> !cobranca.estaCobrada())
+                        .filter(cobranca -> cobranca.getJornadaOficial() == jornada.getNumJornada())
+                        .forEach(cobranca -> cobrancaPeriodoService.cobrarSePuder(cobranca, liga)));
+    }
+
     private void fecharBlocoSeForACaso(Jornada jornada) {
         Liga liga = jornada.getLiga();
         regraDividaService.buscarPorLiga(liga).ifPresent(regra -> {

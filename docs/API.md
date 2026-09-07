@@ -410,11 +410,44 @@ não podem ser negativos e `valorMaximo` não pode ser inferior a `valorInicial`
 **`cobraTreino`** a `false` deixa as jornadas de treino de fora dos blocos.
 Ausente vale `true`, que é o comportamento de sempre.
 
+**`cobrancas`** são as cobranças de época — presas a uma jornada oficial e
+cobradas pela classificação geral:
+
+```json
+"cobrancas": [ { "nome": "Inverno", "jornadaOficial": 12, "tabela": "1-0€\n2-0,50€\n…" } ]
+```
+
+A null deixa as que existem como estão; uma lista vazia apaga-as. Casam pelo
+nome, para uma cobrança já feita não renascer por cobrar — e uma já feita não
+pode ser removida nem mudar de jornada (`409`).
+
 A resposta devolve a `tabela` de volta em texto, na mesma forma, para o gestor a
 reler e corrigir.
 
 Pode ser alterada a meio da época. As jornadas já cobradas não são
 recalculadas.
+
+### `GET /api/ligas/{ligaId}/cobrancas`
+As cobranças de época e em que pé estão.
+
+```json
+[ { "id": "...", "nome": "Inverno", "jornadaOficial": 12, "tabela": "1-0€\n…",
+    "estado": "A_ESPERA_DE_DESEMPATE", "cobradaEm": null,
+    "empates": [ { "pontos": 34, "equipas": [ { "equipaId": "...", "equipa": "...", "posicao": 11 } ] } ] } ]
+```
+
+`estado` é `POR_COBRAR`, `A_ESPERA_DE_DESEMPATE` (e aí `empates` traz os grupos
+a ordenar) ou `COBRADA`.
+
+### `POST /api/ligas/{ligaId}/cobrancas/{cobrancaId}/desempate`
+```json
+{ "ordem": ["equipaId", "equipaId"] }
+```
+Desfaz o empate da classificação geral com esta ordem **e cobra a seguir**. Uma
+lista só, com todas as equipas empatadas: o servidor volta a arrumá-las dentro
+do seu grupo de pontos, por isso isto nunca troca equipas entre pontuações
+diferentes. `400` se a lista não for exactamente as equipas empatadas, `409` se
+a cobrança já tiver sido feita ou não estiver à espera de nada.
 
 ### `GET /api/ligas/{ligaId}/dividas?estado=PENDENTE`
 Dívidas da liga, filtradas pelo estado da dívida (`PENDENTE` ou `RESOLVIDA`).

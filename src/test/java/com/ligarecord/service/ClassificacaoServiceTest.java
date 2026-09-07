@@ -85,11 +85,13 @@ Equipa real = new Equipa(UUID.randomUUID(), "RealDesistente", david, ligaTeste, 
                 new Treinador(UUID.randomUUID(), "Treinador"), liga, EstadoEquipa.ATIVA);
         liga.adicionarEquipa(umaEquipa);
 
+        DividaService dividaService = new DividaService(
+                new com.ligarecord.repository.DividaRepositoryImpl(), new ClassificacaoService());
         JornadaService jornadaService = new JornadaService(
                 new com.ligarecord.repository.JornadaRepositoryImpl(),
                 new RegraDividaService(new com.ligarecord.repository.RegraDividaRepositoryImpl()),
-                new DividaService(new com.ligarecord.repository.DividaRepositoryImpl(),
-                        new ClassificacaoService()));
+                new CobrancaPeriodoService(new ClassificacaoService(), dividaService),
+                dividaService);
 
         // As cinco primeiras são de treino, por desenho da aplicação.
         Jornada treino = jornadaService.abrirJornada(liga);

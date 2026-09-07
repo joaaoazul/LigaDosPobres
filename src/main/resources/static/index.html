@@ -183,6 +183,30 @@
                         </div>
                         <button type="submit" class="botao primario">Guardar regra</button>
                     </form>
+
+                    <h3 class="titulo-seccao">Cobranças de época</h3>
+                    <p class="ajuda">
+                        Cobranças presas a uma jornada oficial, pela posição na classificação
+                        geral — o "Inverno" e o "Verão" de algumas ligas. Cada uma tem a sua
+                        própria tabela.
+                    </p>
+                    <div id="lista-cobrancas"></div>
+                    <form id="form-cobranca" class="formulario em-linha">
+                        <div>
+                            <label for="cobranca-nome">Nome</label>
+                            <input id="cobranca-nome" type="text" placeholder="Inverno">
+                        </div>
+                        <div>
+                            <label for="cobranca-jornada">Jornada oficial</label>
+                            <input id="cobranca-jornada" type="number" min="1" step="1" placeholder="12">
+                        </div>
+                        <div class="largura-toda">
+                            <label for="cobranca-tabela">Tabela de valores</label>
+                            <textarea id="cobranca-tabela" rows="4" spellcheck="false"
+                                placeholder="1-0€&#10;2-0,50€&#10;3-1€&#10;…"></textarea>
+                        </div>
+                        <button type="submit" class="botao">Acrescentar cobrança</button>
+                    </form>
                 </div>
 
                 <div class="grelha-jornadas">

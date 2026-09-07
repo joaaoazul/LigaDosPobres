@@ -105,8 +105,22 @@ public class Divida extends EntidadeBase {
         return registarBloco(TipoBloco.INSCRICAO, valor);
     }
 
+    /**
+     * Acrescenta o bloco de uma cobrança com nome próprio — o "Inverno" e o
+     * "Verão" de algumas ligas, cobrados pela classificação geral numa jornada
+     * combinada. O nome vem para a dívida porque é o que o gestor e o treinador
+     * reconhecem; "Bloco 12" não lhes diz nada.
+     */
+    public BlocoDivida registarCobranca(String nome, BigDecimal valor) {
+        return registarBloco(TipoBloco.CLASSIFICACAO, valor, nome);
+    }
+
     private BlocoDivida registarBloco(TipoBloco tipo, BigDecimal valor) {
-        BlocoDivida bloco = new BlocoDivida(UUID.randomUUID(), proximoNumeroBloco, tipo, valor);
+        return registarBloco(tipo, valor, null);
+    }
+
+    private BlocoDivida registarBloco(TipoBloco tipo, BigDecimal valor, String nome) {
+        BlocoDivida bloco = new BlocoDivida(UUID.randomUUID(), proximoNumeroBloco, tipo, valor, nome);
         proximoNumeroBloco++;
         bloco.setDivida(this);
         blocos.add(bloco);

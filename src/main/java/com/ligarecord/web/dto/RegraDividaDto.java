@@ -6,6 +6,7 @@ import com.ligarecord.domain.enums.EscalaDivida;
 import com.ligarecord.service.EscalaColada;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record RegraDividaDto(
@@ -18,7 +19,8 @@ public record RegraDividaDto(
         int jornadasPorBloco,
         String escala,
         String tabela,
-        boolean cobraTreino) {
+        boolean cobraTreino,
+        List<CobrancaPeriodoDto> cobrancas) {
 
     public static RegraDividaDto de(RegraDivida regra) {
         return new RegraDividaDto(
@@ -35,7 +37,10 @@ public record RegraDividaDto(
                 regra.getEscala() == EscalaDivida.TABELA
                         ? EscalaColada.escrever(regra.getTabela().stream().map(EscalaValor::getValor).toList())
                         : null,
-                regra.isCobraTreino()
+                regra.isCobraTreino(),
+                // Sem os empates: quem quiser saber se alguma está travada
+                // pergunta a /cobrancas, que é quem sabe a classificação.
+                regra.getCobrancas().stream().map(c -> CobrancaPeriodoDto.de(c, List.of())).toList()
         );
     }
 }
