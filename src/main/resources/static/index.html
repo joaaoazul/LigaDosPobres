@@ -33,22 +33,28 @@
 <main class="conteudo">
 
     <aside class="painel-lateral">
-        <h2>Ligas</h2>
-
         <p id="aviso-sem-permissao" class="ajuda oculto">
             A tua conta não pode criar ligas. Pede a um administrador para to permitir.
         </p>
 
-        <form id="form-liga" class="formulario">
-            <label for="liga-nome">Nome da liga</label>
-            <input id="liga-nome" name="nome" type="text" placeholder="Liga dos Pobres 25/26" required>
+        <!-- O formulário tinha por cima o título "Ligas", que era o da lista
+             lá em baixo: os dois campos liam-se como sendo da liga aberta ao
+             lado, e o nome dela estava mesmo escrito num deles, a cinzento.
+             Cada bloco leva agora o seu título. -->
+        <div id="bloco-nova-liga">
+            <h2>Nova liga</h2>
+            <form id="form-liga" class="formulario">
+                <label for="liga-nome">Nome da liga</label>
+                <input id="liga-nome" name="nome" type="text" placeholder="Liga dos Pobres 25/26" required>
 
-            <label for="liga-max">Máximo de equipas</label>
-            <input id="liga-max" name="maxEquipas" type="number" min="1" max="45" value="20" required>
+                <label for="liga-max">Máximo de equipas</label>
+                <input id="liga-max" name="maxEquipas" type="number" min="1" max="45" value="20" required>
 
-            <button type="submit" class="botao primario">Criar liga</button>
-        </form>
+                <button type="submit" class="botao primario">Criar liga</button>
+            </form>
+        </div>
 
+        <h2 class="titulo-lista">As minhas ligas</h2>
         <ul id="lista-ligas" class="lista-ligas"></ul>
     </aside>
 
@@ -56,8 +62,8 @@
 
         <div id="sem-liga" class="vazio">
             <svg class="bola-grande" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.75"/><polygon class="placa" points="16,9 22.66,13.84 20.12,21.66 11.88,21.66 9.34,13.84"/></svg>
-            <h2>Nenhuma liga selecionada</h2>
-            <p>Cria uma liga ou escolhe uma da lista à esquerda.</p>
+            <h2>Ainda sem ligas</h2>
+            <p>Cria a tua primeira liga em &ldquo;Nova liga&rdquo;.</p>
         </div>
 
         <div id="detalhe-liga" class="oculto">

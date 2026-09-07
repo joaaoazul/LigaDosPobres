@@ -114,8 +114,45 @@ function badgeEstado(estadoTexto) {
 
 /* ------------------------------------------------------------- carregar --- */
 
+/* Qual a liga a abrir quando a página carrega.
+
+   Enquanto não havia nenhuma, quem tinha uma liga só entrava sempre no mesmo
+   ecrã vazio a dizer-lhe para escolher uma da lista ao lado — a única que lá
+   estava. Guarda-se a última aberta porque quem gere duas ou três ligas passa
+   os dias numa delas.
+
+   O localStorage pode rebentar (janela privada, cookies bloqueados) e isto é
+   uma comodidade, não uma funcionalidade: se falhar, abre-se a primeira. */
+const LIGA_GUARDADA = "quota.liga-treinada";
+
+function ligaLembrada() {
+    try {
+        return window.localStorage.getItem(LIGA_GUARDADA);
+    } catch {
+        return null;
+    }
+}
+
+function lembrarLiga(id) {
+    try {
+        window.localStorage.setItem(LIGA_GUARDADA, id);
+    } catch {
+        /* sem memória, paciência */
+    }
+}
+
+function escolherLigaInicial() {
+    if (estado.ligaId || !estado.ligas.length) {
+        return;
+    }
+    const guardada = ligaLembrada();
+    const lembrada = estado.ligas.find((liga) => liga.id === guardada);
+    estado.ligaId = (lembrada || estado.ligas[0]).id;
+}
+
 async function carregarLigas() {
     estado.ligas = await api("/api/minhas-ligas");
+    escolherLigaInicial();
     desenharLigas();
 }
 
@@ -148,7 +185,7 @@ function desenharLigas() {
         <li>
             <button class="cartao-liga ${liga.id === estado.ligaId ? "selecionado" : ""}" data-liga="${liga.id}">
                 <strong>${texto(liga.nome)}</strong>
-                <small>${liga.equipasAtivas}/${liga.maxEquipas} equipas &middot; ${plural(liga.totalJornadas, "jornada", "jornadas")}</small>
+                <small>${liga.totalEquipas}/${liga.maxEquipas} equipas &middot; ${plural(liga.totalJornadas, "jornada", "jornadas")}</small>
                 ${badgeEstado(liga.estado)}
             </button>
         </li>
@@ -335,6 +372,7 @@ document.addEventListener("click", (evento) => {
 
     if (alvo.dataset.liga) {
         estado.ligaId = alvo.dataset.liga;
+        lembrarLiga(estado.ligaId);
         estado.jornadaId = null;
         executar(async () => {
             await carregarDetalhe();
@@ -373,4 +411,6 @@ executar(async () => {
         $("#link-admin").classList.remove("oculto");
     }
     await carregarLigas();
+    // A liga escolhida em carregarLigas ainda não tem detalhe nenhum lido.
+    await carregarDetalhe();
 });
