@@ -69,9 +69,9 @@ public class RegraDividaService {
         }
         if (cobrancas != null) {
             for (RegraDivida.CobrancaPedida cobranca : cobrancas) {
-                if (cobranca.nome() == null || cobranca.nome().isBlank()) {
-                    throw new IllegalArgumentException("Cada cobrança precisa de um nome.");
-                }
+                // 40 é o que a coluna aguenta, e é o que aparece na lista de
+                // dívidas ao lado do valor — mais do que isso não caberia lá.
+                RegrasDeConta.textoValidado(cobranca.nome(), 40, "O nome da cobrança");
                 if (cobranca.jornadaOficial() < 1) {
                     throw new IllegalArgumentException(
                             "A jornada da cobrança \"" + cobranca.nome() + "\" tem de ser pelo menos 1.");

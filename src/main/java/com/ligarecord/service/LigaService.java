@@ -37,9 +37,7 @@ public class LigaService {
         if(gestor == null){
             throw new IllegalArgumentException("A liga tem de ter um gestor.");
         }
-        if(nome == null ||nome .isBlank()){
-            throw new IllegalArgumentException("O nome da liga é obrigatório.");
-        }
+        String nomeValidado = RegrasDeConta.textoValidado(nome, RegrasDeConta.MAXIMO_NOME, "O nome da liga");
         if (maxEquipas <= 0 || maxEquipas > 45){
             throw new IllegalArgumentException("O máximo de equipas permitidas na liga é de 45");
         }
@@ -48,7 +46,7 @@ public class LigaService {
 
         Liga liga = new Liga(
                 id,
-                nome,
+                nomeValidado,
                 maxEquipas,
                 EstadoLiga.ATIVA,
                 gestor
@@ -69,6 +67,8 @@ public class LigaService {
         if(equipa == null){
             throw new IllegalArgumentException("A equipa é obrigatória.");
         }
+        equipa.setNome(RegrasDeConta.textoValidado(equipa.getNome(), RegrasDeConta.MAXIMO_NOME,
+                "O nome da equipa"));
 
         if(liga.getEstado() != EstadoLiga.ATIVA){
             throw new IllegalStateException(

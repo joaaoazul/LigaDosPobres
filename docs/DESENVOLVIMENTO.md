@@ -483,7 +483,7 @@ azul.
 mvn test
 ```
 
-217 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+224 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 
@@ -503,9 +503,14 @@ reinício. Correm contra uma base descartável e repetem-se de propósito: cada
 corrida usa um sufixo aleatório, e é a repetição contra a mesma base que apanha
 os erros de "segunda vez". As instruções estão no `testes-e2e/LEIA-ME.md`.
 
-Foi assim que apareceram dois problemas que os testes de serviço não viam: o
-fecho simultâneo da mesma jornada a cobrar a dobrar (ver `Jornada.versao`) e a
-grelha de jornadas e dívidas a pôr a página a rolar de lado no telemóvel.
+Foi assim que apareceram três problemas que os testes de serviço não viam: o
+fecho simultâneo da mesma jornada a cobrar a dobrar (ver `Jornada.versao`), a
+grelha de jornadas e dívidas a pôr a página a rolar de lado no telemóvel, e um
+texto comprido de mais a sair como 409 "isto foi alterado por outro pedido ao
+mesmo tempo" — uma mensagem sobre uma corrida, para quem só escreveu um nome
+grande. Os limites das colunas passam a ser verificados do lado de cá
+(`RegrasDeConta.textoValidado`), com a mensagem a dizer qual é o campo e qual é
+o limite.
 
 ### Como testar em condições
 
