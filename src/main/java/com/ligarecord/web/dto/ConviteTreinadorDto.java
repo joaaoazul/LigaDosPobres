@@ -1,6 +1,7 @@
 package com.ligarecord.web.dto;
 
 import com.ligarecord.domain.ConviteTreinador;
+import com.ligarecord.service.ConviteTreinadorService;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,9 +20,20 @@ public record ConviteTreinadorDto(
         String estado,
         Instant criadoEm,
         Instant expiraEm,
-        Instant usadoEm) {
+        Instant usadoEm,
+        String envio,
+        String enviadoPara) {
 
     public static ConviteTreinadorDto de(ConviteTreinador convite, String link) {
+        return de(convite, link, null);
+    }
+
+    /**
+     * {@code envio} diz o que aconteceu à tentativa de entregar o convite por
+     * email — a null quando não se tentou, por o pedido não ser de emissão.
+     */
+    public static ConviteTreinadorDto de(ConviteTreinador convite, String link,
+                                         ConviteTreinadorService.Envio envio) {
         boolean disponivel = convite.estaDisponivel();
         return new ConviteTreinadorDto(
                 convite.getId(),
@@ -33,7 +45,9 @@ public record ConviteTreinadorDto(
                 estado(convite),
                 convite.getCriadoEm(),
                 convite.getExpiraEm(),
-                convite.getUsadoEm()
+                convite.getUsadoEm(),
+                envio == null ? null : envio.name(),
+                convite.getEnviadoPara()
         );
     }
 

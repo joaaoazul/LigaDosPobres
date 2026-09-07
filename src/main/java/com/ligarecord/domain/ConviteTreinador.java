@@ -68,6 +68,15 @@ public class ConviteTreinador extends EntidadeBase {
     @Column(name = "revogado_em")
     private Instant revogadoEm;
 
+    @Column(name = "enviado_em")
+    private Instant enviadoEm;
+
+    @Column(name = "enviado_para")
+    private String enviadoPara;
+
+    @Column(name = "envios", nullable = false)
+    private int envios;
+
     protected ConviteTreinador() {
         // exigido pelo Hibernate
     }
@@ -122,6 +131,25 @@ public class ConviteTreinador extends EntidadeBase {
 
     public Instant getRevogadoEm() {
         return revogadoEm;
+    }
+
+    public Instant getEnviadoEm() {
+        return enviadoEm;
+    }
+
+    public String getEnviadoPara() {
+        return enviadoPara;
+    }
+
+    public int getEnvios() {
+        return envios;
+    }
+
+    /** Chamado só depois de o envio ter corrido bem: conta o que saiu, não o que se tentou. */
+    public void marcarEnviado(String para) {
+        this.enviadoEm = Instant.now();
+        this.enviadoPara = para;
+        this.envios++;
     }
 
     public boolean estaUsado() {

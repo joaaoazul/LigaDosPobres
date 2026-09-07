@@ -40,6 +40,14 @@ public class Treinador extends EntidadeBase {
     @Column(nullable = false)
     private String nome;
 
+    /**
+     * Contacto do lugar, para lhe enviar o convite. Opcional, e distinto do
+     * email da conta: este é o que o gestor conhece, o outro é o que a pessoa
+     * escolheu para entrar. Podem ser diferentes, e nada aqui os liga.
+     */
+    @Column(name = "email")
+    private String email;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conta_id")
     private Gestor conta;
@@ -68,6 +76,18 @@ public class Treinador extends EntidadeBase {
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public boolean temEmail() {
+        return email != null && !email.isBlank();
     }
 
     public Gestor getConta() {

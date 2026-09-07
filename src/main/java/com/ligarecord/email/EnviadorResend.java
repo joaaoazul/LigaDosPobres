@@ -33,7 +33,7 @@ public class EnviadorResend implements EnviadorDeEmail {
     }
 
     @Override
-    public void enviar(String para, String assunto, String texto, String html) {
+    public boolean enviar(String para, String assunto, String texto, String html) {
         try {
             cliente.post()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -41,10 +41,12 @@ public class EnviadorResend implements EnviadorDeEmail {
                             "text", texto, "html", html))
                     .retrieve()
                     .toBodilessEntity();
+            return true;
         } catch (RuntimeException e) {
             // O endereço nunca vai para o log: numa recuperação de password isso
             // passava a dizer, a quem lesse os logs, quem tem conta aqui.
             LOG.error("Falhou o envio de um email pelo Resend: {}", e.getMessage());
+            return false;
         }
     }
 }

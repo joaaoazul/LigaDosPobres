@@ -104,6 +104,13 @@ A autorização sobre um convite é **pela equipa**, não por quem o emitiu: uma
 liga pode mudar de gestor (`AlterarGestorRequest`) e o convite continua a ser
 daquela equipa.
 
+`Treinador.email` é contacto do lugar, dado pelo gestor, e não uma credencial:
+quem aceita o convite escolhe o email da conta no registo e pode ser outro. Nada
+liga os dois. O envio é travado por convite — três no máximo, nunca dois a menos
+de dez minutos —, e conta-se só o que saiu: uma falha do Resend não pode gastar
+o travão. Revogar e emitir de novo contorna o limite, e é deliberado — dá outra
+credencial e deixa rasto, não é coisa que se faça sem dar por ela.
+
 ### `podeCriarLigas`
 
 Só uma conta com esta flag cria ligas próprias. Nasce a `true` no caminho normal
@@ -322,6 +329,7 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V7 | marca de jornada já incluída num bloco |
 | V8 | recuperação de password por email |
 | V9 | convite ao lugar: `equipa.treinador_id` único e `convite_treinador.equipa_id` |
+| V10 | email do treinador e rasto do envio do convite |
 
 A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
 encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
@@ -395,7 +403,7 @@ azul.
 mvn test
 ```
 
-162 testes, todos ao nível do serviço ou do domínio, com os repositórios em
+180 testes, todos ao nível do serviço ou do domínio, com os repositórios em
 memória. **Não há testes de controller**, por convenção: a lógica está nos
 serviços e é lá que é testada.
 
@@ -436,8 +444,9 @@ railway logs                 # ver o arranque
 
 Confirma sempre nos logs que as migrações validaram e que o arranque foi limpo.
 Confirma também que não aparece o aviso `Sem EMAIL_CHAVE ou EMAIL_REMETENTE`:
-se aparecer, os emails de recuperação vão para o log em vez de serem enviados,
-e ninguém consegue recuperar a password.
+se aparecer, as mensagens vão para o log em vez de serem enviadas — ninguém
+consegue recuperar a password, e os convites de treinador têm de ser entregues
+à mão pelo link.
 
 ### Email
 
@@ -447,7 +456,9 @@ Três variáveis de ambiente:
 | --- | --- |
 | `EMAIL_CHAVE` | Chave de API do Resend |
 | `EMAIL_REMETENTE` | Remetente, num domínio verificado no Resend |
-| `APP_URL` | Endereço público, usado no link do email |
+| `APP_URL` | Endereço público, usado nos links dos emails |
+
+Duas mensagens: a recuperação de password e o convite de treinador.
 
 O `EMAIL_REMETENTE` tem mesmo de ser de um domínio verificado no Resend, com os
 registos de DNS configurados. Com o remetente de teste deles, só a caixa de
@@ -457,6 +468,14 @@ recuperação sem funcionar para toda a gente menos uma pessoa.
 Sem chave nenhuma a aplicação arranca à mesma e o `EnviadorParaLog` escreve as
 mensagens na consola, com o link e tudo. É assim que o fluxo se experimenta em
 desenvolvimento.
+
+`EnviadorDeEmail.enviar` devolve se a mensagem saiu, e o `EnviadorParaLog`
+devolve **`false`** — porque é a verdade, nada saiu. A recuperação de password
+ignora o resultado de propósito (a resposta é a mesma exista ou não a conta, ou
+o endereço passava a dizer quem tem conta aqui); o convite de treinador usa-o
+para dizer ao gestor que o email não foi enviado e que entregue o link. Em
+produção isto só acontece com a chave por configurar, e é assim que se dá por
+isso sem ler os logs.
 
 ### O HTML das mensagens
 
@@ -483,14 +502,10 @@ dados de produção.
 
 ## 10. Por implementar
 
-- **Convite por email.** O `Treinador` não guarda email, por isso o gestor tem
-  de entregar o link à mão. O passo seguinte é um campo opcional de email no
-  lugar de treinador e o envio automático pelo `EnviadorDeEmail` que já existe,
-  com travão de envios por lugar e por janela de tempo, à maneira do
-  `RecuperacaoService`.
-- **Convidar a liga toda de uma vez**, depois de haver email: um pedido que
-  emite ou reutiliza os convites de todas as equipas sem conta e devolve, por
-  equipa, o que foi enviado e o que ficou por link.
+- **Convidar a liga toda de uma vez**: um pedido que emite ou reutiliza os
+  convites de todas as equipas sem conta e devolve, por equipa, o que foi
+  enviado e o que ficou por link. Os emails têm de sair **depois do commit** —
+  uma falha de rede a meio não pode desfazer convites já emitidos.
 - Verificação de email no registo. O convite já trava o registo aberto, que é o
   que a confirmação costuma proteger; o que fica por resolver é o email mal
   escrito, e para esse o remendo é o administrador corrigi-lo à mão.

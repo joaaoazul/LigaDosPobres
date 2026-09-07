@@ -8,7 +8,6 @@ import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.EquipaRepository;
 import com.ligarecord.repository.GestorRepository;
-import com.ligarecord.repository.TreinadorRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.security.GestorAutenticado;
@@ -16,6 +15,7 @@ import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.service.ClassificacaoService;
 import com.ligarecord.service.ConviteTreinadorService;
 import com.ligarecord.service.DividaService;
+import com.ligarecord.service.TreinadorService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
 import com.ligarecord.web.dto.AlterarTreinadorRequest;
@@ -71,7 +71,7 @@ public class LigaController {
     private final LigaLogoRepository ligaLogoRepository;
     private final EquipaRepository equipaRepository;
     private final GestorRepository gestorRepository;
-    private final TreinadorRepository treinadorRepository;
+    private final TreinadorService treinadorService;
     private final ConviteTreinadorService conviteTreinadorService;
 
     public LigaController(LigaService ligaService,
@@ -81,7 +81,7 @@ public class LigaController {
                           LigaLogoRepository ligaLogoRepository,
                           EquipaRepository equipaRepository,
                           GestorRepository gestorRepository,
-                          TreinadorRepository treinadorRepository,
+                          TreinadorService treinadorService,
                           ConviteTreinadorService conviteTreinadorService) {
         this.ligaService = ligaService;
         this.classificacaoService = classificacaoService;
@@ -90,7 +90,7 @@ public class LigaController {
         this.ligaLogoRepository = ligaLogoRepository;
         this.equipaRepository = equipaRepository;
         this.gestorRepository = gestorRepository;
-        this.treinadorRepository = treinadorRepository;
+        this.treinadorService = treinadorService;
         this.conviteTreinadorService = conviteTreinadorService;
     }
 
@@ -145,11 +145,10 @@ public class LigaController {
         if (pedido.nome() == null || pedido.nome().isBlank()) {
             throw new IllegalArgumentException("O nome da equipa é obrigatório.");
         }
-        if (pedido.treinador() == null || pedido.treinador().isBlank()) {
-            throw new IllegalArgumentException("O nome do treinador é obrigatório.");
-        }
-
-        Treinador treinador = new Treinador(UUID.randomUUID(), pedido.treinador().trim());
+        // O nome e o email do treinador são validados pelo serviço: as regras
+        // de contacto são as mesmas venham do formulário de inscrição ou da
+        // correcção feita depois.
+        Treinador treinador = treinadorService.novo(pedido.treinador(), pedido.treinadorEmail());
         Equipa equipa = new Equipa(
                 UUID.randomUUID(),
                 pedido.nome().trim(),
@@ -159,7 +158,10 @@ public class LigaController {
         );
 
         Equipa guardada = ligaService.adicionarEquipa(liga(autenticado, ligaId), equipa);
-        return ResponseEntity.status(HttpStatus.CREATED).body(EquipaDto.de(guardada));
+        // deParaGestor e não de: é o gestor que está do outro lado, e a resposta
+        // tem de lhe mostrar o que ficou guardado — o email incluído. Uma equipa
+        // acabada de inscrever nunca tem convite.
+        return ResponseEntity.status(HttpStatus.CREATED).body(EquipaDto.deParaGestor(guardada, null));
     }
 
     @PostMapping("/{ligaId}/equipas/{equipaId}/desistencia")
@@ -170,7 +172,8 @@ public class LigaController {
         Liga liga = liga(autenticado, ligaId);
         Equipa equipa = equipaRepository.buscarPorIdEGestor(equipaId, autenticado.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
-        return EquipaDto.de(ligaService.registarDesistencia(liga, equipa));
+        return EquipaDto.deParaGestor(ligaService.registarDesistencia(liga, equipa),
+                pendenteDaEquipa(ligaId, equipaId));
     }
 
     /**
@@ -184,12 +187,8 @@ public class LigaController {
                                       @PathVariable UUID ligaId,
                                       @PathVariable UUID equipaId,
                                       @RequestBody AlterarTreinadorRequest pedido) {
-        if (pedido.nome() == null || pedido.nome().isBlank()) {
-            throw new IllegalArgumentException("O nome do treinador é obrigatório.");
-        }
         Equipa equipa = equipa(autenticado, ligaId, equipaId);
-        equipa.getTreinador().setNome(pedido.nome().trim());
-        treinadorRepository.guardar(equipa.getTreinador());
+        treinadorService.alterar(equipa.getTreinador(), pedido.nome(), pedido.email());
         return EquipaDto.deParaGestor(equipa, pendenteDaEquipa(ligaId, equipaId));
     }
 
@@ -207,11 +206,7 @@ public class LigaController {
                                               @PathVariable UUID ligaId,
                                               @PathVariable UUID equipaId) {
         Equipa equipa = equipa(autenticado, ligaId, equipaId);
-        if (!equipa.getTreinador().temConta()) {
-            throw new IllegalStateException("Este lugar não tem conta ligada.");
-        }
-        equipa.getTreinador().setConta(null);
-        treinadorRepository.guardar(equipa.getTreinador());
+        treinadorService.desligarConta(equipa.getTreinador());
         return EquipaDto.deParaGestor(equipa, null);
     }
 

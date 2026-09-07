@@ -370,9 +370,11 @@ function desenharEquipas(equipas, desativada) {
                             ${texto(equipa.treinador)}
                             <button class="botao pequeno" data-editar-treinador="${equipa.id}"
                                 data-nome-treinador="${texto(equipa.treinador)}"
+                                data-email-treinador="${texto(equipa.treinadorEmail || "")}"
                                 ${desativada ? "disabled" : ""}>
                                 Editar
                             </button>
+                            <span class="ajuda">${equipa.treinadorEmail ? texto(equipa.treinadorEmail) : "sem email"}</span>
                         </td>
                         <td>${badgeEstado(equipa.estado)}</td>
                         <td>${badgeConta(equipa)}</td>
@@ -387,6 +389,23 @@ function desenharEquipas(equipas, desativada) {
                 `).join("")}
             </tbody>
         </table>`;
+}
+
+/* O link vai sempre na mensagem, tenha o email saído ou não: é a rede de
+   segurança para quando o envio falha ou não há para onde enviar. */
+function mensagemDoConvite(convite, copiado) {
+    const link = copiado ? `Link copiado: ${convite.link}` : `Link: ${convite.link}`;
+
+    if (convite.envio === "ENVIADO") {
+        return `Convite enviado para ${convite.enviadoPara}. ${link}`;
+    }
+    if (convite.envio === "FALHOU") {
+        return `Não foi possível enviar o email. Entrega tu o link. ${link}`;
+    }
+    if (convite.envio === "LIMITE_ATINGIDO") {
+        return `Este convite já foi enviado por email as vezes que se permitem. ${link}`;
+    }
+    return `Este treinador não tem email. Envia-lhe tu o link. ${link}`;
 }
 
 /* O estado da conta do treinador de uma equipa. Vem do servidor já decidido
@@ -413,12 +432,14 @@ function acoesDaConta(equipa, desativada) {
                     ${desativada ? "disabled" : ""}>Desligar conta</button>`;
     }
 
+    const jaConvidado = equipa.conviteEstado === "PENDENTE";
+    const rotulo = jaConvidado
+        ? (equipa.treinadorEmail ? "Reenviar convite" : "Copiar link")
+        : "Convidar treinador";
     const convidar = `<button class="botao pequeno" data-convidar-treinador="${equipa.id}"
-            ${desativada ? "disabled" : ""}>
-            ${equipa.conviteEstado === "PENDENTE" ? "Copiar link" : "Convidar treinador"}
-        </button>`;
+            ${desativada ? "disabled" : ""}>${rotulo}</button>`;
 
-    if (equipa.conviteEstado !== "PENDENTE") {
+    if (!jaConvidado) {
         return convidar;
     }
     return `${convidar}
@@ -866,11 +887,14 @@ $("#form-equipa").addEventListener("submit", (evento) => {
             method: "POST",
             body: JSON.stringify({
                 nome: $("#equipa-nome").value.trim(),
-                treinador: $("#equipa-treinador").value.trim()
+                treinador: $("#equipa-treinador").value.trim(),
+                // Com email, o convite segue sozinho quando o convidares.
+                treinadorEmail: $("#equipa-treinador-email").value.trim()
             })
         });
         $("#equipa-nome").value = "";
         $("#equipa-treinador").value = "";
+        $("#equipa-treinador-email").value = "";
         // A equipa pode ter sido logo cobrada a inscrição, se a liga tiver regra.
         await recarregar();
         mostrarAlerta("Equipa adicionada.", "sucesso");
@@ -1076,9 +1100,8 @@ document.addEventListener("click", (evento) => {
             });
             const copiado = await copiar(convite.link);
             await recarregar();
-            mostrarAlerta(copiado
-                ? `Link do convite copiado. Envia-o ao treinador: ${convite.link}`
-                : `Link do convite: ${convite.link}`, "sucesso");
+            mostrarAlerta(mensagemDoConvite(convite, copiado),
+                convite.envio === "FALHOU" ? "aviso" : "sucesso");
         });
         return;
     }
@@ -1102,10 +1125,17 @@ document.addEventListener("click", (evento) => {
         if (nome === null || !nome.trim()) {
             return;
         }
+        // Deixar em branco apaga o email: um treinador sem contacto é um estado
+        // normal, não um campo por preencher.
+        const email = prompt("Email do treinador (deixa vazio para não guardar nenhum):",
+            alvo.dataset.emailTreinador || "");
+        if (email === null) {
+            return;
+        }
         executar(async () => {
             await api(`/api/ligas/${estado.ligaId}/equipas/${alvo.dataset.editarTreinador}/treinador`, {
                 method: "PATCH",
-                body: JSON.stringify({ nome: nome.trim() })
+                body: JSON.stringify({ nome: nome.trim(), email: email.trim() })
             });
             await recarregar();
             mostrarAlerta("Treinador alterado.", "sucesso");

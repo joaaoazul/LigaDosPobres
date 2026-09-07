@@ -1,12 +1,14 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.ConviteTreinador;
+
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
+import com.ligarecord.email.EnviadorParaLog;
 import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepositoryImpl;
 import com.ligarecord.repository.GestorRepository;
@@ -46,7 +48,8 @@ class TreinadorContaServiceTest {
         treinadorRepository = new TreinadorRepositoryImpl();
         passwordEncoder = new BCryptPasswordEncoder();
         conviteRepository = new ConviteTreinadorRepositoryImpl();
-        conviteService = new ConviteTreinadorService(conviteRepository);
+        conviteService = new ConviteTreinadorService(conviteRepository,
+                new EnviadorParaLog(), new LinksDaAplicacao("https://liga.exemplo.pt"));
         contaService = new TreinadorContaService(
                 gestorRepository, treinadorRepository, conviteService, passwordEncoder);
 

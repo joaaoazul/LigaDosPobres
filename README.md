@@ -48,13 +48,13 @@ ambiente e, quando não existem, usa os valores de desenvolvimento local:
 | `COOKIE_SECURE` | `false` | **Põe `true` em produção**: restringe o cookie de sessão a HTTPS |
 | `ADMIN_EMAIL` | vazio | Primeiro administrador, criado só se não existir nenhum |
 | `ADMIN_PASSWORD` | vazio | Password desse administrador. Mínimo 10 caracteres |
-| `EMAIL_CHAVE` | vazio | Chave de API do Resend, para os emails de recuperação de password |
+| `EMAIL_CHAVE` | vazio | Chave de API do Resend, para os emails de recuperação de password e de convite |
 | `EMAIL_REMETENTE` | vazio | Remetente, num domínio verificado no Resend |
-| `APP_URL` | `http://localhost:8080` | Endereço público, usado no link do email de recuperação |
+| `APP_URL` | `http://localhost:8080` | Endereço público, usado nos links dos emails (recuperação e convite) |
 
 Sem `EMAIL_CHAVE` e `EMAIL_REMETENTE` a aplicação arranca à mesma, mas as
-mensagens vão para o log em vez de serem enviadas, e ninguém consegue recuperar
-a password. O arranque avisa quando é esse o caso. Em desenvolvimento é o que se
+mensagens vão para o log em vez de serem enviadas: ninguém consegue recuperar a
+password, e os convites de treinador têm de ser entregues à mão pelo link. O arranque avisa quando é esse o caso. Em desenvolvimento é o que se
 quer: o link sai na consola e o fluxo experimenta-se sem servidor de email.
 
 ## Publicar no teu servidor

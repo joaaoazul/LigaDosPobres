@@ -16,10 +16,18 @@ public class EnviadorParaLog implements EnviadorDeEmail {
 
     private static final Logger LOG = LoggerFactory.getLogger(EnviadorParaLog.class);
 
+    /**
+     * Devolve {@code false}, porque é a verdade: nada saiu. Quem pergunta —
+     * hoje só o convite de treinador — passa a dizer ao gestor que o email não
+     * foi enviado e que entregue o link à mão, em vez de lhe prometer um envio
+     * que não houve. Em produção isto só acontece com a chave por configurar, e
+     * é assim que se dá por isso sem ler os logs.
+     */
     @Override
-    public void enviar(String para, String assunto, String texto, String html) {
+    public boolean enviar(String para, String assunto, String texto, String html) {
         // Só a versão de texto: é a legível numa consola, e traz o link à
         // mesma, que é para isto que serve em desenvolvimento.
         LOG.info("Email por enviar, não há chave configurada\npara: {}\nassunto: {}\n{}", para, assunto, texto);
+        return false;
     }
 }

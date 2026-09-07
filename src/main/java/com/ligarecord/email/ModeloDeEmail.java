@@ -87,6 +87,64 @@ public final class ModeloDeEmail {
     }
 
     /**
+     * O convite para treinar uma equipa.
+     *
+     * <p>Diz sempre quem convidou e para que equipa, e a última linha diz a
+     * quem não estava à espera disto o que fazer: nada. O endereço foi escrito
+     * pelo gestor, e pode ter-se enganado — o email tem de fazer sentido para
+     * quem o recebe por engano, não só para o destinatário certo.
+     */
+    public static Mensagem conviteDeTreinador(String nomeTreinador, String nomeGestor,
+                                              String nomeEquipa, String nomeLiga,
+                                              String link, String validade) {
+        String equipaELiga = nomeLiga == null || nomeLiga.isBlank()
+                ? nomeEquipa
+                : nomeEquipa + ", na " + nomeLiga;
+
+        String assunto = "Convite para treinar " + nomeEquipa + " na Quota";
+
+        String texto = "Olá " + nomeTreinador + ",\n\n"
+                + nomeGestor + " convidou-te para treinar " + equipaELiga + ".\n"
+                + "A Quota é onde essa liga trata das jornadas, da classificação e das quotas.\n\n"
+                + "Aceita aqui:\n\n"
+                + link + "\n\n"
+                + "O convite serve uma vez e expira " + validade + ".\n"
+                + "Se já tiveres conta na Quota, o mesmo link junta a equipa a essa conta,\n"
+                + "sem criares um segundo início de sessão.\n\n"
+                + "Se isto não te diz respeito, ignora esta mensagem: sem carregares no\n"
+                + "link não fica nada em teu nome.\n";
+
+        String html = pagina(
+                nomeGestor + " convidou-te para treinar " + nomeEquipa + ".",
+                bloco(
+                        "<p style=\"margin:0 0 16px;font-size:15px;line-height:1.55;color:" + TINTA + ";\">"
+                                + "Olá " + escapar(nomeTreinador) + ","
+                                + "</p>"
+                                + "<p style=\"margin:0 0 24px;font-size:15px;line-height:1.55;color:" + TINTA_MEDIA + ";\">"
+                                + escapar(nomeGestor) + " convidou-te para treinar "
+                                + "<strong style=\"color:" + TINTA + ";\">" + escapar(equipaELiga) + "</strong>. "
+                                + "O convite serve <strong style=\"color:" + TINTA + ";\">uma vez</strong> "
+                                + "e expira " + escapar(validade) + "."
+                                + "</p>"
+                                + botao(link, "Aceitar o convite")
+                                + "<p style=\"margin:24px 0 6px;font-size:12px;line-height:1.5;color:" + TINTA_FRACA + ";\">"
+                                + "Se o botão não funcionar, copia este endereço para o browser:"
+                                + "</p>"
+                                + "<p style=\"margin:0 0 16px;font-size:12px;line-height:1.5;word-break:break-all;\">"
+                                + "<a href=\"" + escapar(link) + "\" style=\"color:" + SINAL + ";text-decoration:none;\">"
+                                + escapar(link) + "</a>"
+                                + "</p>"
+                                + "<p style=\"margin:0;font-size:12px;line-height:1.5;color:" + TINTA_FRACA + ";\">"
+                                + "Já tens conta na Quota? O mesmo link junta esta equipa a essa conta, "
+                                + "sem criares um segundo início de sessão."
+                                + "</p>"),
+                "Se isto não te diz respeito, ignora esta mensagem. Sem carregares no link "
+                        + "não fica nada em teu nome.");
+
+        return new Mensagem(assunto, texto, html);
+    }
+
+    /**
      * O invólucro: fundo claro, cartão escuro com a régua de sinal no topo, a
      * marca, o conteúdo e o rodapé.
      *

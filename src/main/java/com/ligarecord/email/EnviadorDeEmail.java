@@ -9,6 +9,11 @@ package com.ligarecord.email;
  * a recuperação da password recebe a mesma resposta de qualquer forma, e mandar
  * abaixo o pedido só serviria para dizer a quem tenta adivinhar emails que
  * aquele existe. Cabe a cada implementação registar a falha em log.
+ *
+ * <p>Devolve se a mensagem saiu. Na recuperação de password o resultado é
+ * ignorado de propósito — a resposta é a mesma de qualquer maneira — mas no
+ * convite de treinador quem carregou no botão escreveu o endereço com as
+ * próprias mãos e tem direito a saber se aquilo chegou a partir.
  */
 public interface EnviadorDeEmail {
 
@@ -17,5 +22,5 @@ public interface EnviadorDeEmail {
      * cliente que recusa HTML, tem de continuar a conseguir recuperar a
      * password; e um email só com HTML é olhado de lado pelos filtros de spam.
      */
-    void enviar(String para, String assunto, String texto, String html);
+    boolean enviar(String para, String assunto, String texto, String html);
 }

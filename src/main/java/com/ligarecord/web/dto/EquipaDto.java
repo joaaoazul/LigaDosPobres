@@ -13,8 +13,9 @@ import java.util.UUID;
  * de haver conta ligada: a lista de equipas é dele, e o nome da conta é outra
  * coisa, o da pessoa.
  *
- * <p>Os quatro campos do fim vêm a nulo na vista do treinador ({@code de}) e só
- * são preenchidos para o gestor ({@code deParaGestor}). O convite propriamente
+ * <p>Os cinco campos do fim — o email do lugar incluído — vêm a nulo na vista do
+ * treinador ({@code de}) e só são preenchidos para o gestor
+ * ({@code deParaGestor}). O convite propriamente
  * dito — código e link — nunca vem aqui: é uma credencial, e sairia em todos os
  * pedidos de detalhe da liga em vez de sair quando alguém carrega no botão.
  */
@@ -23,6 +24,7 @@ public record EquipaDto(
         String nome,
         String treinador,
         String estado,
+        String treinadorEmail,
         Boolean treinadorTemConta,
         String conviteEstado,
         UUID conviteId,
@@ -34,7 +36,7 @@ public record EquipaDto(
                 equipa.getNome(),
                 equipa.getTreinador() == null ? null : equipa.getTreinador().getNome(),
                 equipa.getEstado().name(),
-                null, null, null, null
+                null, null, null, null, null
         );
     }
 
@@ -46,6 +48,7 @@ public record EquipaDto(
                 equipa.getNome(),
                 equipa.getTreinador() == null ? null : equipa.getTreinador().getNome(),
                 equipa.getEstado().name(),
+                equipa.getTreinador() == null ? null : equipa.getTreinador().getEmail(),
                 temConta,
                 temConta ? "LIGADA" : (pendente == null ? "SEM_CONVITE" : "PENDENTE"),
                 pendente == null ? null : pendente.getId(),

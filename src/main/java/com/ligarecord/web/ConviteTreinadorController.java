@@ -50,6 +50,10 @@ public class ConviteTreinadorController {
      * Emite o convite, ou devolve o que já lá estiver por usar — daí o
      * {@code 200} quando não houve nada a criar. Carregar duas vezes no botão
      * dá o mesmo link, e não duas credenciais para a mesma equipa.
+     *
+     * <p>Se o lugar tiver email, tenta entregá-lo por lá. O resultado vem no
+     * campo {@code envio}, e o link vem sempre: um envio que não saiu não pode
+     * deixar o gestor sem maneira de convidar.
      */
     @PostMapping
     @Transactional
@@ -63,10 +67,12 @@ public class ConviteTreinadorController {
 
         ConviteTreinadorService.Emissao emissao =
                 conviteService.emitir(gestor, equipa, pedido.diasValidade());
+        ConviteTreinadorService.Envio envio = conviteService.enviarPorEmail(emissao.convite());
 
         return ResponseEntity
                 .status(emissao.novo() ? HttpStatus.CREATED : HttpStatus.OK)
-                .body(dto(emissao.convite()));
+                .body(ConviteTreinadorDto.de(emissao.convite(),
+                        links.convite(emissao.convite().getCodigo()), envio));
     }
 
     @DeleteMapping("/{conviteId}")

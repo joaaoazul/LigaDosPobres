@@ -69,4 +69,62 @@ class ModeloDeEmailTest {
         assertFalse(html.contains("<img"), "imagens ficam bloqueadas até se autorizarem");
         assertTrue(html.contains("<table"), "a disposição tem de ser em tabelas");
     }
+
+    /* ---------------------------------------------- convite de treinador --- */
+
+    private static final String LINK_CONVITE = "https://liga.exemplo.pt/convite.html?c=abc123";
+
+    private ModeloDeEmail.Mensagem convite(String nomeTreinador, String nomeGestor) {
+        return ModeloDeEmail.conviteDeTreinador(nomeTreinador, nomeGestor,
+                "Leões", "Liga do Café", LINK_CONVITE, "a 6 de outubro de 2026");
+    }
+
+    @Test
+    void oConviteLevaAsDuasVersoesEOLinkNasDuas() {
+        ModeloDeEmail.Mensagem m = convite("João", "Zé");
+
+        assertFalse(m.texto().isBlank());
+        assertFalse(m.html().isBlank());
+        assertTrue(m.texto().contains(LINK_CONVITE));
+        assertTrue(m.html().contains("href=\"" + LINK_CONVITE + "\""));
+        assertTrue(m.html().contains(">" + LINK_CONVITE + "<"));
+    }
+
+    /**
+     * O endereço foi escrito pelo gestor e pode estar errado. A mensagem tem de
+     * fazer sentido para quem a recebe por engano: quem convidou, para quê, e
+     * que ignorar não deixa nada em seu nome.
+     */
+    @Test
+    void oConviteDizQuemConvidouEParaQue() {
+        ModeloDeEmail.Mensagem m = convite("João", "Zé");
+
+        assertTrue(m.assunto().contains("Leões"));
+        assertTrue(m.texto().contains("Zé"));
+        assertTrue(m.texto().contains("Leões"));
+        assertTrue(m.texto().contains("Liga do Café"));
+        assertTrue(m.texto().contains("ignora"));
+        assertTrue(m.html().contains("ignora"));
+    }
+
+    /** Tanto o nome do treinador como o do gestor vêm de texto escrito à mão. */
+    @Test
+    void oConviteEscapaOsNomesNoHtml() {
+        ModeloDeEmail.Mensagem m = convite("<script>", "\"Zé\"");
+
+        assertFalse(m.html().contains("<script>"));
+        assertTrue(m.html().contains("&lt;script&gt;"));
+        assertTrue(m.html().contains("&quot;Zé&quot;"));
+    }
+
+    /** Sem liga (o caso de uma equipa ainda sem liga) a frase não pode ficar coxa. */
+    @Test
+    void oConviteAguentaUmaEquipaSemLiga() {
+        ModeloDeEmail.Mensagem m = ModeloDeEmail.conviteDeTreinador(
+                "João", "Zé", "Leões", null, LINK_CONVITE, "a 6 de outubro de 2026");
+
+        assertTrue(m.texto().contains("treinar Leões."));
+        assertFalse(m.texto().contains("na null"));
+        assertFalse(m.html().contains("null"));
+    }
 }

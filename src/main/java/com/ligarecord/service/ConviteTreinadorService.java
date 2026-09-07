@@ -3,16 +3,25 @@ package com.ligarecord.service;
 import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
+import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
+import com.ligarecord.email.EnviadorDeEmail;
+import com.ligarecord.email.ModeloDeEmail;
 import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.web.ConviteInvalidoException;
 import com.ligarecord.web.RecursoNaoEncontradoException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,10 +47,51 @@ public class ConviteTreinadorService {
      */
     static final int VALIDADE_OMISSAO_DIAS = 30;
 
-    private final ConviteTreinadorRepository conviteRepository;
+    /**
+     * Travão ao envio repetido. Ao contrário da recuperação de password, onde
+     * a janela é por conta e por hora, aqui conta-se por convite: um convite
+     * pertence a um lugar e dura trinta dias, por isso o que interessa travar
+     * não é a pressa de um dia, é a insistência ao longo do prazo todo.
+     *
+     * <p>Três chegam para o primeiro envio e dois lembretes. Quem precisar de
+     * mais entrega o link à mão — ele vem sempre na resposta. Revogar e emitir
+     * de novo contorna isto, e é deliberado: dá outra credencial, deixa rasto,
+     * e não é coisa que se faça sem dar por ela.
+     */
+    static final int MAXIMO_ENVIOS = 3;
 
-    public ConviteTreinadorService(ConviteTreinadorRepository conviteRepository) {
+    /** E não dois seguidos por engano, com dois cliques no mesmo botão. */
+    static final Duration INTERVALO_MINIMO = Duration.ofMinutes(10);
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConviteTreinadorService.class);
+
+    /** O prazo é dito por extenso a quem recebe; a hora certa não interessa a ninguém. */
+    private static final DateTimeFormatter DATA =
+            DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.of("pt", "PT"))
+                    .withZone(ZoneId.of("Europe/Lisbon"));
+
+    private final ConviteTreinadorRepository conviteRepository;
+    private final EnviadorDeEmail email;
+    private final LinksDaAplicacao links;
+
+    public ConviteTreinadorService(ConviteTreinadorRepository conviteRepository,
+                                   EnviadorDeEmail email,
+                                   LinksDaAplicacao links) {
         this.conviteRepository = conviteRepository;
+        this.email = email;
+        this.links = links;
+    }
+
+    /** O que aconteceu ao tentar entregar o convite por email. */
+    public enum Envio {
+        /** Saiu. */
+        ENVIADO,
+        /** O lugar não tem email: o gestor entrega o link como quiser. */
+        SEM_EMAIL,
+        /** Já foram enviados os que se permitem, ou foi há pouco tempo. */
+        LIMITE_ATINGIDO,
+        /** Havia email e tentou-se, mas o envio não saiu. */
+        FALHOU
     }
 
     /**
@@ -97,6 +147,61 @@ public class ConviteTreinadorService {
                 Instant.now().plus(dias, ChronoUnit.DAYS)
         ));
         return new Emissao(convite, true);
+    }
+
+    /**
+     * Entrega o convite por email, se houver para onde e o travão deixar.
+     *
+     * <p>Nunca rebenta: falhar a enviar não desfaz o convite, que continua a
+     * valer pelo link. Devolve o que aconteceu para quem carregou no botão
+     * poder ser informado — foi ele que escreveu o endereço, e tem direito a
+     * saber se aquilo chegou a partir.
+     */
+    @Transactional
+    public Envio enviarPorEmail(ConviteTreinador convite) {
+        if (!convite.estaDisponivel()) {
+            throw new ConviteInvalidoException("Código de convite inválido.");
+        }
+
+        Treinador treinador = convite.getTreinador();
+        if (!treinador.temEmail()) {
+            return Envio.SEM_EMAIL;
+        }
+        if (!podeEnviar(convite)) {
+            LOG.warn("Travado o envio repetido do convite {} ({} envios).",
+                    convite.getId(), convite.getEnvios());
+            return Envio.LIMITE_ATINGIDO;
+        }
+
+        Liga liga = convite.getEquipa().getLiga();
+        ModeloDeEmail.Mensagem mensagem = ModeloDeEmail.conviteDeTreinador(
+                treinador.getNome(),
+                convite.getCriadoPor().getNome(),
+                convite.getEquipa().getNome(),
+                liga == null ? null : liga.getNome(),
+                links.convite(convite.getCodigo()),
+                "a " + DATA.format(convite.getExpiraEm()));
+
+        boolean saiu = email.enviar(treinador.getEmail(), mensagem.assunto(),
+                mensagem.texto(), mensagem.html());
+        if (!saiu) {
+            return Envio.FALHOU;
+        }
+
+        // Só se conta o que saiu: uma tentativa falhada não pode gastar o
+        // travão, ou uma falha do servidor de email deixava o gestor sem
+        // maneira de tentar outra vez.
+        convite.marcarEnviado(treinador.getEmail());
+        conviteRepository.guardar(convite);
+        return Envio.ENVIADO;
+    }
+
+    private boolean podeEnviar(ConviteTreinador convite) {
+        if (convite.getEnvios() >= MAXIMO_ENVIOS) {
+            return false;
+        }
+        Instant ultimo = convite.getEnviadoEm();
+        return ultimo == null || Instant.now().isAfter(ultimo.plus(INTERVALO_MINIMO));
     }
 
     /** Os convites por usar de uma liga, por equipa, para a tabela do gestor. */

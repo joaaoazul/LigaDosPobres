@@ -170,6 +170,7 @@ que o frontend faz sempre que a liga muda.
             "totalEquipas": 8, "equipasAtivas": 7, "totalJornadas": 5,
             "temLogo": true },
   "equipas": [ { "id": "...", "nome": "...", "treinador": "...", "estado": "ATIVA",
+                 "treinadorEmail": "joao@exemplo.pt",
                  "treinadorTemConta": false, "conviteEstado": "PENDENTE",
                  "conviteId": "...", "conviteExpiraEm": "2026-10-06T22:54:11Z" } ],
   "jornadas": [ { "id": "...", "numero": 1, "estado": "FECHADA", "tipo": "TREINO",
@@ -185,12 +186,12 @@ que o frontend faz sempre que a liga muda.
 As jornadas vêm por ordem cronológica real: todas as de treino antes das
 oficiais.
 
-Os quatro campos de conta em cada equipa dizem em que pé está o treinador:
+Os campos de conta em cada equipa dizem em que pé está o treinador:
 `conviteEstado` é `LIGADA` (já tem conta), `PENDENTE` (convite por usar, e então
 `conviteId` e `conviteExpiraEm` vêm preenchidos) ou `SEM_CONVITE`. **O código e
 o link do convite nunca vêm aqui** — são credenciais, e saem só na resposta ao
-pedido que os emite. Na vista do treinador (`/api/minhas-ligas/{ligaId}`) os
-quatro vêm a `null`.
+pedido que os emite. Na vista do treinador (`/api/minhas-ligas/{ligaId}`) vêm
+todos a `null`, o `treinadorEmail` incluído.
 
 ### `GET /api/ligas/{ligaId}/classificacao`
 Só a classificação, em `ClassificacaoDto[]`. Empates de pontos são ordenados por
@@ -214,10 +215,13 @@ mais, `400` se não for imagem reconhecida, `409` se a liga estiver terminada.
 
 ### `POST /api/ligas/{ligaId}/equipas`
 ```json
-{ "nome": "Bairro FC", "treinador": "João Azul" }
+{ "nome": "Bairro FC", "treinador": "João Azul",
+  "treinadorEmail": "joao@exemplo.pt" }
 ```
-`201` devolve `EquipaDto`. Cria também o `Treinador` — o lugar de treinador
-desta equipa, sem conta e de mais nenhuma equipa.
+`treinadorEmail` é opcional (`null` ou vazio para não guardar nenhum) e é
+validado como qualquer email da aplicação — `400` se não for. `201` devolve
+`EquipaDto`. Cria também o `Treinador` — o lugar de treinador desta equipa, sem
+conta e de mais nenhuma equipa.
 
 Se a liga tiver regra com valor de inscrição, **a inscrição é cobrada aqui**.
 
@@ -232,10 +236,12 @@ seguintes, mas **a dívida dela mantém-se**. `409` se já não estivesse activa
 
 `PATCH /api/ligas/{ligaId}/equipas/{equipaId}/treinador`
 ```json
-{ "nome": "João Azul" }
+{ "nome": "João Azul", "email": "joao@exemplo.pt" }
 ```
-Muda o rótulo que o gestor deu ao lugar de treinador. Não mexe na conta ligada
-nem no nome de quem a tem. `200` devolve `EquipaDto`.
+Muda o rótulo que o gestor deu ao lugar de treinador e o email para onde vai o
+convite. Não mexe na conta ligada nem no nome de quem a tem — o email do lugar e
+o email da conta são coisas diferentes. `email` vazio apaga o que lá estivesse.
+`200` devolve `EquipaDto`.
 
 `DELETE .../equipas/{equipaId}/treinador/conta` desliga a conta do lugar — o
 treinador saiu e quem entrar a seguir não herda o acesso. A dívida não vai
@@ -258,6 +264,19 @@ o que já foi dado, revoga-se e emite-se outro.
 A resposta traz o `codigo` e o `link` — o endereço da página de aceitação, que é
 o que se entrega ao treinador — ambos só preenchidos enquanto o convite estiver
 por usar. `409` se aquele lugar já tiver conta ligada.
+
+**Se o lugar tiver email, o convite é enviado para lá** e o campo `envio` diz o
+que aconteceu:
+
+| `envio` | O que quer dizer |
+| --- | --- |
+| `ENVIADO` | saiu; `enviadoPara` diz para onde |
+| `SEM_EMAIL` | o lugar não tem email — entrega-se o link à mão |
+| `LIMITE_ATINGIDO` | já foram três envios, ou o último foi há menos de 10 minutos |
+| `FALHOU` | havia email e tentou-se, mas não saiu (sem `EMAIL_CHAVE`, é sempre este) |
+
+O `link` vem em todos os casos: um envio que não saiu não pode deixar o gestor
+sem maneira de convidar. Falhar a enviar nunca desfaz o convite.
 
 `DELETE .../convites-treinador/{conviteId}` revoga um convite por usar. A
 autorização é pela equipa e não por quem o emitiu: uma liga pode ter mudado de
@@ -390,8 +409,8 @@ alguma equipa lá dentro.
 
 ### `GET /api/minhas-ligas/{ligaId}`
 O mesmo `LigaDetalheDto` do gestor, incluindo o pote, que é um valor agregado da
-liga — mas sem o estado de conta das equipas (`treinadorTemConta` e os campos de
-convite vêm a `null`): isso é assunto de quem gere a liga. `404` se a conta não
+liga — mas sem o estado de conta das equipas (`treinadorEmail`,
+`treinadorTemConta` e os campos de convite vêm a `null`): isso é assunto de quem gere a liga. `404` se a conta não
 treinar lá nada.
 
 ### `GET /api/minhas-dividas`
