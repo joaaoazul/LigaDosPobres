@@ -1276,7 +1276,11 @@ document.addEventListener("click", (evento) => {
         if (!confirm("Fechar esta jornada?")) {
             return;
         }
-        executar(async () => {
+        // Com o botão travado: fechar duas vezes ao mesmo tempo chegava a
+        // cobrar o bloco a dobrar (o servidor já o recusa desde que a jornada
+        // tem versão, mas o segundo clique passava a dar um erro na cara de
+        // quem só carregou depressa).
+        executarNoBotao(alvo, async () => {
             const jornada = await api(
                 `/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.fechar}/fechar`, { method: "POST" });
             estado.desempate = null;
@@ -1312,6 +1316,7 @@ document.addEventListener("click", (evento) => {
         if (!estado.desempate) {
             return;
         }
+        alvo.disabled = true;
         // Uma lista só, com todos os grupos por ordem: o servidor volta a
         // ordenar por pontuação, portanto isto nunca troca equipas entre
         // pontuações diferentes.

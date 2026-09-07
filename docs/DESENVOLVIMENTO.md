@@ -200,6 +200,12 @@ Duas coisas que variam de liga para liga e que estavam assumidas no código:
 Ambas nascem no comportamento antigo (`true`), para nenhuma liga a decorrer
 mudar de contas.
 
+`Jornada.versao` faz o mesmo pela jornada, e por uma razão medida: sem ela, dois
+pedidos simultâneos a fechar a mesma jornada liam-na aberta, passavam os dois
+pela verificação do estado e cobravam o bloco **duas vezes**. Em cerca de
+metade das corridas com dois pedidos ao mesmo tempo — e um duplo clique no botão
+chegava. Agora quem perde a corrida esbarra na versão e leva um 409.
+
 `Divida.proximoNumeroBloco` é persistido e protegido por `@Version`, para duas
 transacções em simultâneo não gravarem dois blocos com o mesmo número. Na
 prática quem perde a corrida esbarra primeiro na restrição
@@ -403,6 +409,7 @@ entidades não corresponderem às tabelas, a aplicação não arranca.
 | V11 | um convite vivo por lugar (índice único) e prazo nos que não tinham |
 | V12 | escala por tabela, treino cobrado ou não, pontos de treino na classificação |
 | V13 | cobranças de época (Inverno/Verão) e o nome no bloco da dívida |
+| V14 | versão na jornada, para dois fechos simultâneos não cobrarem a dobrar |
 
 A V9 verifica os dados antes de apertar o esquema e **falha com mensagem** se
 encontrar um treinador partilhado por duas equipas ou um convite sem equipa —
@@ -486,6 +493,19 @@ Docker. Para correr sem ele:
 ```bash
 mvn test -Dtest='!ArranqueTest'
 ```
+
+### Testes de fluxo, ponta a ponta
+
+`testes-e2e/` são guiões em Python que falam com a aplicação a correr, por HTTP.
+O `mvn test` cobre os serviços; estes cobrem o que só aparece com a aplicação de
+pé — sessões, autorização entre contas, concorrência e o que sobrevive a um
+reinício. Correm contra uma base descartável e repetem-se de propósito: cada
+corrida usa um sufixo aleatório, e é a repetição contra a mesma base que apanha
+os erros de "segunda vez". As instruções estão no `testes-e2e/LEIA-ME.md`.
+
+Foi assim que apareceram dois problemas que os testes de serviço não viam: o
+fecho simultâneo da mesma jornada a cobrar a dobrar (ver `Jornada.versao`) e a
+grelha de jornadas e dívidas a pôr a página a rolar de lado no telemóvel.
 
 ### Como testar em condições
 

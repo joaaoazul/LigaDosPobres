@@ -279,6 +279,7 @@ h1, h2, h3 {
 #tabela-equipas,
 #tabela-convites,
 #tabela-gestores,
+.detalhe-jornada,
 .tabela-rolavel {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -924,9 +925,18 @@ td.numero, th.numero { text-align: right; }
 
 .grelha-jornadas {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 220px minmax(0, 1fr);
     gap: var(--e4);
     align-items: start;
+}
+
+/* O mesmo que os painéis lateral e principal já faziam, e que aqui faltava: um
+   filho de grelha tem min-width: auto por omissão, por isso uma tabela larga no
+   painel de detalhe não encolhia — empurrava a grelha inteira e, com ela, a
+   PÁGINA. Media-se a 390px: as Dívidas iam a 491px e as Jornadas a 464px, e o
+   telemóvel rolava de lado com o cabeçalho e tudo atrás. */
+.grelha-jornadas > * {
+    min-width: 0;
 }
 
 @media (max-width: 780px) {

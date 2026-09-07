@@ -1,0 +1,11 @@
+-- Fechar a mesma jornada duas vezes ao mesmo tempo cobrava tudo a dobrar.
+--
+-- Dois pedidos simultâneos liam a jornada ainda aberta, os dois passavam pela
+-- verificação do estado, e os dois fechavam e cobravam o bloco. Medido: em
+-- cerca de metade das corridas com dois pedidos ao mesmo tempo, cada equipa
+-- ficava com a dívida a dobrar. Basta um duplo clique no botão de fechar.
+--
+-- A dívida já se defendia assim (divida.versao): quem perde a corrida esbarra
+-- na versão e leva um 409 pelo GlobalExceptionHandler, em vez de gravar por
+-- cima. A jornada não tinha nada.
+alter table jornada add column versao bigint not null default 0;
