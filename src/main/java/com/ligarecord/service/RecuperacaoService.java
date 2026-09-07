@@ -104,6 +104,9 @@ public class RecuperacaoService {
 
         ModeloDeEmail.Mensagem mensagem = ModeloDeEmail.recuperacaoDePassword(
                 gestor.getNome(), links.novaPassword(codigo), validadePorExtenso());
+        // O resultado é ignorado de propósito: quem pediu recebe a mesma resposta
+        // de qualquer forma, e distinguir "enviado" de "falhou" dizia a quem
+        // anda a adivinhar endereços qual deles tem conta aqui.
         email.enviar(gestor.getEmail(), mensagem.assunto(), mensagem.texto(), mensagem.html());
     }
 

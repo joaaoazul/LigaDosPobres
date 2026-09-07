@@ -139,8 +139,10 @@ No separador **Equipas**.
 
 ### 4.1 Inscrever
 
-Escreve o nome da equipa e o nome do treinador, e carrega em **Adicionar
-equipa**.
+Escreve o nome da equipa, o nome do treinador e — se souberes — o **email do
+treinador**, e carrega em **Adicionar equipa**. O email é opcional e serve para
+uma coisa só: o convite ir sozinho para lá em vez de teres de o entregar à mão.
+Podes acrescentá-lo ou corrigi-lo depois, em **Editar**.
 
 Duas coisas acontecem ao mesmo tempo:
 
@@ -159,9 +161,21 @@ A coluna **Conta** diz-te em que pé está cada equipa:
 | Convite pendente | há um convite por usar (passa o rato por cima para veres até quando) |
 | Ligada | o treinador já tem conta e vê a equipa |
 
-O botão **Convidar treinador** cria o convite e **copia o link** para a área de
-transferência — é esse link que envias, por WhatsApp ou como quiseres. O
-treinador abre-o e cria conta (secção 2.2) ou liga-o à que já tem (secção 2.3).
+O botão **Convidar treinador** cria o convite e:
+
+- **se o treinador tiver email**, envia-lho — a mensagem diz quem o convidou e
+  para que equipa, e leva o link;
+- **copia o link** para a área de transferência, sempre, tenha o email saído ou
+  não. É a rede de segurança: podes envia-lo por WhatsApp ou como quiseres.
+
+A mensagem que aparece em cima diz-te exactamente o que aconteceu — enviado,
+sem email, ou não foi possível enviar. O treinador abre o link e cria conta
+(secção 2.2) ou liga-o à que já tem (secção 2.3).
+
+Com email, o botão passa a **Reenviar convite**: dá o mesmo convite outra vez.
+Cada convite é enviado no máximo **três vezes**, e não duas seguidas — é para
+ninguém encher a caixa de correio de outra pessoa. Chegado o limite, o link
+continua a ser copiado e entregas-lo tu.
 
 Carregar outra vez no mesmo botão — agora **Copiar link** — dá-te o mesmo link,
 não um segundo convite. Isso é de propósito: dois convites válidos para a mesma

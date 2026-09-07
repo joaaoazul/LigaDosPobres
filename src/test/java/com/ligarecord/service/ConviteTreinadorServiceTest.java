@@ -1,12 +1,14 @@
 package com.ligarecord.service;
 
 import com.ligarecord.domain.ConviteTreinador;
+
 import com.ligarecord.domain.Equipa;
 import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
 import com.ligarecord.domain.enums.EstadoLiga;
+import com.ligarecord.email.EnviadorParaLog;
 import com.ligarecord.repository.ConviteTreinadorRepository;
 import com.ligarecord.repository.ConviteTreinadorRepositoryImpl;
 import com.ligarecord.web.ConviteInvalidoException;
@@ -39,7 +41,8 @@ class ConviteTreinadorServiceTest {
     @BeforeEach
     void setUp() {
         conviteRepository = new ConviteTreinadorRepositoryImpl();
-        conviteService = new ConviteTreinadorService(conviteRepository);
+        conviteService = new ConviteTreinadorService(conviteRepository,
+                new EnviadorParaLog(), new LinksDaAplicacao("https://liga.exemplo.pt"));
 
         gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
         outroGestor = new Gestor(UUID.randomUUID(), "outro@teste.pt", "hash", "Outro");
