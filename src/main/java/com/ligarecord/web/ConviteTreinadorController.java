@@ -2,11 +2,10 @@ package com.ligarecord.web;
 
 import com.ligarecord.domain.ConviteTreinador;
 import com.ligarecord.domain.Equipa;
-import com.ligarecord.domain.Gestor;
 import com.ligarecord.repository.EquipaRepository;
-import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.ConviteTreinadorService;
+import com.ligarecord.service.EmissaoDeConvitesService;
 import com.ligarecord.service.LinksDaAplicacao;
 import com.ligarecord.web.dto.ConviteTreinadorDto;
 import com.ligarecord.web.dto.CriarConviteTreinadorRequest;
@@ -32,17 +31,17 @@ import java.util.UUID;
 public class ConviteTreinadorController {
 
     private final ConviteTreinadorService conviteService;
+    private final EmissaoDeConvitesService emissaoService;
     private final EquipaRepository equipaRepository;
-    private final GestorRepository gestorRepository;
     private final LinksDaAplicacao links;
 
     public ConviteTreinadorController(ConviteTreinadorService conviteService,
+                                      EmissaoDeConvitesService emissaoService,
                                       EquipaRepository equipaRepository,
-                                      GestorRepository gestorRepository,
                                       LinksDaAplicacao links) {
         this.conviteService = conviteService;
+        this.emissaoService = emissaoService;
         this.equipaRepository = equipaRepository;
-        this.gestorRepository = gestorRepository;
         this.links = links;
     }
 
@@ -54,25 +53,26 @@ public class ConviteTreinadorController {
      * <p>Se o lugar tiver email, tenta entregá-lo por lá. O resultado vem no
      * campo {@code envio}, e o link vem sempre: um envio que não saiu não pode
      * deixar o gestor sem maneira de convidar.
+     *
+     * <p><b>Sem {@code @Transactional} aqui, de propósito</b>, ao contrário do
+     * revogar mais abaixo: são dois passos e têm de ser duas transações. O
+     * convite é emitido e gravado primeiro; só depois é que o email sai. Ao
+     * contrário, uma falha a gravar deixava uma mensagem entregue a apontar
+     * para um convite que não existe — e um email não se retira depois de sair.
      */
     @PostMapping
-    @Transactional
     public ResponseEntity<ConviteTreinadorDto> emitir(@AuthenticationPrincipal GestorAutenticado autenticado,
                                                       @PathVariable UUID ligaId,
                                                       @PathVariable UUID equipaId,
                                                       @RequestBody CriarConviteTreinadorRequest pedido) {
-        Equipa equipa = equipa(autenticado, ligaId, equipaId);
-        Gestor gestor = gestorRepository.buscarPorId(autenticado.getId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Gestor não encontrado."));
+        EmissaoDeConvitesService.PorEntregar emitido = emissaoService.emitirParaEquipa(
+                autenticado.getId(), ligaId, equipaId, pedido.diasValidade());
 
-        ConviteTreinadorService.Emissao emissao =
-                conviteService.emitir(gestor, equipa, pedido.diasValidade());
-        ConviteTreinadorService.Envio envio = conviteService.enviarPorEmail(emissao.convite());
+        ConviteTreinadorService.Envio envio = conviteService.enviarPorEmail(emitido.conviteId());
 
         return ResponseEntity
-                .status(emissao.novo() ? HttpStatus.CREATED : HttpStatus.OK)
-                .body(ConviteTreinadorDto.de(emissao.convite(),
-                        links.convite(emissao.convite().getCodigo()), envio));
+                .status(emitido.novo() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(ConviteTreinadorDto.deEmissao(emitido, links.convite(emitido.codigo()), envio));
     }
 
     @DeleteMapping("/{conviteId}")

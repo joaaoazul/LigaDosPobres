@@ -196,7 +196,24 @@ conta: o nome da conta é dele, este é o teu rótulo.
 sai da equipa. A dívida da equipa não vai atrás: é da equipa, não de quem a
 treina. Depois disso podes convidar o treinador novo.
 
-### 4.3 Desistência
+### 4.3 Convidar os que faltam, de uma vez
+
+O botão **Convidar treinadores em falta**, por cima da tabela, trata da liga
+toda: emite o convite de cada equipa activa cujo treinador ainda não tenha
+conta, envia-o a quem tiver email, e mostra-te o resultado equipa a equipa.
+
+**Copiar os links** dá-te uma linha por equipa, pronta a colar no grupo:
+
+```
+Bairro FC (João Azul): https://.../convite.html?c=...
+```
+
+Só aparecem as equipas que ficaram com convite — quem já tem conta não leva link
+nenhum. Podes carregar outra vez daqui a uns dias: quem ainda não aceitou
+mantém o mesmo link, e serve de lembrete. Equipas que desistiram ficam de fora;
+se precisares mesmo, convida-as uma a uma pela linha delas.
+
+### 4.4 Desistência
 
 O botão **Desistência** marca a equipa como desistente. Ela deixa de contar
 para as jornadas seguintes e aparece riscada na classificação.

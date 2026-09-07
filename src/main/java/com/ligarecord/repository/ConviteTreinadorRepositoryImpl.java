@@ -22,6 +22,11 @@ public class ConviteTreinadorRepositoryImpl extends RepositorioEmMemoria<Convite
     }
 
     @Override
+    public Optional<ConviteTreinador> buscarPorId(UUID id) {
+        return super.buscarPorId(id);
+    }
+
+    @Override
     public Optional<ConviteTreinador> buscarPorIdEEquipa(UUID id, UUID equipaId) {
         return entidades.stream()
                 .filter(convite -> convite.getId().equals(id) && convite.getEquipa().getId().equals(equipaId))

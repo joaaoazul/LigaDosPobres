@@ -282,6 +282,27 @@ sem maneira de convidar. Falhar a enviar nunca desfaz o convite.
 autorização é pela equipa e não por quem o emitiu: uma liga pode ter mudado de
 gestor entretanto.
 
+### `POST /api/ligas/{ligaId}/convites-treinador`
+Convida de uma vez os treinadores em falta da liga: emite (ou reaproveita) o
+convite de cada equipa **activa** cujo treinador ainda não tenha conta, e tenta
+enviá-lo a quem tiver email. Sem corpo.
+
+```json
+{ "equipas": [ { "equipa": "Bairro FC", "treinador": "João Azul",
+                 "estado": "ENVIADO", "link": "https://.../convite.html?c=..." } ],
+  "convidadas": 7, "enviadas": 5 }
+```
+
+`estado` é um dos quatro fins de uma tentativa de entrega (`ENVIADO`,
+`SEM_EMAIL`, `LIMITE_ATINGIDO`, `FALHOU`) ou, para as que nem chegaram a ser
+convidadas, `JA_TEM_CONTA` e `DESISTENTE` — uma equipa que desistiu não é
+convidada em lote, mas o convite individual continua a servir. O `link` vem
+preenchido em tudo o que ficou com convite por usar, e a null nas outras.
+
+Correr duas vezes não espalha convites novos — a emissão é idempotente —, o que
+faz disto também um "lembra os que ainda não aceitaram", travado pelas mesmas
+regras de envio.
+
 ### `GET /api/convites-treinador/{codigo}`
 **Público.** O que a página do convite mostra a quem chega pelo link sem sessão
 nenhuma: `treinadorNome`, `equipaNome`, `ligaNome`, `gestorNome` e `expiraEm`.

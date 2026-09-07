@@ -13,6 +13,9 @@ const estado = {
     // equipa, por id — carregadas só quando o separador é aberto.
     regraDivida: null,
     dividas: new Map(),
+    // Resultado do último "convidar em falta": fica à vista até ser fechado ou
+    // até se mudar de liga, porque leva os links que o gestor vai copiar.
+    convitesEmMassa: null,
     equipaDividaId: null,
     // Ordem que o gestor está a montar para desfazer um empate, antes de a
     // confirmar. Só existe enquanto a jornada escolhida estiver em desempate.
@@ -87,6 +90,31 @@ async function executar(acao) {
     } catch (erro) {
         mostrarAlerta(erro.message);
     }
+}
+
+/* O mesmo, com o botão desligado enquanto o pedido corre. Para as acções em que
+   um duplo clique custa alguma coisa: emitir um convite duas vezes ao mesmo
+   tempo dava duas credenciais para a mesma equipa, e agora que a base de dados
+   só deixa viver uma, dava um conflito na cara de quem só carregou depressa. */
+async function executarNoBotao(botao, acao) {
+    if (botao.disabled) {
+        return;
+    }
+    botao.disabled = true;
+    try {
+        await acao();
+    } catch (erro) {
+        mostrarAlerta(erro.message);
+    } finally {
+        // Quem manda no estado dos botões é o redesenho (ver desenharDetalhe):
+        // devolver aqui um `false` cego reactivava um botão numa liga que
+        // entretanto foi terminada.
+        botao.disabled = ligaSoDeLeitura();
+    }
+}
+
+function ligaSoDeLeitura() {
+    return !estado.detalhe || estado.detalhe.liga.estado !== "ATIVA";
 }
 
 /* A área de transferência não existe fora de https (nem no localhost de alguns
@@ -345,6 +373,9 @@ function desenharClassificacao(classificacao) {
 function desenharEquipas(equipas, desativada) {
     $("#form-equipa").querySelectorAll("input, button")
         .forEach((elemento) => { elemento.disabled = desativada; });
+    // Vive fora do formulário, mas muda a liga como tudo o resto: numa liga
+    // terminada fica desligado com os outros.
+    $("#btn-convidar-todos").disabled = desativada;
 
     if (!equipas.length) {
         $("#tabela-equipas").innerHTML = `<p class="ajuda">Ainda não há equipas nesta liga.</p>`;
@@ -389,6 +420,58 @@ function desenharEquipas(equipas, desativada) {
                 `).join("")}
             </tbody>
         </table>`;
+}
+
+/* O painel do convite em massa. Fica na página até a próxima acção o
+   substituir: são links, e o gestor precisa deles à vista para os copiar. */
+function desenharResultadoEmMassa(resultado) {
+    const painel = $("#resultado-convites");
+    if (!resultado) {
+        painel.innerHTML = "";
+        return;
+    }
+
+    const rotulos = {
+        ENVIADO: "Enviado por email",
+        SEM_EMAIL: "Sem email — entrega o link",
+        LIMITE_ATINGIDO: "Já enviado as vezes que se permitem",
+        FALHOU: "Não foi possível enviar — entrega o link",
+        JA_TEM_CONTA: "Já tem conta",
+        DESISTENTE: "Desistiu — não foi convidada"
+    };
+
+    painel.innerHTML = `
+        <div class="lote-convites">
+            <p class="ajuda">
+                ${plural(resultado.convidadas, "equipa convidada", "equipas convidadas")},
+                ${resultado.enviadas} por email.
+            </p>
+            <table>
+                <thead><tr><th>Equipa</th><th>Treinador</th><th></th></tr></thead>
+                <tbody>
+                    ${resultado.equipas.map((linha) => `
+                        <tr>
+                            <td><strong>${texto(linha.equipa)}</strong></td>
+                            <td>${texto(linha.treinador)}</td>
+                            <td>${texto(rotulos[linha.estado] || linha.estado)}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+            <div class="barra-acoes depois">
+                <button class="botao pequeno" data-copiar-convites="1">Copiar os links</button>
+                <button class="botao pequeno" data-fechar-convites="1">Fechar</button>
+            </div>
+        </div>`;
+}
+
+/* Uma linha por equipa, pronta a colar no grupo. Só as que ficaram com convite:
+   quem já tem conta não leva link nenhum. */
+function textoDosConvites(resultado) {
+    return resultado.equipas
+        .filter((linha) => linha.link)
+        .map((linha) => `${linha.equipa} (${linha.treinador}): ${linha.link}`)
+        .join("\n");
 }
 
 /* O link vai sempre na mensagem, tenha o email saído ou não: é a rede de
@@ -880,6 +963,22 @@ $("#form-liga").addEventListener("submit", (evento) => {
     });
 });
 
+$("#btn-convidar-todos").addEventListener("click", (evento) => {
+    if (!confirm("Convidar os treinadores de todas as equipas activas que ainda não têm conta?")) {
+        return;
+    }
+    executarNoBotao(evento.currentTarget, async () => {
+        const resultado = await api(`/api/ligas/${estado.ligaId}/convites-treinador`, { method: "POST" });
+        estado.convitesEmMassa = resultado;
+        await recarregar();
+        desenharResultadoEmMassa(resultado);
+        mostrarAlerta(resultado.convidadas === 0
+            ? "Não há treinadores por convidar nesta liga."
+            : `${plural(resultado.convidadas, "convite", "convites")}, ${resultado.enviadas} por email.`,
+            "sucesso");
+    });
+});
+
 $("#form-equipa").addEventListener("submit", (evento) => {
     evento.preventDefault();
     executar(async () => {
@@ -959,6 +1058,7 @@ document.addEventListener("click", (evento) => {
         "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], " +
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
         "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
+        "[data-copiar-convites], [data-fechar-convites], " +
         "[data-desempate-mover], [data-confirmar-desempate]"
     );
     if (!alvo) {
@@ -969,6 +1069,10 @@ document.addEventListener("click", (evento) => {
         estado.ligaId = alvo.dataset.liga;
         estado.jornadaId = null;
         estado.equipaDividaId = null;
+        // Os links são da liga anterior: não podem ficar aqui a dar a ideia
+        // de que são desta.
+        estado.convitesEmMassa = null;
+        desenharResultadoEmMassa(null);
         executar(async () => {
             await recarregar();
         });
@@ -1090,7 +1194,7 @@ document.addEventListener("click", (evento) => {
     }
 
     if (alvo.dataset.convidarTreinador) {
-        executar(async () => {
+        executarNoBotao(alvo, async () => {
             const equipaId = alvo.dataset.convidarTreinador;
             // Sem diasValidade: o servidor usa a validade por omissão. Pedir um
             // convite eterno daqui era espalhar uma credencial sem prazo.
@@ -1140,6 +1244,22 @@ document.addEventListener("click", (evento) => {
             await recarregar();
             mostrarAlerta("Treinador alterado.", "sucesso");
         });
+        return;
+    }
+
+    if (alvo.dataset.copiarConvites) {
+        executar(async () => {
+            const copiado = await copiar(textoDosConvites(estado.convitesEmMassa));
+            mostrarAlerta(copiado
+                ? "Links copiados. Cola-os onde falas com os treinadores."
+                : "Não foi possível copiar. Os links estão aí em cima.", copiado ? "sucesso" : "aviso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.fecharConvites) {
+        estado.convitesEmMassa = null;
+        desenharResultadoEmMassa(null);
         return;
     }
 

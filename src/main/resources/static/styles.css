@@ -759,6 +759,17 @@ td.numero, th.numero { text-align: right; }
 
 /* ------------------------------------------------------------ jornadas --- */
 
+/* O resultado de convidar a liga toda. Fica entre o formulário e a tabela de
+   equipas, dentro de uma régua para se ler como uma coisa à parte — é um
+   registo do que acabou de acontecer, não mais uma secção da página. */
+.lote-convites {
+    border: 1px solid var(--regua);
+    border-radius: var(--r-g);
+    padding: var(--e4);
+    margin-bottom: var(--e5);
+    overflow-x: auto;
+}
+
 .barra-acoes {
     display: flex;
     align-items: center;

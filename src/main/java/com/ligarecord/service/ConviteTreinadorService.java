@@ -150,15 +150,24 @@ public class ConviteTreinadorService {
     }
 
     /**
-     * Entrega o convite por email, se houver para onde e o travão deixar.
+     * Entrega o convite por email, a partir do id.
      *
-     * <p>Nunca rebenta: falhar a enviar não desfaz o convite, que continua a
-     * valer pelo link. Devolve o que aconteceu para quem carregou no botão
-     * poder ser informado — foi ele que escreveu o endereço, e tem direito a
-     * saber se aquilo chegou a partir.
+     * <p>É por id e não pela entidade porque o email sai sempre <em>depois</em>
+     * de o convite estar gravado, já noutra transação — e as entidades da
+     * anterior não sobrevivem ao commit.
+     *
+     * <p>Falhar a enviar não desfaz o convite, que continua a valer pelo link.
+     * Devolve o que aconteceu para quem carregou no botão poder ser informado:
+     * foi ele que escreveu o endereço, e tem direito a saber se aquilo chegou
+     * a partir.
      */
     @Transactional
-    public Envio enviarPorEmail(ConviteTreinador convite) {
+    public Envio enviarPorEmail(UUID conviteId) {
+        return enviar(conviteRepository.buscarPorId(conviteId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Convite não encontrado.")));
+    }
+
+    private Envio enviar(ConviteTreinador convite) {
         if (!convite.estaDisponivel()) {
             throw new ConviteInvalidoException("Código de convite inválido.");
         }
@@ -180,7 +189,7 @@ public class ConviteTreinadorService {
                 convite.getEquipa().getNome(),
                 liga == null ? null : liga.getNome(),
                 links.convite(convite.getCodigo()),
-                "a " + DATA.format(convite.getExpiraEm()));
+                validadePorExtenso(convite));
 
         boolean saiu = email.enviar(treinador.getEmail(), mensagem.assunto(),
                 mensagem.texto(), mensagem.html());
@@ -194,6 +203,18 @@ public class ConviteTreinadorService {
         convite.marcarEnviado(treinador.getEmail());
         conviteRepository.guardar(convite);
         return Envio.ENVIADO;
+    }
+
+    /**
+     * A V11 pôs prazo em todos os convites vivos que não tinham, e emitir passou
+     * a pôr sempre um. Isto continua a contar com o nulo à mesma: era uma
+     * mensagem inteira por enviar — e um erro no ecrã de quem carregou no
+     * botão — por causa de uma data que faltava.
+     */
+    private String validadePorExtenso(ConviteTreinador convite) {
+        return convite.getExpiraEm() == null
+                ? "só quando for usado"
+                : "a " + DATA.format(convite.getExpiraEm());
     }
 
     private boolean podeEnviar(ConviteTreinador convite) {
