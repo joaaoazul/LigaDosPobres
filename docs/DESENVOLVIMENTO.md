@@ -420,14 +420,18 @@ numa transação, uma falha destas não deixa nada a meio.
 **Nunca edites uma migração já aplicada em produção.** O Flyway guarda o
 checksum e recusa arrancar se ele mudar. Acrescenta uma migração nova.
 
-Antes de aplicar uma migração em produção, faz cópia e confirma que ela é
-legível:
+Antes de aplicar uma migração em produção, faz cópia e confirma que ela
+restaura:
 
 ```bash
-railway connect Postgres --tunnel-only --port 15432
-pg_dump "postgresql://..." -Fc -f backup.dump
-pg_restore --list backup.dump | head
+export DATABASE_URL='postgresql://...'          # o público, do painel
+./scripts/backup-railway.sh
+./scripts/backup-railway.sh --verificar backups/ligadospobres-*.sql.gz
 ```
+
+A verificação restaura para uma base descartável e conta o que lá ficou. Ler o
+índice do ficheiro (`pg_restore --list`) diz que ele não está truncado; só o
+restauro diz que ele presta.
 
 Nada apaga ligas nem equipas: quem sai fica marcado como desistente e o
 histórico mantém-se.
