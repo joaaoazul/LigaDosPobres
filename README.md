@@ -152,18 +152,60 @@ O endereço público sai da rede do Railway e volta a entrar, por isso é mais
 lento e conta para o tráfego. Serve para confirmar que o resto está bem; depois
 volta ao `PGHOST` interno.
 
-O `compose.prod.yml`, o `Caddyfile` e o script de backup ficam por usar — só
-servem quando fores para o teu servidor.
+O `compose.prod.yml` e o `Caddyfile` ficam por usar — só servem quando fores
+para o teu servidor.
+
+**Backups.** O `scripts/backup.sh` fala com o contentor do docker compose e por
+isso não serve aqui; para uma plataforma usa-se o `scripts/backup-railway.sh`,
+que só precisa de um URL de ligação:
+
+```bash
+# o DATABASE_PUBLIC_URL do serviço Postgres, no separador Variables
+export DATABASE_URL='postgresql://utilizador:senha@host:porta/base'
+./scripts/backup-railway.sh
+```
+
+Corre-o do teu computador e não da plataforma: um backup que só existe na
+plataforma que pode desaparecer não é um backup. O ficheiro sai
+`--no-owner --no-privileges`, por isso restaura tanto lá como no teu servidor,
+onde o dono das tabelas tem outro nome.
+
+Os backups automáticos do Railway (se o teu plano os tiver) não dispensam isto:
+vivem na mesma conta que estás a tentar sobreviver.
+
+**Verifica o primeiro, e depois um de vez em quando:**
+
+```bash
+./scripts/backup-railway.sh --verificar backups/ligadospobres-AAAAMMDD-HHMMSS.sql.gz
+```
+
+Restaura o ficheiro para uma base descartável, conta as linhas das tabelas que
+interessam e diz em que migração o esquema ficou; no fim apaga a base, mesmo
+que tenha rebentado a meio. Falha se o ficheiro não restaurar e falha se
+restaurar vazio — é essa a diferença entre um backup e uma suposição. Precisa
+de um PostgreSQL onde criar a base descartável; por omissão procura-o em
+`localhost:5432`, e muda-se com `URL_VERIFICACAO`. **Nunca lhe apontes a base de
+produção:** o restauro apaga o que estiver à frente.
+
+Compara as contagens com o que a aplicação mostra. Se baterem certo, tens um
+plano de recuperação; se nunca as comparaste, tens ficheiros.
 
 ### Mudar de plataforma para servidor próprio
 
 ```bash
-# na plataforma
-pg_dump "$DATABASE_URL" --clean --if-exists | gzip > mudanca.sql.gz
+# de onde alcances a plataforma
+export DATABASE_URL='postgresql://...'
+./scripts/backup-railway.sh
 
 # no servidor, com o compose.prod.yml já a correr
-gunzip -c mudanca.sql.gz | docker compose -f compose.prod.yml exec -T db psql -U liga -d ligadospobres
+gunzip -c backups/ligadospobres-AAAAMMDD-HHMMSS.sql.gz \
+  | docker compose -f compose.prod.yml exec -T db psql -U liga -d ligadospobres
 ```
+
+O script serve aqui melhor do que um `pg_dump` à mão porque leva
+`--no-owner --no-privileges`: sem isso, o ficheiro traz o dono das tabelas da
+plataforma agarrado e o restauro no teu servidor, onde o utilizador é o `liga`,
+enche-se de erros por causa de um papel que ali não existe.
 
 Depois muda o registo DNS e acabou. Nada no código muda.
 
