@@ -43,6 +43,8 @@ precisas de duas contas. Ver a secção 2.3.
 Não há registo aberto. Toda a gente entra por convite. Isto é de propósito:
 evita que apareçam contas que ninguém sabe de onde vieram.
 
+![Ecrã de entrada, com email, password e os links de recuperar password e criar conta](screenshots/login.jpg)
+
 ### 2.1 Criar conta de gestor
 
 Precisas de um código de convite dado por um administrador.
@@ -76,10 +78,14 @@ Não crias uma segunda conta. Abre o link do convite já com sessão iniciada: a
 página oferece **Aceitar com a minha conta** e a equipa passa a aparecer na que
 já tens. Se ainda não tinhas sessão, entra primeiro e volta a abrir o link.
 
+![Página do convite com sessão já iniciada, a mostrar o botão Aceitar com a minha conta](screenshots/aceitar-com-conta.jpg)
+
 A partir daí, a mesma conta gere as tuas ligas e mostra as equipas que treinas.
 
 (O caminho antigo continua a existir: em **Password**, na secção **Ligar convite
 de treinador**, colando o código à mão.)
+
+![Página Password com os campos de mudar password e, abaixo, ligar convite de treinador](screenshots/ligar-convite.jpg)
 
 ### 2.4 Mudar a password
 
@@ -90,6 +96,8 @@ termina e voltas a entrar com a nova, em todos os sítios onde estavas.
 
 Na página de entrada, carrega em **Recupera-a aqui**. Escreves o email da conta
 e recebes uma mensagem com um link.
+
+![Página Recuperar password, só com o campo de email e o botão Enviar o link](screenshots/recuperar-password.jpg)
 
 O link serve **uma vez** e **expira ao fim de uma hora**. Se demorares, ou se o
 usares e precisares de outro, é só pedir de novo.
@@ -118,6 +126,8 @@ Alguns pormenores que valem a pena saber:
 Na coluna da esquerda, escreve o nome e o número máximo de equipas (entre 1 e
 45) e carrega em **Criar liga**.
 
+![Formulário Nova liga preenchido, com o nome e o máximo de equipas](screenshots/criar-liga.jpg)
+
 ### 3.2 O cabeçalho da liga
 
 Depois de escolheres uma liga, o cabeçalho mostra o nome, o logo e um conjunto
@@ -126,6 +136,8 @@ quantas jornadas já existem.
 
 Podes pôr o **logo** da liga carregando no quadrado à esquerda do nome. Aceita
 PNG, JPEG e WEBP até 1 MB. Para o tirar, usa o × que aparece no canto.
+
+![Cabeçalho de uma liga acabada de criar, com as etiquetas e os separadores Classificação/Equipas/Jornadas/Dívidas](screenshots/liga-criada.jpg)
 
 ### 3.3 Terminar uma liga
 
@@ -148,6 +160,8 @@ treinador**, e carrega em **Adicionar equipa**. O email é opcional e serve para
 uma coisa só: o convite ir sozinho para lá em vez de teres de o entregar à mão.
 Podes acrescentá-lo ou corrigi-lo depois, em **Editar**.
 
+![Formulário de inscrever equipa, com o nome da equipa, o treinador e o email](screenshots/inscrever-equipa.jpg)
+
 Duas coisas acontecem ao mesmo tempo:
 
 - Se a liga tiver uma regra de dívida com valor de inscrição, esse valor é
@@ -165,6 +179,8 @@ A coluna **Conta** diz-te em que pé está cada equipa:
 | Convite pendente | há um convite por usar (passa o rato por cima para veres até quando) |
 | Ligada | o treinador já tem conta e vê a equipa |
 
+![Tabela de equipas com uma equipa acabada de inscrever, ainda "Sem convite"](screenshots/equipa-sem-convite.jpg)
+
 O botão **Convidar treinador** cria o convite e:
 
 - **se o treinador tiver email**, envia-lho — a mensagem diz quem o convidou e
@@ -175,6 +191,12 @@ O botão **Convidar treinador** cria o convite e:
 A mensagem que aparece em cima diz-te exactamente o que aconteceu — enviado,
 sem email, ou não foi possível enviar. O treinador abre o link e cria conta
 (secção 2.2) ou liga-o à que já tem (secção 2.3).
+
+![Confirmação "Convite enviado" e a equipa já com o estado Convite pendente](screenshots/convite-pendente.jpg)
+
+O email que o treinador recebe é direto: quem convidou, para que equipa e liga, e um botão para aceitar.
+
+![Email de convite de treinador recebido, com o botão Aceitar o convite](screenshots/email-convite-treinador.png)
 
 Com email, o botão passa a **Reenviar convite**: dá o mesmo convite outra vez.
 Cada convite é enviado no máximo **três vezes**, e não duas seguidas — é para
@@ -476,8 +498,12 @@ Duas páginas no topo da aplicação:
 Só de leitura, não alteras nada. Vês também o pote da liga, que é um valor do
 conjunto e não diz quanto cada equipa deve.
 
+![Página As minhas ligas, com a classificação de uma liga onde a conta treina uma equipa](screenshots/minhas-ligas.jpg)
+
 **As minhas dívidas.** O que cada equipa que treinas ainda deve, em todas as
 ligas, com o detalhe bloco a bloco e um total geral no topo.
+
+![Página As minhas dívidas, com o resumo e o detalhe por equipa e por bloco](screenshots/minhas-dividas.jpg)
 
 Quem marca os pagamentos é sempre o gestor da liga.
 

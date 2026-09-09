@@ -29,6 +29,10 @@ aqui só vês o estado.
 Se treinas equipas em ligas de gestores diferentes, vês todas juntas nestas
 duas páginas — não precisas de uma conta por liga.
 
+![Página As minhas ligas, com a classificação da liga onde treinas](screenshots/minhas-ligas.jpg)
+
+![Página As minhas dívidas, com o resumo e o detalhe por equipa e por bloco](screenshots/minhas-dividas.jpg)
+
 ---
 
 ## 2. Entrar na aplicação
@@ -45,6 +49,10 @@ FC, na Liga do Café."
 2. Preenche o nome, o email e uma password com pelo menos 10 caracteres.
 3. Carrega em **Criar conta e aceitar**. Ficas logo com sessão aberta e a ver
    a tua equipa.
+
+O email do convite tem este aspeto — o botão leva-te direto à página do passo 1:
+
+![Email de convite de treinador recebido, com o botão Aceitar o convite](screenshots/email-convite-treinador.png)
 
 Não precisas de escrever nenhum código — vai dentro do próprio link. Se o
 link já não funcionar, o convite expirou (duram 30 dias) ou foi revogado:
@@ -64,6 +72,10 @@ logins. Duas formas de ligar o convite novo à conta que já tens:
   volta a abrir o mesmo link.
 - Ou vai a **Password**, na secção **Ligar convite de treinador**, e cola lá
   o código à mão.
+
+![Página do convite com sessão já iniciada, a mostrar o botão Aceitar com a minha conta](screenshots/aceitar-com-conta.jpg)
+
+![Secção Ligar convite de treinador, na página Password](screenshots/ligar-convite.jpg)
 
 Se abrires o link sem sessão e tentares criar conta com um email que já está
 registado, a aplicação recusa com **"Já existe uma conta com este email."** —

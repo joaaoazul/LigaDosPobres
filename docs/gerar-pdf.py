@@ -71,6 +71,11 @@ blockquote p:last-child { margin-bottom:0; }
 
 hr { border:none; border-top:.6pt solid var(--regua); margin:7mm 0; }
 
+figure { margin:0 0 4mm; break-inside:avoid; }
+figure img { display:block; max-width:100%; border:.6pt solid var(--regua);
+             border-radius:3pt; }
+figcaption { margin-top:1.5mm; font-size:8.4pt; color:var(--fraca); }
+
 .rodape { margin-top:10mm; padding-top:3mm; border-top:.6pt solid var(--regua);
           color:var(--fraca); font-size:8.4pt; }
 """
@@ -92,10 +97,24 @@ def celulas(linha):
     return [c.strip() for c in linha.strip().strip('|').split('|')]
 
 
-def converter(md):
+def converter(md, pasta_imagens=u''):
     saida, i, linhas = [], 0, md.split('\n')
     while i < len(linhas):
         l = linhas[i]
+
+        # imagem sozinha na linha: uma figura de largura cheia, com a legenda
+        # a vir do texto alternativo. Uma imagem a meio de um paragrafo entra
+        # pelo em_linha normal (fica <img> em linha); aqui e so o caso comum
+        # de um screenshot como bloco proprio.
+        m = re.match(r'^!\[([^\]]*)\]\(([^)]+)\)\s*$', l)
+        if m:
+            alt, src = m.group(1), m.group(2)
+            origem = src if re.match(r'^https?://', src) else pasta_imagens + src
+            legenda = u'<figcaption>%s</figcaption>' % em_linha(alt) if alt else u''
+            saida.append(u'<figure><img src="%s" alt="%s">%s</figure>'
+                         % (html.escape(origem, quote=True), html.escape(alt, quote=True), legenda))
+            i += 1
+            continue
 
         if l.startswith('```'):
             i += 1
@@ -232,12 +251,13 @@ def esperar_por(caminho, segundos=30):
 def escrever_html(raiz, nome, titulo, rodape):
     fontes = 'file:///' + os.path.join(raiz, 'src', 'main', 'resources',
                                        'static', 'fontes').replace('\\', '/')
+    imagens = 'file:///' + os.path.join(raiz, 'docs').replace('\\', '/') + '/'
     md = io.open(os.path.join(raiz, 'docs', nome + '.md'), encoding='utf-8').read()
     doc = (u'<!doctype html><html lang="pt"><head><meta charset="utf-8">'
            u'<title>%s</title><style>%s</style></head><body>%s'
            u'<div class="rodape">%s</div></body></html>'
            % (html.escape(titulo), CSS.replace('FONTDIR', fontes),
-              converter(md), html.escape(rodape)))
+              converter(md, imagens), html.escape(rodape)))
     destino = os.path.join(raiz, 'docs', 'pdf', nome + '.html')
     io.open(destino, 'w', encoding='utf-8').write(doc)
     return destino
