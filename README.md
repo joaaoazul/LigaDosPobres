@@ -10,7 +10,8 @@ sem passo de build no frontend.
 
 | Documento | Para quem | PDF |
 | --- | --- | --- |
-| [Manual de utilização](docs/MANUAL.md) | gestores e treinadores | [PDF](docs/pdf/MANUAL.pdf) |
+| [Manual de utilização](docs/MANUAL.md) | gestores | [PDF](docs/pdf/MANUAL.pdf) |
+| [Manual do treinador](docs/MANUAL_TREINADOR.md) | treinadores | [PDF](docs/pdf/MANUAL_TREINADOR.pdf) |
 | [Manual técnico](docs/DESENVOLVIMENTO.md) | quem mexe no código | [PDF](docs/pdf/DESENVOLVIMENTO.pdf) |
 | [Referência da API](docs/API.md) | integrações e frontend | [PDF](docs/pdf/API.pdf) |
 

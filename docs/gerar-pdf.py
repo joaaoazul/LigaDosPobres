@@ -191,6 +191,7 @@ def converter(md):
 
 DOCUMENTOS = [
     (u'MANUAL', u'Manual do Quota', u'Quota \u00b7 Manual de utiliza\u00e7\u00e3o'),
+    (u'MANUAL_TREINADOR', u'Manual do treinador \u00b7 Quota', u'Quota \u00b7 Manual do treinador'),
     (u'DESENVOLVIMENTO', u'Quota \u00b7 Manual t\u00e9cnico', u'Quota \u00b7 Manual t\u00e9cnico'),
     (u'API', u'Quota \u00b7 Refer\u00eancia da API', u'Quota \u00b7 Refer\u00eancia da API'),
 ]

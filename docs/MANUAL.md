@@ -1,7 +1,11 @@
 # Manual do Quota
 
-Guia de utilização da aplicação, para quem gere ligas e para quem treina
-equipas. Não é preciso saber nada de informática para seguir este manual.
+Guia de utilização da aplicação para quem gere ligas. Não é preciso saber nada
+de informática para seguir este manual.
+
+Se só treinas uma equipa e queres ver a tua liga e as tuas dívidas, sem te
+perderes nas partes de gestão, o guia mais direto é o
+[MANUAL_TREINADOR.md](MANUAL_TREINADOR.md).
 
 Para documentação técnica, ver [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md) e
 [API.md](API.md).
@@ -283,6 +287,19 @@ Mostra quanto aquela jornada em concreto pesa para cada equipa, segundo a regra
 da liga. Não é o total da equipa: quando o bloco fechar, este valor soma-se ao
 das outras jornadas do mesmo bloco.
 
+### 5.5 Reabrir uma jornada
+
+O botão **Reabrir jornada** aparece só na última jornada fechada da liga, e só
+enquanto o dinheiro dela ainda não tiver saído (nenhum bloco de dívida nem
+cobrança de época já fechado por causa dela). É para corrigir um engano logo a
+seguir a fechar — não uma forma geral de voltar atrás.
+
+Ao reabrir, a jornada volta a aceitar pontuações, e as posições são
+recalculadas quando voltares a fechá-la.
+
+Se a jornada já tiver dinheiro associado, ou não for a última, o botão nem
+aparece — não há forma de reabrir por baixo de jornadas mais recentes.
+
 ---
 
 ## 6. Classificação
@@ -292,8 +309,23 @@ equipas. O primeiro lugar aparece destacado, e as equipas desistentes ficam no
 fim, riscadas.
 
 Se duas equipas tiverem os mesmos pontos no total da época, a tabela ordena-as
-por nome. Ao contrário do que acontece nas jornadas, aqui não há desempate
-manual, porque esta tabela não decide dinheiro nenhum.
+por nome — até decidires um critério diferente.
+
+### 6.1 Desempate
+
+Quando há equipas empatadas, aparece um painel **Desempate** por baixo da
+tabela, com as equipas empatadas agrupadas por pontuação. Usa as setas ↑ e ↓
+para as ordenares e carrega em **Confirmar desempate**.
+
+Ao contrário do desempate de uma jornada (secção 5.3), este não bloqueia nada:
+a classificação geral não decide dinheiro, só decide a ordem que se vê. Por
+isso não precisas de resolver o empate para continuar a usar a liga.
+
+**O critério fica a valer sempre que aquelas equipas voltarem a empatar nos
+mesmos pontos** — não é só para agora. Se depois uma delas ganhar ou perder
+pontos e vier a empatar de novo, mas com outra equipa ou noutro total, tens de
+ordenar outra vez: o critério antigo só se aplica ao empate exacto para que foi
+definido.
 
 ---
 
@@ -495,11 +527,10 @@ Para não haver surpresas:
 - **Não confirma o email no registo.** O registo é por convite, e ninguém se
   regista sem um. Mas também ninguém verifica se o email que escreveste está
   certo, e só dás por isso quando precisares de recuperar a password.
-- **Não reabre jornadas.** Depois de fechada, uma jornada não se altera.
+- **Não reabre jornadas antigas.** Só a última, e só antes de qualquer
+  dinheiro sair dela (secção 5.5). As anteriores são definitivas.
 - **Não desfaz uma liga terminada.**
 - **Não apaga equipas.** Quem sai marca-se como desistente, e o histórico fica.
-- **Não desempata a classificação geral.** Só a de cada jornada, que é a que
-  decide dinheiro.
 
 ---
 
@@ -521,6 +552,13 @@ A tua conta não pode criar ligas. Pede a um administrador.
 
 **"A tua conta foi desativada."**
 Fala com um administrador.
+
+**"Demasiadas tentativas com este email. Espera uns minutos e tenta outra vez."**
+Depois de 5 tentativas erradas com o mesmo email, a aplicação bloqueia esse
+email durante 15 minutos — mesmo que a próxima tentativa fosse a password
+certa. É uma proteção contra quem tenta adivinhar passwords, não um erro. Se
+não foste tu, é sinal de que alguém tentou entrar na tua conta: espera os 15
+minutos e considera mudar a password (secção 2.4).
 
 **"A password desta conta foi alterada. Entra outra vez."**
 A password foi mudada noutro sítio, ou recuperada por email, e as sessões
