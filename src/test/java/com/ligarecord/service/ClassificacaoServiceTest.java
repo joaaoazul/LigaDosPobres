@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class ClassificacaoServiceTest {
@@ -104,6 +106,131 @@ Equipa real = new Equipa(UUID.randomUUID(), "RealDesistente", david, ligaTeste, 
 
         liga.setPontosTreinoContam(false);
         assertEquals(0, servico.calcularClassificacao(liga).get(0).getPontosAcumulados());
+    }
+
+    /**
+     * Sem desempate resolvido, o nome decide — é o comportamento de sempre.
+     * Depois de resolvido, passa a decidir ele, mesmo continuando ambas com
+     * os mesmos pontos.
+     */
+    @Test
+    public void aplicaODesempateManualEntreEquipasEmpatadas() {
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+
+        Equipa alfa = new Equipa(UUID.randomUUID(), "Alfa", new Treinador(UUID.randomUUID(), "T1"), liga, EstadoEquipa.ATIVA);
+        Equipa beta = new Equipa(UUID.randomUUID(), "Beta", new Treinador(UUID.randomUUID(), "T2"), liga, EstadoEquipa.ATIVA);
+        liga.adicionarEquipa(alfa);
+        liga.adicionarEquipa(beta);
+
+        assertEquals(alfa, classificacaoService.calcularClassificacao(liga).get(0).getEquipa());
+
+        classificacaoService.aplicarDesempate(liga, List.of(beta.getId(), alfa.getId()));
+
+        assertEquals(beta, classificacaoService.calcularClassificacao(liga).get(0).getEquipa());
+    }
+
+    /** Uma equipa desistente não compete pela tabela — não entra em grupo nenhum. */
+    @Test
+    public void gruposEmpatadosIgnoraEquipasDesistentes() {
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+
+        Equipa ativa = new Equipa(UUID.randomUUID(), "Ativa", new Treinador(UUID.randomUUID(), "T1"), liga, EstadoEquipa.ATIVA);
+        Equipa desistente = new Equipa(UUID.randomUUID(), "Desistente", new Treinador(UUID.randomUUID(), "T2"), liga, EstadoEquipa.DESISTENTE);
+        liga.adicionarEquipa(ativa);
+        liga.adicionarEquipa(desistente);
+
+        assertTrue(classificacaoService.gruposEmpatados(liga).isEmpty());
+    }
+
+    @Test
+    public void recusaResolverDesempateSemEquipasEmpatadas() {
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+        Equipa unica = new Equipa(UUID.randomUUID(), "Única", new Treinador(UUID.randomUUID(), "T1"), liga, EstadoEquipa.ATIVA);
+        liga.adicionarEquipa(unica);
+
+        assertThrows(IllegalStateException.class,
+                () -> classificacaoService.aplicarDesempate(liga, List.of(unica.getId())));
+    }
+
+    @Test
+    public void recusaOrdemQueNaoBateComAsEquipasEmpatadas() {
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+        Equipa alfa = new Equipa(UUID.randomUUID(), "Alfa", new Treinador(UUID.randomUUID(), "T1"), liga, EstadoEquipa.ATIVA);
+        Equipa beta = new Equipa(UUID.randomUUID(), "Beta", new Treinador(UUID.randomUUID(), "T2"), liga, EstadoEquipa.ATIVA);
+        liga.adicionarEquipa(alfa);
+        liga.adicionarEquipa(beta);
+
+        // Falta a Beta na ordem.
+        assertThrows(IllegalArgumentException.class,
+                () -> classificacaoService.aplicarDesempate(liga, List.of(alfa.getId())));
+    }
+
+    /**
+     * Um desempate resolvido para um empate a 10 pontos não pode decidir
+     * sozinho um empate diferente e posterior, a 15 pontos, entre uma equipa
+     * que lá estava e outra que nunca foi comparada com ela.
+     */
+    @Test
+    public void umDesempateAntigoNaoDecideUmEmpatePosteriorDiferente() {
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+
+        Equipa alfa = new Equipa(UUID.randomUUID(), "Alfa", new Treinador(UUID.randomUUID(), "T1"), liga, EstadoEquipa.ATIVA);
+        Equipa zulu = new Equipa(UUID.randomUUID(), "Zulu", new Treinador(UUID.randomUUID(), "T2"), liga, EstadoEquipa.ATIVA);
+        Equipa charlie = new Equipa(UUID.randomUUID(), "Charlie", new Treinador(UUID.randomUUID(), "T3"), liga, EstadoEquipa.ATIVA);
+        liga.adicionarEquipa(alfa);
+        liga.adicionarEquipa(zulu);
+        liga.adicionarEquipa(charlie);
+
+        DividaService dividaService = new DividaService(
+                new com.ligarecord.repository.DividaRepositoryImpl(), new ClassificacaoService());
+        JornadaService jornadaService = new JornadaService(
+                new com.ligarecord.repository.JornadaRepositoryImpl(),
+                new RegraDividaService(new com.ligarecord.repository.RegraDividaRepositoryImpl()),
+                new CobrancaPeriodoService(new ClassificacaoService(), dividaService),
+                dividaService);
+
+        // Ronda 1: sem empates, só para dar avanço.
+        Jornada r1 = jornadaService.abrirJornada(liga);
+        jornadaService.inserirResultado(r1, alfa, 6);
+        jornadaService.inserirResultado(r1, zulu, 3);
+        jornadaService.inserirResultado(r1, charlie, 0);
+        jornadaService.fecharJornada(r1);
+
+        // Ronda 2: Alfa e Zulu empatam a 10 pontos (Charlie fica a 0). Resolvido
+        // a favor de Zulu.
+        Jornada r2 = jornadaService.abrirJornada(liga);
+        jornadaService.inserirResultado(r2, alfa, 4);
+        jornadaService.inserirResultado(r2, zulu, 7);
+        jornadaService.inserirResultado(r2, charlie, 0);
+        jornadaService.fecharJornada(r2);
+        classificacaoService.aplicarDesempate(liga, List.of(zulu.getId(), alfa.getId()));
+
+        // Ronda 3: Alfa dispara sozinha; Zulu e Charlie ficam empatados a 15 —
+        // um empate diferente do da ronda 2, que nunca envolveu a Charlie, e
+        // com Zulu já não nos mesmos pontos em que foi desempatada.
+        Jornada r3 = jornadaService.abrirJornada(liga);
+        jornadaService.inserirResultado(r3, alfa, 16);
+        jornadaService.inserirResultado(r3, zulu, 5);
+        jornadaService.inserirResultado(r3, charlie, 15);
+        jornadaService.fecharJornada(r3);
+
+        List<ClassificacaoGeral> classificacao = classificacaoService.calcularClassificacao(liga);
+
+        assertEquals(alfa, classificacao.get(0).getEquipa());
+        // Sem desempate resolvido para este empate, o nome decide — Charlie
+        // antes de Zulu, não o contrário por causa de um valor de outra ronda.
+        assertEquals(charlie, classificacao.get(1).getEquipa());
+        assertEquals(zulu, classificacao.get(2).getEquipa());
     }
 
 }

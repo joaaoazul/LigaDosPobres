@@ -21,7 +21,11 @@ const estado = {
     equipaDividaId: null,
     // Ordem que o gestor está a montar para desfazer um empate, antes de a
     // confirmar. Só existe enquanto a jornada escolhida estiver em desempate.
-    desempate: null
+    desempate: null,
+    // O mesmo, mas para o desempate manual da classificação geral (não de uma
+    // jornada) — fica à vista enquanto houver equipas empatadas na liga
+    // escolhida.
+    desempateGeral: null
 };
 
 /* Emblema neutro para uma liga ainda sem logo — o mesmo anel+arco da marca,
@@ -445,7 +449,84 @@ function desenharClassificacao(classificacao) {
                     </tr>
                 `).join("")}
             </tbody>
-        </table>`;
+        </table>
+        ${desenharDesempateGeral(classificacao)}`;
+}
+
+/* ------------------------------------------------------ desempate geral --- */
+
+/* Os grupos de equipas ativas empatadas em pontos na classificação geral —
+   hoje desempatados por nome (ver ClassificacaoService.gruposEmpatados). A
+   ordem dentro de cada grupo é a que o gestor está a montar; só é enviada ao
+   servidor quando ele confirma, e fica a valer sempre que voltarem a empatar,
+   não só agora. */
+function prepararDesempateGeral(classificacao) {
+    if (estado.desempateGeral && estado.desempateGeral.ligaId === estado.ligaId) {
+        return estado.desempateGeral;
+    }
+
+    const porPontos = new Map();
+    classificacao
+        .filter((linha) => linha.estado === "ATIVA")
+        .forEach((linha) => {
+            if (!porPontos.has(linha.pontos)) {
+                porPontos.set(linha.pontos, []);
+            }
+            porPontos.get(linha.pontos).push(linha);
+        });
+
+    const grupos = [...porPontos.entries()]
+        .filter(([, linhas]) => linhas.length > 1)
+        .sort((a, b) => b[0] - a[0])
+        .map(([pontos, linhas]) => ({
+            pontos,
+            equipas: linhas.map((linha) => ({ id: linha.equipaId, nome: linha.equipa }))
+        }));
+
+    estado.desempateGeral = { ligaId: estado.ligaId, grupos };
+    return estado.desempateGeral;
+}
+
+function desenharDesempateGeral(classificacao) {
+    const desempate = prepararDesempateGeral(classificacao);
+    if (!desempate.grupos.length) {
+        return "";
+    }
+
+    const grupos = desempate.grupos.map((grupo, indiceGrupo) => `
+        <div class="grupo-empate">
+            <h4>${plural(grupo.equipas.length, "equipa", "equipas")} com ${grupo.pontos} ${grupo.pontos === 1 ? "ponto" : "pontos"}</h4>
+            <ol class="ordem-empate">
+                ${grupo.equipas.map((equipa, indice) => `
+                    <li>
+                        <span>${texto(equipa.nome)}</span>
+                        <span class="mover-empate">
+                            <button class="botao pequeno" title="Subir" aria-label="Subir ${texto(equipa.nome)}"
+                                data-desempate-geral-mover="cima" data-desempate-geral-grupo="${indiceGrupo}"
+                                data-desempate-geral-indice="${indice}" ${indice === 0 ? "disabled" : ""}>&uarr;</button>
+                            <button class="botao pequeno" title="Descer" aria-label="Descer ${texto(equipa.nome)}"
+                                data-desempate-geral-mover="baixo" data-desempate-geral-grupo="${indiceGrupo}"
+                                data-desempate-geral-indice="${indice}"
+                                ${indice === grupo.equipas.length - 1 ? "disabled" : ""}>&darr;</button>
+                        </span>
+                    </li>
+                `).join("")}
+            </ol>
+        </div>
+    `).join("");
+
+    return `
+        <div class="painel-desempate">
+            <h3 class="titulo-seccao">Desempate</h3>
+            <p class="ajuda">
+                Há equipas empatadas em pontos, hoje ordenadas por nome. Ordena-as aqui para
+                fixar o critério — fica a valer sempre que voltarem a empatar, não só agora.
+            </p>
+            ${grupos}
+            <div class="barra-acoes depois">
+                <button class="botao primario" data-confirmar-desempate-geral="1">Confirmar desempate</button>
+            </div>
+        </div>`;
 }
 
 function desenharEquipas(equipas, desativada) {
@@ -642,6 +723,12 @@ function desenharJornadaSelecionada() {
 
     const fechada = jornada.estado === "FECHADA";
     const emDesempate = jornada.estado === "DESEMPATE";
+    // O servidor só deixa reabrir a última jornada da liga, e só antes de
+    // qualquer dinheiro sair dela (bloco de dívida ou cobrança de período já
+    // fechados) — ver JornadaService.reabrirJornada. Aqui só se sabe a parte
+    // da ordem; a outra dá-se pela mensagem de erro, se for o caso.
+    const eAUltima = estado.detalhe.jornadas.length
+        && estado.detalhe.jornadas[estado.detalhe.jornadas.length - 1].id === jornada.id;
     // Em desempate as posições já estão atribuídas (partilhadas pelos
     // empatados) e as pontuações estão trancadas, tal como numa jornada
     // fechada — o servidor recusa alterá-las até o empate ficar desfeito.
@@ -745,7 +832,12 @@ function desenharJornadaSelecionada() {
                 <button class="botao primario" data-fechar="${jornada.id}"
                     ${jornada.resultados.length ? "" : "disabled"}>Fechar jornada</button>
                 <span class="ajuda">Se ficarem equipas empatadas, a jornada espera pelo desempate antes de fechar.</span>
-            </div>`}`;
+            </div>`}
+        ${fechada && eAUltima ? `
+            <div class="barra-acoes depois">
+                <button class="botao" data-reabrir="${jornada.id}">Reabrir jornada</button>
+                <span class="ajuda">Para corrigir um engano. Só funciona enquanto o dinheiro desta jornada ainda não tiver saído (bloco de dívida ou cobrança de período).</span>
+            </div>` : ""}`;
 }
 
 /* ------------------------------------------------------------ desempate --- */
@@ -1308,12 +1400,13 @@ document.querySelectorAll(".separador")
 
 document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
-        "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], " +
+        "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], [data-reabrir], " +
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
         "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
         "[data-copiar-convites], [data-fechar-convites], " +
         "[data-remover-cobranca], [data-cobranca-mover], [data-cobranca-confirmar], " +
-        "[data-desempate-mover], [data-confirmar-desempate]"
+        "[data-desempate-mover], [data-confirmar-desempate], " +
+        "[data-desempate-geral-mover], [data-confirmar-desempate-geral]"
     );
     if (!alvo) {
         return;
@@ -1380,6 +1473,18 @@ document.addEventListener("click", (evento) => {
         return;
     }
 
+    if (alvo.dataset.reabrir) {
+        if (!confirm("Reabrir esta jornada? As posições atribuídas ao fechá-la são recalculadas quando voltar a fechar.")) {
+            return;
+        }
+        executarNoBotao(alvo, async () => {
+            await api(`/api/ligas/${estado.ligaId}/jornadas/${alvo.dataset.reabrir}/reabrir`, { method: "POST" });
+            await recarregar();
+            mostrarAlerta("Jornada reaberta.", "sucesso");
+        });
+        return;
+    }
+
     if (alvo.dataset.desempateMover) {
         // O painel ainda está no ecrã enquanto um pedido anterior corre, e
         // esse pedido limpa o estado a meio — sem isto, carregar numa seta
@@ -1415,6 +1520,44 @@ document.addEventListener("click", (evento) => {
             estado.desempate = null;
             await recarregar();
             mostrarAlerta("Desempate resolvido e jornada fechada.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.desempateGeralMover) {
+        // Mesma proteção que o desempate de jornada: um pedido anterior pode
+        // ter limpo o painel a meio.
+        if (!estado.desempateGeral) {
+            return;
+        }
+        const grupo = estado.desempateGeral.grupos[Number(alvo.dataset.desempateGeralGrupo)];
+        const indice = Number(alvo.dataset.desempateGeralIndice);
+        const destino = alvo.dataset.desempateGeralMover === "cima" ? indice - 1 : indice + 1;
+        if (destino < 0 || destino >= grupo.equipas.length) {
+            return;
+        }
+        [grupo.equipas[indice], grupo.equipas[destino]] = [grupo.equipas[destino], grupo.equipas[indice]];
+        desenharClassificacao(estado.detalhe.classificacao);
+        return;
+    }
+
+    if (alvo.dataset.confirmarDesempateGeral) {
+        if (!estado.desempateGeral) {
+            return;
+        }
+        alvo.disabled = true;
+        // Uma lista só, com todos os grupos por ordem: o servidor volta a
+        // ordenar por pontos, portanto isto nunca troca equipas entre grupos
+        // de pontos diferentes.
+        const ordem = estado.desempateGeral.grupos.flatMap((grupo) => grupo.equipas.map((equipa) => equipa.id));
+        executar(async () => {
+            await api(`/api/ligas/${estado.ligaId}/classificacao/desempate`, {
+                method: "PUT",
+                body: JSON.stringify({ ordem })
+            });
+            estado.desempateGeral = null;
+            await recarregar();
+            mostrarAlerta("Desempate resolvido.", "sucesso");
         });
         return;
     }

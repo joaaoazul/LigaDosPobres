@@ -1,4 +1,4 @@
-# Liga dos Pobres
+# Quota
 
 Aplicação de gestão de ligas amadoras: ligas, equipas, jornadas e classificação.
 Cada gestor tem conta própria e vê apenas as suas ligas.
@@ -267,5 +267,3 @@ correm em segundos e não precisam de base de dados.
 - Verificação de email no registo: o convite já trava o registo aberto, mas
   ninguém confirma que o email escrito está certo, e só se dá por isso quando
   faz falta recuperar a password
-- Limite de tentativas de login: hoje nada impede tentativas repetidas de
-  adivinhar uma password, além da lentidão própria do BCrypt

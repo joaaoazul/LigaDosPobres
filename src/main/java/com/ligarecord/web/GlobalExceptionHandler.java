@@ -39,6 +39,11 @@ public class GlobalExceptionHandler {
         return resposta(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(LoginBloqueadoException.class)
+    public ResponseEntity<ErroDto> loginBloqueado(LoginBloqueadoException ex) {
+        return resposta(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroDto> pedidoInvalido(IllegalArgumentException ex) {
         return resposta(HttpStatus.BAD_REQUEST, ex.getMessage());

@@ -607,6 +607,3 @@ dados de produção.
 - Verificação de email no registo. O convite já trava o registo aberto, que é o
   que a confirmação costuma proteger; o que fica por resolver é o email mal
   escrito, e para esse o remendo é o administrador corrigi-lo à mão.
-- Limitação de tentativas de login.
-- Desempate na classificação geral (hoje ordena por nome).
-- Reabrir uma jornada fechada.

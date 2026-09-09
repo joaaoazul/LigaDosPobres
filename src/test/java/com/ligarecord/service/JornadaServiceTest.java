@@ -7,6 +7,7 @@ import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoEquipa;
+import com.ligarecord.domain.enums.EstadoJornada;
 import com.ligarecord.domain.enums.EstadoLiga;
 import com.ligarecord.repository.DividaRepository;
 import com.ligarecord.repository.DividaRepositoryImpl;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -240,6 +242,57 @@ class JornadaServiceTest {
         jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
 
         assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+    }
+
+    /** Sem regra de dívida nenhuma não há bloco que possa travar a reabertura. */
+    @Test
+    void reabreAUltimaJornadaFechadaEDevolveAoEstadoAberta() {
+        Jornada jornada = abrirEPontuar(3, 2, 1);
+        jornadaService.fecharJornada(jornada);
+
+        Jornada reaberta = jornadaService.reabrirJornada(jornada);
+
+        assertEquals(EstadoJornada.ABERTA, reaberta.getEstadoJ());
+        // Volta a aceitar pontuações, como qualquer jornada aberta.
+        jornadaService.inserirResultado(reaberta, primeira, 5);
+    }
+
+    /**
+     * Reabrir uma jornada que não é a última deixava a época com um buraco no
+     * meio: jornadas mais recentes já fechadas, e mais antigas outra vez em
+     * aberto.
+     */
+    @Test
+    void naoReabreUmaJornadaQueNaoSejaAUltima() {
+        Jornada primeiraJornada = abrirEPontuar(3, 2, 1);
+        jornadaService.fecharJornada(primeiraJornada);
+
+        Jornada segundaJornada = abrirEPontuar(1, 2, 3);
+        jornadaService.fecharJornada(segundaJornada);
+
+        assertThrows(IllegalStateException.class, () -> jornadaService.reabrirJornada(primeiraJornada));
+    }
+
+    /**
+     * Uma jornada cujo bloco de dívida já fechou já tem dinheiro registado a
+     * partir dela — não há forma limpa de o devolver, por isso fica presa.
+     */
+    @Test
+    void naoReabreUmaJornadaJaIncluidaNumBlocoDeDivida() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1);
+
+        Jornada jornada = abrirEPontuar(3, 2, 1);
+        jornadaService.fecharJornada(jornada);
+
+        assertThrows(IllegalStateException.class, () -> jornadaService.reabrirJornada(jornada));
+    }
+
+    @Test
+    void naoReabreUmaJornadaAberta() {
+        Jornada jornada = abrirEPontuar(3, 2, 1);
+
+        assertThrows(IllegalStateException.class, () -> jornadaService.reabrirJornada(jornada));
     }
 
 }

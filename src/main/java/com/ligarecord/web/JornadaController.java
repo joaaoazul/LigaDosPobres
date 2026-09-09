@@ -113,6 +113,19 @@ public class JornadaController {
     }
 
     /**
+     * Devolve ao estado aberto uma jornada fechada por engano. Só funciona na
+     * última jornada da liga e antes de qualquer dinheiro sair dela — ver
+     * {@link JornadaService#reabrirJornada}.
+     */
+    @PostMapping("/{jornadaId}/reabrir")
+    @Transactional
+    public JornadaDto reabrir(@AuthenticationPrincipal GestorAutenticado autenticado,
+                              @PathVariable UUID ligaId,
+                              @PathVariable UUID jornadaId) {
+        return JornadaDto.de(jornadaService.reabrirJornada(jornada(autenticado, ligaId, jornadaId)));
+    }
+
+    /**
      * Desfaz o empate de uma jornada que ficou à espera dele. Só depois disto
      * é que a jornada fecha e conta para o bloco de dívida.
      */

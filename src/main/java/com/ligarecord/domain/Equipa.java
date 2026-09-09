@@ -38,6 +38,32 @@ public class Equipa extends EntidadeBase {
     @Column(nullable = false)
     private EstadoEquipa estado;
 
+    /**
+     * A ordem que o gestor deu a esta equipa da última vez que a desempatou
+     * na classificação geral, contra outras que tinham os mesmos pontos.
+     * {@code null} enquanto nunca tiver entrado num desempate resolvido — aí
+     * é o nome que decide, como sempre decidiu (ver
+     * {@link com.ligarecord.service.ClassificacaoService}).
+     *
+     * <p>Só vale enquanto os pontos da equipa forem os mesmos de quando foi
+     * fixado — ver {@link #ordemDesempatePontos}. Sem essa condição, um
+     * desempate resolvido a 10 pontos ficava a decidir também um empate
+     * posterior e diferente, a 15 pontos, entre equipas que nunca chegaram a
+     * ser comparadas.
+     */
+    @Column(name = "ordem_desempate")
+    private Integer ordemDesempate;
+
+    /**
+     * Os pontos acumulados da equipa no momento em que {@link #ordemDesempate}
+     * foi fixado. {@link com.ligarecord.service.ClassificacaoService} só usa
+     * a ordem enquanto os pontos de agora ainda forem estes; assim que a
+     * equipa ganhar ou perder pontos, o valor antigo deixa de se aplicar por
+     * si só, sem ser preciso limpá-lo.
+     */
+    @Column(name = "ordem_desempate_pontos")
+    private Integer ordemDesempatePontos;
+
     protected Equipa() {
         // exigido pelo Hibernate
     }
@@ -89,6 +115,22 @@ public class Equipa extends EntidadeBase {
 
     public void setEstado(EstadoEquipa estado) {
         this.estado = estado;
+    }
+
+    public Integer getOrdemDesempate() {
+        return ordemDesempate;
+    }
+
+    public void setOrdemDesempate(Integer ordemDesempate) {
+        this.ordemDesempate = ordemDesempate;
+    }
+
+    public Integer getOrdemDesempatePontos() {
+        return ordemDesempatePontos;
+    }
+
+    public void setOrdemDesempatePontos(Integer ordemDesempatePontos) {
+        this.ordemDesempatePontos = ordemDesempatePontos;
     }
 
     @Override

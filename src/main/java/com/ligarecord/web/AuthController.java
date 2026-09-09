@@ -4,6 +4,7 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.security.GestorAutenticado;
 import com.ligarecord.service.GestorService;
+import com.ligarecord.service.LimiteDeLoginService;
 import com.ligarecord.service.RecuperacaoService;
 import com.ligarecord.service.TreinadorContaService;
 import com.ligarecord.web.dto.AlterarPasswordRequest;
@@ -41,6 +42,7 @@ public class AuthController {
     private final GestorService gestorService;
     private final RecuperacaoService recuperacaoService;
     private final TreinadorContaService treinadorContaService;
+    private final LimiteDeLoginService limiteDeLoginService;
     private final GestorRepository gestorRepository;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
@@ -48,11 +50,13 @@ public class AuthController {
     public AuthController(GestorService gestorService,
                           RecuperacaoService recuperacaoService,
                           TreinadorContaService treinadorContaService,
+                          LimiteDeLoginService limiteDeLoginService,
                           GestorRepository gestorRepository,
                           AuthenticationManager authenticationManager) {
         this.gestorService = gestorService;
         this.recuperacaoService = recuperacaoService;
         this.treinadorContaService = treinadorContaService;
+        this.limiteDeLoginService = limiteDeLoginService;
         this.gestorRepository = gestorRepository;
         this.authenticationManager = authenticationManager;
     }
@@ -106,10 +110,14 @@ public class AuthController {
     public GestorDto login(@RequestBody LoginRequest pedido,
                            HttpServletRequest http,
                            HttpServletResponse resposta) {
+        // Antes de gastar um BCrypt com a password que veio: um email que já
+        // esgotou as tentativas nem chega a ser verificado.
+        limiteDeLoginService.garantirNaoBloqueado(pedido.email());
         try {
             Authentication autenticacao = autenticar(pedido.email(), pedido.password(), http, resposta);
             return GestorDto.de((GestorAutenticado) autenticacao.getPrincipal());
         } catch (AuthenticationException e) {
+            limiteDeLoginService.registarFalha(pedido.email());
             // Mensagem igual para email inexistente e password errada: não confirma
             // a quem tenta se um dado email tem conta.
             throw new CredenciaisInvalidasException("Email ou password incorretos.");

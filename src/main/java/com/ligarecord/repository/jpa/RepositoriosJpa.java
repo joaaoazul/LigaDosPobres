@@ -10,6 +10,7 @@ import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
 import com.ligarecord.domain.PedidoRecuperacao;
 import com.ligarecord.domain.RegraDivida;
+import com.ligarecord.domain.TentativaLoginFalhada;
 import com.ligarecord.domain.Treinador;
 import com.ligarecord.domain.enums.EstadoDivida;
 import com.ligarecord.repository.ConviteRepository;
@@ -22,6 +23,7 @@ import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
 import com.ligarecord.repository.PedidoRecuperacaoRepository;
 import com.ligarecord.repository.RegraDividaRepository;
+import com.ligarecord.repository.TentativaLoginRepository;
 import com.ligarecord.repository.TreinadorRepository;
 import org.springframework.stereotype.Repository;
 
@@ -338,6 +340,26 @@ public final class RepositoriosJpa {
         @Override
         public long contarDoGestorDesde(UUID gestorId, Instant desde) {
             return jpa.countByGestorIdAndCriadoEmAfter(gestorId, desde);
+        }
+    }
+
+    @Repository
+    public static class TentativasLogin implements TentativaLoginRepository {
+
+        private final TentativaLoginJpaRepository jpa;
+
+        public TentativasLogin(TentativaLoginJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public TentativaLoginFalhada guardar(TentativaLoginFalhada tentativa) {
+            return jpa.save(tentativa);
+        }
+
+        @Override
+        public long contarDoEmailDesde(String email, Instant desde) {
+            return jpa.countByEmailAndCriadoEmAfter(email, desde);
         }
     }
 }

@@ -247,6 +247,69 @@ public class JornadaService {
         return jornada;
     }
 
+    /**
+     * Devolve ao estado aberto uma jornada fechada por engano.
+     *
+     * <p>Só a última jornada da liga pode ser reaberta: reabrir uma mais
+     * antiga deixava a época com um buraco no meio, com jornadas mais
+     * recentes já fechadas a assumir resultados que deixaram de ser os
+     * finais. E só antes de qualquer dinheiro sair dela — uma jornada já
+     * incluída num bloco de dívida fechado, ou que já disparou uma cobrança
+     * de período, fica presa: não há forma limpa de devolver dinheiro já
+     * registado (o mesmo motivo que trava o fecho de uma jornada em
+     * desempate, ver {@link #fecharJornada}).
+     */
+    @Transactional
+    public Jornada reabrirJornada(Jornada jornada){
+        if(jornada == null){
+            throw new IllegalArgumentException("Não existe uma jornada válida.");
+        }
+        if(jornada.getEstadoJ() != EstadoJornada.FECHADA){
+            throw new IllegalStateException("Só é possível reabrir uma jornada fechada.");
+        }
+        if(jornada.getLiga().getEstado() != EstadoLiga.ATIVA){
+            throw new IllegalStateException("Não é possível reabrir jornadas numa liga desativada.");
+        }
+
+        Jornada ultima = jornada.getLiga().getJornadas().stream()
+                .max(Jornada.ORDEM_CRONOLOGICA)
+                .orElse(null);
+        if(!jornada.equals(ultima)){
+            throw new IllegalStateException("Só a última jornada da liga pode ser reaberta.");
+        }
+        if(jornada.isIncluidaEmBloco()){
+            throw new IllegalStateException(
+                    "Esta jornada já entrou num bloco de dívida fechado e não pode ser reaberta.");
+        }
+        if(temCobrancaDePeriodoJaCobrada(jornada)){
+            throw new IllegalStateException(
+                    "Esta jornada já disparou uma cobrança de período e não pode ser reaberta.");
+        }
+
+        jornada.setEstadoJ(EstadoJornada.ABERTA);
+        // As posições e a marca de desempate manual eram do fecho anterior;
+        // o próximo fecho (com as pontuações que forem, iguais ou não) volta
+        // a decidi-las do zero.
+        jornada.getResultadoJ().forEach(resultado -> {
+            resultado.setPosicao(0);
+            resultado.setDesempateManual(false);
+        });
+        jornadaRepository.guardar(jornada);
+
+        return jornada;
+    }
+
+    private boolean temCobrancaDePeriodoJaCobrada(Jornada jornada) {
+        if (jornada.iseTreino()) {
+            return false;
+        }
+        return regraDividaService.buscarPorLiga(jornada.getLiga())
+                .map(regra -> regra.getCobrancas().stream()
+                        .anyMatch(cobranca -> cobranca.estaCobrada()
+                                && cobranca.getJornadaOficial() == jornada.getNumJornada()))
+                .orElse(false);
+    }
+
     /** Posições por pontuação decrescente, com os empatados a partilhar a posição. */
     private void atribuirPosicoesPorPontuacao(Jornada jornada){
         List<ResultadoJornada> ordenados = new ArrayList<>(jornada.getResultadoJ());

@@ -25,6 +25,7 @@ import com.ligarecord.web.dto.CriarLigaRequest;
 import com.ligarecord.web.dto.EquipaDto;
 import com.ligarecord.web.dto.LigaDetalheDto;
 import com.ligarecord.web.dto.LigaDto;
+import com.ligarecord.web.dto.ResolverDesempateGeralRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -129,6 +131,22 @@ public class LigaController {
     public List<ClassificacaoDto> classificacao(@AuthenticationPrincipal GestorAutenticado autenticado,
                                                 @PathVariable UUID ligaId) {
         return classificacao(liga(autenticado, ligaId));
+    }
+
+    /**
+     * Fixa a ordem manual de desempate entre equipas empatadas em pontos na
+     * classificação geral. Fica a valer sempre que voltarem a empatar, não só
+     * agora — é um critério, não uma decisão de uma vez (ver
+     * {@link ClassificacaoService#aplicarDesempate}).
+     */
+    @PutMapping("/{ligaId}/classificacao/desempate")
+    @Transactional
+    public List<ClassificacaoDto> resolverDesempateGeral(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                                          @PathVariable UUID ligaId,
+                                                          @RequestBody ResolverDesempateGeralRequest pedido) {
+        Liga liga = liga(autenticado, ligaId);
+        classificacaoService.aplicarDesempate(liga, pedido.ordem()).forEach(equipaRepository::guardar);
+        return classificacao(liga);
     }
 
     /**
