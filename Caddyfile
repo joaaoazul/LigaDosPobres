@@ -20,8 +20,7 @@
 	}
 }
 
-# Substitui pelo teu domínio.
-liga.exemplo.pt {
+minhaquota.com {
 	# Certificado Origin da Cloudflare: emitido no painel, válido 15 anos, sem
 	# renovações automáticas para falhar de madrugada.
 	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
