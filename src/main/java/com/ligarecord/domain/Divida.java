@@ -19,6 +19,7 @@ import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -131,6 +132,25 @@ public class Divida extends EntidadeBase {
         }
         atualizarEstado();
         return bloco;
+    }
+
+    /**
+     * Remove um ou mais blocos lançados por engano (valor errado, bloco a
+     * mais), pagos ou não, todos de uma vez. Não repõe
+     * {@code proximoNumeroBloco}: o próximo bloco continua a seguir a
+     * numeração de sempre, para nunca repetir um número já usado por um
+     * bloco que passou por aqui.
+     *
+     * <p>Um bloco de período automático (gerado por {@code JornadaService}
+     * ao fechar jornadas suficientes) ou de uma cobrança de época (gerada
+     * por {@code CobrancaPeriodoService}) desaparece sem desmarcar a jornada
+     * ou a cobrança que o geraram — essas continuam a contar como já
+     * cobradas e não voltam a gerar bloco sozinhas. Quem apagar um bloco
+     * assim tem de lançar o valor certo à mão, à mesma.
+     */
+    public void removerBlocos(Set<UUID> blocoIds) {
+        blocos.removeIf(bloco -> blocoIds.contains(bloco.getId()));
+        atualizarEstado();
     }
 
     /**

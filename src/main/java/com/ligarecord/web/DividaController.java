@@ -11,10 +11,12 @@ import com.ligarecord.service.DividaService;
 import com.ligarecord.web.dto.BlocoDividaDto;
 import com.ligarecord.web.dto.DividaDto;
 import com.ligarecord.web.dto.RegistarBlocoRequest;
+import com.ligarecord.web.dto.RemoverBlocosRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -91,6 +93,16 @@ public class DividaController {
                                    @PathVariable UUID blocoId) {
         Equipa equipa = equipa(autenticado, ligaId, equipaId);
         return comTotal(dividaService.resolverBloco(equipa, blocoId));
+    }
+
+    @DeleteMapping("/equipas/{equipaId}/divida/blocos")
+    @Transactional
+    public DividaDto removerBlocos(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                   @PathVariable UUID ligaId,
+                                   @PathVariable UUID equipaId,
+                                   @RequestBody RemoverBlocosRequest pedido) {
+        Equipa equipa = equipa(autenticado, ligaId, equipaId);
+        return comTotal(dividaService.removerBlocos(equipa, pedido.blocoIds()));
     }
 
     @PostMapping("/equipas/{equipaId}/divida/pagar")

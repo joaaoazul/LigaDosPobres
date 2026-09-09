@@ -1080,9 +1080,14 @@ function desenharDetalheDivida() {
     }
 
     const temPendente = divida.blocos.some((bloco) => bloco.estado === "PENDENTE");
+    // Apagar é a única acção desta aba que não se desfaz (marcar pago pode
+    // ser um engano, mas o bloco continua lá); trancada numa liga terminada
+    // como as outras acções que mexem em dinheiro.
+    const leituraApenas = ligaSoDeLeitura();
 
     const linhasBlocos = divida.blocos.map((bloco) => `
         <tr>
+            <td><input type="checkbox" data-selecionar-bloco="${bloco.id}" ${leituraApenas ? "disabled" : ""}></td>
             <td class="numero">${bloco.numeroBloco}</td>
             <td>${badgeTipoBloco(bloco.tipo, bloco.nome)}</td>
             <td class="numero">${formatoMoeda(bloco.valor)}</td>
@@ -1090,6 +1095,11 @@ function desenharDetalheDivida() {
             <td class="numero">${bloco.estado === "PENDENTE"
                 ? `<button class="botao pequeno" data-pagar-bloco="${bloco.id}">Marcar pago</button>`
                 : ""}</td>
+            <td class="numero">
+                <button class="botao pequeno perigo" data-remover-bloco="${bloco.id}" ${leituraApenas ? "disabled" : ""}>
+                    Apagar
+                </button>
+            </td>
         </tr>`).join("");
 
     painel.innerHTML = `
@@ -1108,19 +1118,59 @@ function desenharDetalheDivida() {
             <div class="tabela-rolavel">
                 <table>
                     <thead>
-                        <tr><th class="numero">Nº</th><th>Tipo</th><th class="numero">Valor</th><th>Estado</th><th></th></tr>
+                        <tr><th></th><th class="numero">Nº</th><th>Tipo</th><th class="numero">Valor</th>
+                            <th>Estado</th><th></th><th></th></tr>
                     </thead>
                     <tbody>${linhasBlocos}</tbody>
                 </table>
             </div>
             <div class="barra-acoes depois">
+                <button class="botao perigo" data-apagar-selecionados="1" disabled>
+                    Apagar selecionados (0)
+                </button>
                 <button class="botao primario" data-pagar-tudo="${equipa.id}" ${temPendente ? "" : "disabled"}>
                     Marcar tudo pago
                 </button>
             </div>` : `<p class="ajuda">Ainda não há blocos registados.</p>`}`;
 }
 
+/* O botão "Apagar selecionados" não é redesenhado a cada checkbox (isso
+   desmarcava todas as outras: o estado de "marcado" vive só no DOM, não em
+   `estado`, de propósito — assim não há nada para voltar a sincronizar
+   quando se muda de equipa ou de liga). Só o rótulo/estado do botão mudam. */
+function atualizarBotaoApagarSelecionados() {
+    const botao = document.querySelector("[data-apagar-selecionados]");
+    if (!botao) {
+        return;
+    }
+    const n = document.querySelectorAll("[data-selecionar-bloco]:checked").length;
+    botao.textContent = `Apagar selecionados (${n})`;
+    botao.disabled = n === 0 || ligaSoDeLeitura();
+}
+
 /* --------------------------------------------------------------- ações ---- */
+
+/* Apaga um ou vários blocos de uma vez — usada tanto pelo "Apagar" de uma
+   linha como pelo "Apagar selecionados", que só diferem na lista de ids e na
+   mensagem. Um pedido só ao servidor: tudo ou nada lá dentro, sem ficar com
+   metade apagado se um dos ids for inválido. */
+function apagarBlocos(botao, ids, mensagemSucesso) {
+    if (!ids.length) {
+        return;
+    }
+    if (!confirm(`Apagar ${plural(ids.length, "bloco", "blocos")}? Não é possível desfazer.`)) {
+        return;
+    }
+    executarNoBotao(botao, async () => {
+        const equipaId = estado.equipaDividaId;
+        await api(`/api/ligas/${estado.ligaId}/equipas/${equipaId}/divida/blocos`, {
+            method: "DELETE",
+            body: JSON.stringify({ blocoIds: ids })
+        });
+        await recarregar();
+        mostrarAlerta(mensagemSucesso, "sucesso");
+    });
+}
 
 /* Lançar uma jornada é escrever vinte números seguidos, e é a coisa que mais
    se faz nesta aplicação. Por isso o Enter grava, e o cursor salta sozinho
@@ -1402,6 +1452,7 @@ document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
         "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], [data-reabrir], " +
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
+        "[data-selecionar-bloco], [data-remover-bloco], [data-apagar-selecionados], " +
         "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
         "[data-copiar-convites], [data-fechar-convites], " +
         "[data-remover-cobranca], [data-cobranca-mover], [data-cobranca-confirmar], " +
@@ -1566,6 +1617,23 @@ document.addEventListener("click", (evento) => {
         estado.equipaDividaId = alvo.dataset.equipaDivida;
         desenharListaEquipasDivida();
         desenharDetalheDivida();
+        return;
+    }
+
+    if (alvo.dataset.selecionarBloco) {
+        atualizarBotaoApagarSelecionados();
+        return;
+    }
+
+    if (alvo.dataset.removerBloco) {
+        apagarBlocos(alvo, [alvo.dataset.removerBloco], "Bloco apagado.");
+        return;
+    }
+
+    if (alvo.dataset.apagarSelecionados) {
+        const ids = [...document.querySelectorAll("[data-selecionar-bloco]:checked")]
+            .map((caixa) => caixa.dataset.selecionarBloco);
+        apagarBlocos(alvo, ids, "Blocos apagados.");
         return;
     }
 

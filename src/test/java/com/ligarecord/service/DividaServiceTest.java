@@ -173,6 +173,90 @@ class DividaServiceTest {
         assertEquals(BigDecimal.ZERO, dividaService.calcularTotalDivida(divida));
     }
 
+    /** O caso de uso: um bloco lançado por engano (valor errado, a mais). */
+    @Test
+    void removerBlocosTiraOBlocoDaDivida() {
+        BlocoDivida primeiro = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+        dividaService.registarBloco(equipa, new BigDecimal("2.00"));
+
+        Divida divida = dividaService.removerBlocos(equipa, List.of(primeiro.getId()));
+
+        assertEquals(1, divida.getBlocos().size());
+        assertEquals(new BigDecimal("2.00"), dividaService.calcularTotalDivida(divida));
+    }
+
+    /** O caso "seleccionar várias linhas": tudo de uma vez, não bloco a bloco. */
+    @Test
+    void removerVariosBlocosDeUmaVez() {
+        BlocoDivida primeiro = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+        BlocoDivida segundo = dividaService.registarBloco(equipa, new BigDecimal("2.00"));
+        dividaService.registarBloco(equipa, new BigDecimal("3.00"));
+
+        Divida divida = dividaService.removerBlocos(equipa, List.of(primeiro.getId(), segundo.getId()));
+
+        assertEquals(1, divida.getBlocos().size());
+        assertEquals(new BigDecimal("3.00"), dividaService.calcularTotalDivida(divida));
+    }
+
+    /** Um bloco já pago também se pode desfazer — a correcção não olha ao estado. */
+    @Test
+    void removerBlocoJaPagoTambemFunciona() {
+        BlocoDivida unico = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+        dividaService.resolverBloco(equipa, unico.getId());
+
+        Divida divida = dividaService.removerBlocos(equipa, List.of(unico.getId()));
+
+        assertTrue(divida.getBlocos().isEmpty());
+        assertEquals(EstadoDivida.RESOLVIDA, divida.getEstado());
+    }
+
+    @Test
+    void removerOUltimoBlocoDeixaADividaResolvida() {
+        BlocoDivida unico = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+
+        Divida divida = dividaService.removerBlocos(equipa, List.of(unico.getId()));
+
+        assertEquals(EstadoDivida.RESOLVIDA, divida.getEstado());
+    }
+
+    /** Tudo ou nada: um id que não existe não pode apagar os outros à mesma. */
+    @Test
+    void naoDeveRemoverNadaSeUmDosBlocosNaoExistir() {
+        BlocoDivida real = dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+
+        assertThrows(
+                RecursoNaoEncontradoException.class,
+                () -> dividaService.removerBlocos(equipa, List.of(real.getId(), UUID.randomUUID())));
+
+        Divida divida = dividaRepository.buscarPorEquipa(equipa).orElseThrow();
+        assertEquals(1, divida.getBlocos().size());
+    }
+
+    @Test
+    void naoDeveRemoverBlocoInexistente() {
+        dividaService.registarBloco(equipa, new BigDecimal("1.00"));
+
+        assertThrows(
+                RecursoNaoEncontradoException.class,
+                () -> dividaService.removerBlocos(equipa, List.of(UUID.randomUUID())));
+    }
+
+    @Test
+    void naoDeveRemoverBlocoDeEquipaSemDivida() {
+        Equipa outra = new Equipa(UUID.randomUUID(), "Sem dívida", treinador, liga, EstadoEquipa.ATIVA);
+
+        assertThrows(
+                RecursoNaoEncontradoException.class,
+                () -> dividaService.removerBlocos(outra, List.of(UUID.randomUUID())));
+    }
+
+    @Test
+    void naoDeveRemoverSemIndicarBlocos() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> dividaService.removerBlocos(equipa, List.of()));
+    }
+
     /** O caso central: o treinador vê as dívidas de todas as equipas que treina, em qualquer liga. */
     @Test
     void listaDividasDeTodasAsEquipasDoTreinador() {

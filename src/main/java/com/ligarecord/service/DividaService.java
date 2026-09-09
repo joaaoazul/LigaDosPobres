@@ -18,10 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Dívidas de equipas, acumuladas em blocos. Sem {@link RegraDivida} definida
@@ -143,6 +146,28 @@ public class DividaService {
 
         bloco.marcarResolvido();
         divida.atualizarEstado();
+        return dividaRepository.guardarDivida(divida);
+    }
+
+    /**
+     * Remove um ou mais blocos da dívida da equipa de uma só vez — para
+     * desfazer blocos lançados por engano (valor errado, bloco a mais),
+     * pagos ou não. Tudo ou nada: se algum id não pertencer a esta dívida,
+     * nada é removido (ver {@link Divida#removerBlocos} para a ressalva
+     * sobre blocos automáticos).
+     */
+    @Transactional
+    public Divida removerBlocos(Equipa equipa, List<UUID> blocoIds) {
+        if (blocoIds == null || blocoIds.isEmpty()) {
+            throw new IllegalArgumentException("Indica pelo menos um bloco para remover.");
+        }
+        Divida divida = buscarDividaOuFalhar(equipa);
+        Set<UUID> pedidos = new HashSet<>(blocoIds);
+        Set<UUID> existentes = divida.getBlocos().stream().map(BlocoDivida::getId).collect(Collectors.toSet());
+        if (!existentes.containsAll(pedidos)) {
+            throw new RecursoNaoEncontradoException("Bloco não encontrado.");
+        }
+        divida.removerBlocos(pedidos);
         return dividaRepository.guardarDivida(divida);
     }
 
