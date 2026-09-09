@@ -39,6 +39,9 @@ services:
       FORWARD_HEADERS: framework
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      EMAIL_CHAVE: ${EMAIL_CHAVE:-}
+      EMAIL_REMETENTE: ${EMAIL_REMETENTE:-}
+      APP_URL: ${APP_URL:-}
     # Só escuta em localhost: quem fala com a aplicação é o proxy, na mesma
     # máquina. A porta 8080 nunca fica exposta à internet.
     ports:
