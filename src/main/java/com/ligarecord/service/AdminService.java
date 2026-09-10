@@ -104,6 +104,21 @@ public class AdminService {
     }
 
     /**
+     * Corrige o nome de uma conta. Só o admin faz isto — ao contrário do
+     * nome de uma equipa ou de um treinador, que o próprio gestor gere sem
+     * precisar de ninguém, o nome da conta é identidade de quem entra, e é
+     * o admin que a garante.
+     */
+    @Transactional
+    public Gestor alterarNome(UUID adminId, UUID gestorId, String nome) {
+        Gestor gestor = buscar(gestorId);
+        verificarNaoEProprio(adminId, gestorId, "nome");
+
+        gestor.setNome(RegrasDeConta.nomeValidado(nome));
+        return gestorRepository.guardar(gestor);
+    }
+
+    /**
      * Rede redundante. Quem administra não pode mexer na própria conta, logo há
      * sempre pelo menos dois administradores ativos no momento em que um age
      * sobre o outro, e esta condição não chega a verificar-se. Fica como defesa

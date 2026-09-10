@@ -154,4 +154,58 @@ class LigaServiceTest {
 
         assertTrue(dividaService.buscarPorEquipa(equipa).isEmpty());
     }
+
+    @Test
+    void deveAlterarNomeDaEquipa() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+        Equipa equipa = new Equipa(UUID.randomUUID(), "Equipa de Teste",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipa);
+
+        Equipa resultado = ligaService.alterarNomeEquipa(liga, equipa, "Equipa Renomeada");
+
+        assertEquals("Equipa Renomeada", resultado.getNome());
+        assertEquals("Equipa Renomeada", equipa.getNome());
+    }
+
+    @Test
+    void deveAceitarRenomearParaOMesmoNome() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+        Equipa equipa = new Equipa(UUID.randomUUID(), "Equipa de Teste",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipa);
+
+        Equipa resultado = ligaService.alterarNomeEquipa(liga, equipa, "Equipa de Teste");
+
+        assertEquals("Equipa de Teste", resultado.getNome());
+    }
+
+    @Test
+    void naoDeveAlterarNomeDaEquipaParaVazio() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+        Equipa equipa = new Equipa(UUID.randomUUID(), "Equipa de Teste",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipa);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> ligaService.alterarNomeEquipa(liga, equipa, "")
+        );
+    }
+
+    @Test
+    void naoDeveAlterarNomeDaEquipaParaNomeJaUsadoNaLiga() {
+        Liga liga = ligaService.criarLiga(gestor, "Liga dos Pobres", 10);
+        Equipa equipaA = new Equipa(UUID.randomUUID(), "Equipa A",
+                new Treinador(UUID.randomUUID(), "João Azul"), null, EstadoEquipa.ATIVA);
+        Equipa equipaB = new Equipa(UUID.randomUUID(), "Equipa B",
+                new Treinador(UUID.randomUUID(), "Outro Treinador"), null, EstadoEquipa.ATIVA);
+        ligaService.adicionarEquipa(liga, equipaA);
+        ligaService.adicionarEquipa(liga, equipaB);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> ligaService.alterarNomeEquipa(liga, equipaB, "equipa a")
+        );
+    }
 }

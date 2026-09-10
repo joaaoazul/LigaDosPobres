@@ -149,6 +149,10 @@ function desenharGestores() {
                                 <button class="botao pequeno" data-email="${g.id}"
                                         data-email-atual="${texto(g.email)}">
                                     Corrigir email
+                                </button>
+                                <button class="botao pequeno" data-nome="${g.id}"
+                                        data-nome-atual="${texto(g.nome)}">
+                                    Corrigir nome
                                 </button>`}
                         </td>
                     </tr>`;
@@ -195,7 +199,7 @@ $("#btn-sair").addEventListener("click", () => {
 
 document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
-        "[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas], [data-email]");
+        "[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas], [data-email], [data-nome]");
     if (!alvo) {
         return;
     }
@@ -281,6 +285,22 @@ document.addEventListener("click", (evento) => {
             });
             await carregar();
             mostrarAlerta("Email alterado. A sessão dessa conta terminou.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.nome) {
+        const novo = prompt("Nome novo para esta conta:", alvo.dataset.nomeAtual);
+        if (novo === null || novo.trim() === "" || novo.trim() === alvo.dataset.nomeAtual) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/admin/gestores/${alvo.dataset.nome}`, {
+                method: "PATCH",
+                body: JSON.stringify({ nome: novo.trim() })
+            });
+            await carregar();
+            mostrarAlerta("Nome alterado.", "sucesso");
         });
     }
 });

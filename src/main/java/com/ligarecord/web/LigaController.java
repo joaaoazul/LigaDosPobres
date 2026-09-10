@@ -18,6 +18,7 @@ import com.ligarecord.service.DividaService;
 import com.ligarecord.service.TreinadorService;
 import com.ligarecord.service.LigaService;
 import com.ligarecord.web.dto.AdicionarEquipaRequest;
+import com.ligarecord.web.dto.AlterarEquipaRequest;
 import com.ligarecord.web.dto.AlterarLigaRequest;
 import com.ligarecord.web.dto.AlterarTreinadorRequest;
 import com.ligarecord.web.dto.ClassificacaoDto;
@@ -212,6 +213,22 @@ public class LigaController {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipa não encontrada."));
         return EquipaDto.deParaGestor(ligaService.registarDesistencia(liga, equipa),
                 pendenteDaEquipa(ligaId, equipaId));
+    }
+
+    /**
+     * Corrige o nome da equipa em si — distinto de {@link #alterarTreinador},
+     * que muda o nome do lugar de treinador.
+     */
+    @PatchMapping("/{ligaId}/equipas/{equipaId}")
+    @Transactional
+    public EquipaDto alterarEquipa(@AuthenticationPrincipal GestorAutenticado autenticado,
+                                   @PathVariable UUID ligaId,
+                                   @PathVariable UUID equipaId,
+                                   @RequestBody AlterarEquipaRequest pedido) {
+        Liga liga = liga(autenticado, ligaId);
+        Equipa equipa = equipa(autenticado, ligaId, equipaId);
+        ligaService.alterarNomeEquipa(liga, equipa, pedido.nome());
+        return EquipaDto.deParaGestor(equipa, pendenteDaEquipa(ligaId, equipaId));
     }
 
     /**

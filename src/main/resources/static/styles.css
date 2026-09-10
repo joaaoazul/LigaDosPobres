@@ -725,17 +725,20 @@ tbody tr:last-child td { border-bottom: none; }
 
 td.numero, th.numero { text-align: right; }
 
-/* Uma célula com o nome e, por baixo, o email. Sem isto o nome, o botão de
-   editar e o email eram três coisas soltas na mesma linha de texto, e a
-   linha partia-se onde calhava: "sem" no fim de uma linha e "email" no
-   princípio da seguinte. */
-.celula-treinador .nome-treinador {
+/* Um nome com o botão de o editar ao lado. Sem isto os dois são coisas soltas
+   na mesma linha de texto, que se parte onde calhar e deixa o botão pendurado
+   na linha de base. Usada na coluna da equipa e na do treinador, que ficam
+   lado a lado na mesma tabela e têm de alinhar da mesma maneira. */
+.nome-com-acao {
     display: flex;
     align-items: center;
     gap: var(--e2);
     flex-wrap: wrap;
 }
 
+/* O email do treinador vai por baixo do nome, e não a seguir ao botão: solto
+   na mesma linha, partia-se onde calhava — "sem" no fim de uma linha e
+   "email" no princípio da seguinte. */
 .celula-treinador .email-treinador {
     display: block;
     margin-top: 2px;

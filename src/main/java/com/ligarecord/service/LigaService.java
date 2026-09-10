@@ -111,6 +111,36 @@ public class LigaService {
 
     }
 
+    /**
+     * Corrige o nome de uma equipa já inscrita — gralhas de escrita ou o nome
+     * a sério da equipa a mudar de época para época. O gestor faz isto sem
+     * precisar do admin: é dono da liga, o nome é dele para gerir.
+     */
+    @Transactional
+    public Equipa alterarNomeEquipa(Liga liga, Equipa equipa, String nome){
+        if(liga == null){
+            throw new IllegalArgumentException("A liga é obrigatória.");
+        }
+        if(equipa == null){
+            throw new IllegalArgumentException("A equipa é obrigatória.");
+        }
+        String nomeValidado = RegrasDeConta.textoValidado(nome, RegrasDeConta.MAXIMO_NOME, "O nome da equipa");
+
+        // A mesma regra de adicionarEquipa: duas equipas com o mesmo nome na
+        // mesma liga tornam a classificação e as jornadas ambíguas. Exclui a
+        // própria equipa, senão renomear sem mudar de nome rebentava sempre.
+        boolean nomeRepetido = liga.getEquipas().stream()
+                .filter(existente -> !existente.equals(equipa))
+                .anyMatch(existente -> existente.getNome().equalsIgnoreCase(nomeValidado));
+        if (nomeRepetido) {
+            throw new IllegalStateException("Já existe uma equipa com este nome nesta liga.");
+        }
+
+        equipa.setNome(nomeValidado);
+        equipaRepository.guardar(equipa);
+        return equipa;
+    }
+
     @Transactional
     public Equipa registarDesistencia(Liga liga, Equipa equipa){
         if(liga == null){

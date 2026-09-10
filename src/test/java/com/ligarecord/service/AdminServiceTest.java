@@ -168,4 +168,26 @@ class AdminServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> adminService.alterarEmail(admin.getId(), admin.getId(), "outro@exemplo.pt"));
     }
+
+    /* ----------------------------------------------------- correcao de nome --- */
+
+    @Test
+    void deveCorrigirONomeDeOutraConta() {
+        Gestor resultado = adminService.alterarNome(admin.getId(), gestor.getId(), "  Nome Novo  ");
+
+        assertEquals("Nome Novo", resultado.getNome());
+    }
+
+    @Test
+    void naoDeveCorrigirParaUmNomeVazio() {
+        assertThrows(IllegalArgumentException.class,
+                () -> adminService.alterarNome(admin.getId(), gestor.getId(), "   "));
+    }
+
+    /** Igual ao email, estado e papel: o admin não mexe na própria conta. */
+    @Test
+    void naoDeveCorrigirONomeDaPropriaConta() {
+        assertThrows(IllegalStateException.class,
+                () -> adminService.alterarNome(admin.getId(), admin.getId(), "Outro Nome"));
+    }
 }

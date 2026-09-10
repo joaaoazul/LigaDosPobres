@@ -555,9 +555,18 @@ function desenharEquipas(equipas, desativada) {
             <tbody>
                 ${equipas.map((equipa) => `
                     <tr class="${equipa.estado === "DESISTENTE" ? "linha-desistente" : ""}">
-                        <td><strong>${texto(equipa.nome)}</strong></td>
+                        <td>
+                            <div class="nome-com-acao">
+                                <strong>${texto(equipa.nome)}</strong>
+                                <button class="botao pequeno" data-editar-equipa="${equipa.id}"
+                                    data-nome-equipa="${texto(equipa.nome)}"
+                                    ${desativada ? "disabled" : ""}>
+                                    Editar
+                                </button>
+                            </div>
+                        </td>
                         <td class="celula-treinador">
-                            <div class="nome-treinador">
+                            <div class="nome-com-acao">
                                 <span>${texto(equipa.treinador)}</span>
                                 <button class="botao pequeno" data-editar-treinador="${equipa.id}"
                                     data-nome-treinador="${texto(equipa.treinador)}"
@@ -1453,7 +1462,7 @@ document.addEventListener("click", (evento) => {
         "[data-liga], [data-jornada], [data-desistencia], [data-guardar], [data-fechar], [data-reabrir], " +
         "[data-equipa-divida], [data-pagar-bloco], [data-pagar-tudo], [data-convidar-treinador], " +
         "[data-selecionar-bloco], [data-remover-bloco], [data-apagar-selecionados], " +
-        "[data-revogar-convite], [data-editar-treinador], [data-desligar-conta], " +
+        "[data-revogar-convite], [data-editar-equipa], [data-editar-treinador], [data-desligar-conta], " +
         "[data-copiar-convites], [data-fechar-convites], " +
         "[data-remover-cobranca], [data-cobranca-mover], [data-cobranca-confirmar], " +
         "[data-desempate-mover], [data-confirmar-desempate], " +
@@ -1691,6 +1700,22 @@ document.addEventListener("click", (evento) => {
                 { method: "DELETE" });
             await recarregar();
             mostrarAlerta("Convite revogado.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.editarEquipa) {
+        const nome = prompt("Nome da equipa:", alvo.dataset.nomeEquipa || "");
+        if (nome === null || !nome.trim() || nome.trim() === alvo.dataset.nomeEquipa) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/ligas/${estado.ligaId}/equipas/${alvo.dataset.editarEquipa}`, {
+                method: "PATCH",
+                body: JSON.stringify({ nome: nome.trim() })
+            });
+            await recarregar();
+            mostrarAlerta("Equipa renomeada.", "sucesso");
         });
         return;
     }
