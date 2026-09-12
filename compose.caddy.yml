@@ -20,9 +20,21 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
+    # Este Caddy é o único que pode ter as portas 80 e 443 nesta máquina, por
+    # isso serve também o que mais lá viver. A rede "default" é a do próprio
+    # compose, por onde fala com o "app"; a "web" é partilhada com as outras
+    # stacks, e é por ela que alcança os contentores delas pelo nome.
+    networks:
+      - default
+      - web
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
+
+networks:
+  # Criada à parte, fora de qualquer stack: docker network create web
+  web:
+    external: true
 
 volumes:
   caddy_data:

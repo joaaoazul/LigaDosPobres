@@ -51,3 +51,50 @@ minhaquota.com {
 		}
 	}
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EscalasPT — gestão de escalas de turnos. Stack à parte (/opt/escalasPT), com
+# a sua própria base de dados; só partilha este Caddy, porque as portas 80 e
+# 443 são de quem cá chegou primeiro.
+#
+# Alcançado pelo nome do contentor através da rede "web" (ver compose.caddy.yml).
+# Por localhost não dava: dentro deste contentor, localhost é este contentor, e
+# a porta do escalasPT está presa ao 127.0.0.1 do anfitrião.
+#
+# Ao contrário do minhaquota.com, este domínio aponta direto para o servidor,
+# sem a Cloudflare pelo meio — por isso não leva certificado Origin, o Caddy
+# trata dele sozinho por Let's Encrypt.
+# ─────────────────────────────────────────────────────────────────────────────
+
+escalas.joaoazul.dev {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# O nginx da stack do escalasPT serve o frontend já construído e encaminha
+	# /api e /ws. É ele que põe a Content-Security-Policy, por isso não se
+	# repete aqui.
+	reverse_proxy escalaspt-nginx:80 {
+		# Sobrescrever, nunca acrescentar: por omissão o Caddy mantém o
+		# X-Forwarded-For que o cliente enviou e junta-lhe o par, o que
+		# deixaria qualquer um escolher o endereço que o nginx e a API usam
+		# para decidir quem está a ser limitado.
+		header_up X-Forwarded-For {client_ip}
+
+		health_uri /api/health
+		health_interval 30s
+	}
+
+	log {
+		output file /var/log/caddy/escalaspt.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}
