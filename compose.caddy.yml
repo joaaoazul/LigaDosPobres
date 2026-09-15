@@ -18,6 +18,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./certs:/etc/caddy/certs:ro
       - ./status:/srv/status:ro
+      - ./certbot-webroot:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/caddy/letsencrypt:ro
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy

@@ -60,15 +60,22 @@ minhaquota.com {
 # (DNS-only), por isso o Caddy trata do certificado sozinho por Let's Encrypt.
 # ─────────────────────────────────────────────────────────────────────────────
 
-status.minhaquota.com {
-	# Sem isto, o Caddy vê o certificado Origin da Cloudflare (que cobre
-	# *.minhaquota.com, carregado no bloco acima) como "já serve" e nunca
-	# pede um Let's Encrypt a sério — só que esse Origin cert só é válido
-	# para o troço Cloudflare→origem, não para quem acede direto (DNS-only).
-	tls {
-		issuer acme
+# O Caddy nunca gere sozinho um certificado para um subdomínio de
+# minhaquota.com (o Origin cert de *.minhaquota.com, carregado acima, faz
+# o Caddy achar que "já está coberto" e nunca pedir um Let's Encrypt a
+# sério). Por isso o certificado de status.minhaquota.com vem de um
+# certbot à parte, por webroot — este bloco em HTTP simples é só para
+# responder ao desafio, sem passar pelo redirecionamento automático para
+# HTTPS que já existe para tudo o resto.
+http://status.minhaquota.com {
+	handle /.well-known/acme-challenge/* {
+		root * /var/www/certbot
+		file_server
 	}
+	respond 404
+}
 
+status.minhaquota.com {
 	basic_auth {
 		admin $2a$14$22Dfc1N.DrXbHq44opOT7OFiKyxlULwz6CU.lJFPgGTT0IBK2fxxK
 	}
