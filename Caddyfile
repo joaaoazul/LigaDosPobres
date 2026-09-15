@@ -61,6 +61,14 @@ minhaquota.com {
 # ─────────────────────────────────────────────────────────────────────────────
 
 status.minhaquota.com {
+	# Sem isto, o Caddy vê o certificado Origin da Cloudflare (que cobre
+	# *.minhaquota.com, carregado no bloco acima) como "já serve" e nunca
+	# pede um Let's Encrypt a sério — só que esse Origin cert só é válido
+	# para o troço Cloudflare→origem, não para quem acede direto (DNS-only).
+	tls {
+		issuer acme
+	}
+
 	basic_auth {
 		admin $2a$14$22Dfc1N.DrXbHq44opOT7OFiKyxlULwz6CU.lJFPgGTT0IBK2fxxK
 	}
