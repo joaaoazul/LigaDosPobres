@@ -53,6 +53,37 @@ minhaquota.com {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Painel de estado só para administração: mostra se a app/BD/Caddy estão de
+# pé e quando foi o último backup (local e no R2). Gerado por
+# scripts/status.sh no cron, servido como ficheiro estático — continua a
+# responder mesmo que a app Spring esteja em baixo. Sem Cloudflare pelo meio
+# (DNS-only), por isso o Caddy trata do certificado sozinho por Let's Encrypt.
+# ─────────────────────────────────────────────────────────────────────────────
+
+status.minhaquota.com {
+	basic_auth {
+		admin $2a$14$22Dfc1N.DrXbHq44opOT7OFiKyxlULwz6CU.lJFPgGTT0IBK2fxxK
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	root * /srv/status
+	file_server
+
+	log {
+		output file /var/log/caddy/status.log {
+			roll_size 5mb
+			roll_keep 3
+		}
+	}
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # EscalasPT — gestão de escalas de turnos. Stack à parte (/opt/escalasPT), com
 # a sua própria base de dados; só partilha este Caddy, porque as portas 80 e
 # 443 são de quem cá chegou primeiro.
@@ -66,10 +97,66 @@ minhaquota.com {
 # trata dele sozinho por Let's Encrypt.
 # ─────────────────────────────────────────────────────────────────────────────
 
-escalas.joaoazul.dev {
+# DESATIVADO temporariamente: o escalasPT foi parado para libertar o
+# servidor para o Tacho. Os contentores e os volumes continuam la
+# (/opt/escalasPT/deploy). Para voltar: descomentar isto, recarregar o
+# Caddy e correr docker compose -f docker-compose.prod.yml start.
+# escalas.joaoazul.dev {
+# 	encode zstd gzip
+#
+# 	header {
+# 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+# 		X-Content-Type-Options "nosniff"
+# 		X-Frame-Options "DENY"
+# 		Referrer-Policy "strict-origin-when-cross-origin"
+# 		-Server
+# 	}
+#
+# 	# O nginx da stack do escalasPT serve o frontend já construído e encaminha
+# 	# /api e /ws. É ele que põe a Content-Security-Policy, por isso não se
+# 	# repete aqui.
+# 	reverse_proxy escalaspt-nginx:80 {
+# 		# Sobrescrever, nunca acrescentar: por omissão o Caddy mantém o
+# 		# X-Forwarded-For que o cliente enviou e junta-lhe o par, o que
+# 		# deixaria qualquer um escolher o endereço que o nginx e a API usam
+# 		# para decidir quem está a ser limitado.
+# 		header_up X-Forwarded-For {client_ip}
+#
+# 		health_uri /api/health
+# 		health_interval 30s
+# 	}
+#
+# 	log {
+# 		output file /var/log/caddy/escalaspt.log {
+# 			roll_size 10mb
+# 			roll_keep 3
+# 		}
+# 	}
+# }
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Tacho — receitas, plano semanal e lista de compras. Stack à parte
+# (/opt/tacho), com a sua própria base de dados; só partilha este Caddy, porque
+# as portas 80 e 443 são de quem cá chegou primeiro.
+#
+# Alcançado pelo nome do contentor através da rede "web". Ao contrário do
+# minhaquota.com, este domínio aponta direto para o servidor, sem a Cloudflare
+# pelo meio, por isso o Caddy trata do certificado sozinho por Let's Encrypt.
+#
+# Aqui não há nginx à frente: o próprio Spring serve o React a partir do jar, e
+# é ele que responde tanto à API como aos ecrãs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+tacho.joaoazul.dev {
 	encode zstd gzip
 
 	header {
+		# Mais frouxa do que a do minhaquota.com em dois pontos, e ambos são
+		# deliberados: o 'unsafe-inline' nos estilos é preciso porque o React
+		# usa atributos style em muitos sítios, e os domínios da Google são
+		# para os tipos de letra que a folha de estilos importa. O resto fica
+		# estrito — nada de scripts de fora, nada de ser metido num iframe.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
@@ -77,22 +164,34 @@ escalas.joaoazul.dev {
 		-Server
 	}
 
-	# O nginx da stack do escalasPT serve o frontend já construído e encaminha
-	# /api e /ws. É ele que põe a Content-Security-Policy, por isso não se
-	# repete aqui.
-	reverse_proxy escalaspt-nginx:80 {
-		# Sobrescrever, nunca acrescentar: por omissão o Caddy mantém o
-		# X-Forwarded-For que o cliente enviou e junta-lhe o par, o que
-		# deixaria qualquer um escolher o endereço que o nginx e a API usam
-		# para decidir quem está a ser limitado.
+	reverse_proxy tacho-app:8080 {
+		# Sobrescrever os tres, nunca acrescentar. A aplicacao corre com
+		# forward-headers-strategy=framework, ou seja acredita no que lhe
+		# disserem: medido, um X-Forwarded-Proto: https enviado diretamente ao
+		# contentor faz o cookie CSRF sair marcado Secure. Hoje nao e
+		# exploravel de fora porque o Caddy sobrepoe estes valores, mas isso e
+		# um comportamento por omissao dele e nao uma garantia nossa. Fixados
+		# aqui, passa a ser.
 		header_up X-Forwarded-For {client_ip}
+		# O Proto e o Host nao levam header_up: o Caddy ja os sobrepoe com os
+		# valores reais (medido — um X-Forwarded-Proto forjado pelo cliente nao
+		# chega a aplicacao), e fixa-los so acrescentava um aviso a cada
+		# recarregamento. Se algum dia algo falar com o tacho-app sem passar por
+		# aqui, o que o protege e nao estar publicado fora da rede web, nao esta
+		# configuracao.
 
-		health_uri /api/health
-		health_interval 30s
+		health_uri /actuator/health
+		# 5s e nao 30s, e com lb_try_duration: quando a aplicacao e recriada num
+		# deploy, o verificador marcava-a em baixo e so reavaliava meio minuto
+		# depois — meio minuto de 503 a cada atualizacao. Assim o pedido que
+		# chega nesse intervalo espera uns segundos em vez de falhar.
+		health_interval 5s
+		lb_try_duration 5s
+		lb_try_interval 500ms
 	}
 
 	log {
-		output file /var/log/caddy/escalaspt.log {
+		output file /var/log/caddy/tacho.log {
 			roll_size 10mb
 			roll_keep 3
 		}
