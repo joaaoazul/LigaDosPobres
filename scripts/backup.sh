@@ -33,6 +33,18 @@ fi
 
 find "$DESTINO" -name 'ligadospobres-*.sql.gz' -mtime "+$DIAS_A_MANTER" -delete
 
+# Cópia offsite: um backup que vive só no mesmo disco da VPS não sobrevive a
+# perder a VPS. O remote "r2" é configurado uma vez no servidor
+# (rclone config create r2 s3 ...), fora deste repositório.
+R2_BUCKET="${R2_BUCKET:-r2:minhaquota-backups}"
+if command -v rclone >/dev/null 2>&1 && rclone listremotes 2>/dev/null | grep -q '^r2:'; then
+    if rclone copy "$ficheiro" "$R2_BUCKET" --quiet; then
+        echo "$(date --iso-8601=seconds) backup enviado para $R2_BUCKET"
+    else
+        echo "AVISO: falhou o upload para $R2_BUCKET (backup local mantido)" >&2
+    fi
+fi
+
 echo "$(date --iso-8601=seconds) backup ok: $ficheiro ($((tamanho / 1024)) KB)"
 
 # Restaurar:
