@@ -57,7 +57,8 @@ minhaquota.com {
 # pé e quando foi o último backup (local e no R2). Gerado por
 # scripts/status.sh no cron, servido como ficheiro estático — continua a
 # responder mesmo que a app Spring esteja em baixo. Sem Cloudflare pelo meio
-# (DNS-only), por isso o Caddy trata do certificado sozinho por Let's Encrypt.
+# (DNS-only). Certificado próprio via certbot (ver bloco HTTP abaixo), não
+# gerido automaticamente pelo Caddy.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # O Caddy nunca gere sozinho um certificado para um subdomínio de
@@ -76,6 +77,9 @@ http://status.minhaquota.com {
 }
 
 status.minhaquota.com {
+	tls /etc/caddy/letsencrypt/live/status.minhaquota.com/fullchain.pem \
+		/etc/caddy/letsencrypt/live/status.minhaquota.com/privkey.pem
+
 	basic_auth {
 		admin $2a$14$22Dfc1N.DrXbHq44opOT7OFiKyxlULwz6CU.lJFPgGTT0IBK2fxxK
 	}
