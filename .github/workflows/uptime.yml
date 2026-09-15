@@ -1,0 +1,23 @@
+name: Uptime minhaquota.com
+
+# Corre nos servidores do GitHub, não na VPS: continua a verificar mesmo se
+# o servidor todo ficar em baixo. Um job falhado gera automaticamente um
+# email do GitHub para quem geriu este workflow, sem configuração extra.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedir a página de login
+        run: |
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://minhaquota.com/)
+          echo "HTTP $codigo"
+          if [ "$codigo" -lt 200 ] || [ "$codigo" -ge 400 ]; then
+            echo "minhaquota.com respondeu com código $codigo"
+            exit 1
+          fi
