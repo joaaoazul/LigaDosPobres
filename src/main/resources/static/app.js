@@ -1879,6 +1879,24 @@ async function iniciar() {
         $("#aviso-sem-permissao").classList.remove("oculto");
     }
     await carregarLigas();
+
+    // Quem entra por um convite de treinador não gere liga nenhuma, e esta é a
+    // página de quem gere. O que via era uma lista vazia com um aviso a dizer
+    // que a conta não pode criar ligas — que, a quem só quer ver o que deve,
+    // se lê como "não tens acesso a nada". O caminho para as dívidas era um
+    // botão pequeno no cabeçalho, no meio de outros quatro.
+    //
+    // Só quem não gere nenhuma liga E não pode criar nenhuma: quem gere uma,
+    // ou pode vir a criá-la, tem aqui o que precisa. Os administradores também
+    // ficam de fora — a administração vive deste lado.
+    //
+    // replace() e não href: com href, o botão "voltar" trazia a pessoa de
+    // novo para aqui e o redireccionamento mandava-a outra vez para lá.
+    if (!estado.gestor.podeCriarLigas && !estado.gestor.admin && !estado.ligas.length) {
+        window.location.replace("/minhas-dividas.html");
+        return;
+    }
+
     // A liga escolhida na linha de cima ainda não tem detalhe nenhum lido.
     await carregarDetalhe();
 }
