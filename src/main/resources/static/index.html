@@ -164,6 +164,15 @@
                             <label for="regra-maximo">Valor máximo</label>
                             <input id="regra-maximo" type="number" min="0" step="0.01" placeholder="2.50">
                         </div>
+                        <div class="campo-formula largura-toda">
+                            <label for="regra-ultimo-manual">Valor do último classificado (opcional)</label>
+                            <input id="regra-ultimo-manual" type="number" min="0" step="0.01" placeholder="ex.: 5.00">
+                            <span class="ajuda">
+                                Deixa em branco para o último pagar o valor máximo, como sempre. Preenche
+                                para quem ficar em último em cada jornada pagar sempre este valor, mesmo
+                                que a fórmula desse outro.
+                            </span>
+                        </div>
                         <div>
                             <label for="regra-jornadas">Jornadas por bloco</label>
                             <input id="regra-jornadas" type="number" min="1" step="1" placeholder="5">

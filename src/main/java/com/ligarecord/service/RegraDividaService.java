@@ -36,7 +36,7 @@ public class RegraDividaService {
                               BigDecimal incremento, int equipasPorEscalao, BigDecimal valorMaximo,
                               int jornadasPorBloco) {
         return definir(liga, valorInscricao, valorInicial, incremento, equipasPorEscalao,
-                valorMaximo, jornadasPorBloco, EscalaDivida.FORMULA, null, true, null);
+                valorMaximo, jornadasPorBloco, EscalaDivida.FORMULA, null, true, null, null);
     }
 
     /**
@@ -52,7 +52,8 @@ public class RegraDividaService {
                               BigDecimal incremento, int equipasPorEscalao, BigDecimal valorMaximo,
                               int jornadasPorBloco, EscalaDivida escala,
                               List<BigDecimal> tabela, boolean cobraTreino,
-                              List<RegraDivida.CobrancaPedida> cobrancas) {
+                              List<RegraDivida.CobrancaPedida> cobrancas,
+                              BigDecimal valorUltimoManual) {
         if (liga == null) {
             throw new IllegalArgumentException("A liga é obrigatória.");
         }
@@ -92,6 +93,9 @@ public class RegraDividaService {
         exigirNaoNegativo(valorInicial, "O valor inicial");
         exigirNaoNegativo(incremento, "O incremento");
         exigirNaoNegativo(valorMaximo, "O valor máximo");
+        if (valorUltimoManual != null) {
+            exigirNaoNegativo(valorUltimoManual, "O valor do último classificado");
+        }
         if (equipasPorEscalao < 1) {
             throw new IllegalArgumentException("O número de equipas por escalão tem de ser pelo menos 1.");
         }
@@ -117,6 +121,7 @@ public class RegraDividaService {
 
         regra.setEscala(escala);
         regra.setCobraTreino(cobraTreino);
+        regra.setValorUltimoManual(valorUltimoManual);
         if (escala == EscalaDivida.TABELA) {
             regra.substituirTabela(tabela);
         }

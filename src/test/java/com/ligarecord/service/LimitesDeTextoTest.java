@@ -87,7 +87,7 @@ class LimitesDeTextoTest {
                 () -> servico.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 1,
                         BigDecimal.ZERO, 1, EscalaDivida.FORMULA, null, true,
                         List.of(new RegraDivida.CobrancaPedida("I".repeat(100), 1,
-                                List.of(BigDecimal.ONE)))));
+                                List.of(BigDecimal.ONE))), null));
 
         assertTrue(erro.getMessage().contains("40"), erro.getMessage());
     }

@@ -216,6 +216,28 @@ class JornadaServiceTest {
     }
 
     /**
+     * De ponta a ponta: fechar a jornada fecha logo o bloco (jornadasPorBloco=1),
+     * e quem ficou em último (terceira, a pontuação mais baixa) paga o valor
+     * manual em vez do valor que a fórmula lhe daria.
+     */
+    @Test
+    void ultimoClassificadoPagaOValorManualQuandoDefinido() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1,
+                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, true, null,
+                new BigDecimal("5.00"));
+
+        jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
+
+        // Sem o valor manual, a terceira (última, equipasPorEscalao=1, 3ª posição)
+        // pagaria 1.00 (2 escalões acima do inicial). Com ele, paga o fixo.
+        assertEquals(new BigDecimal("5.00"), totalDe(terceira));
+        // As restantes continuam na fórmula normal.
+        assertEquals(BigDecimal.ZERO, totalDe(primeira));
+        assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+    }
+
+    /**
      * Há ligas em que o treino é um aquecimento e não se paga. Como as cinco
      * primeiras jornadas são sempre de treino, é aqui que isto se nota: com a
      * cobrança de treino desligada, fechar uma delas não cria dívida nenhuma.
@@ -224,7 +246,7 @@ class JornadaServiceTest {
     void comOTreinoPorCobrarAsJornadasDeTreinoNaoCriamDivida() {
         regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
                 new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1,
-                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, false, null);
+                com.ligarecord.domain.enums.EscalaDivida.FORMULA, null, false, null, null);
 
         jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));
         jornadaService.fecharJornada(abrirEPontuar(3, 2, 1));

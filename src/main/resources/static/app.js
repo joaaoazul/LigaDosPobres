@@ -199,14 +199,22 @@ function lerTabela(texto) {
    e a conta dava zero para toda a gente.
 
    Abaixo do fim da tabela repete-se a última linha, como lá: quem entra para
-   lá das posições escritas paga o que paga o último. */
-function valorDaPosicao(regra, posicao) {
+   lá das posições escritas paga o que paga o último.
+
+   ultimaPosicao é a posição de quem ficou em último NESTA jornada — só serve
+   para saber se esta é essa posição, e trocar pelo valorUltimoManual da
+   regra (só em vigor com a fórmula). Sem esse valor definido, nada muda. */
+function valorDaPosicao(regra, posicao, ultimaPosicao) {
     if (regra.escala === "TABELA") {
         const tabela = lerTabela(regra.tabela);
         if (!tabela.length) {
             return null;
         }
         return posicao <= tabela.length ? tabela[posicao - 1] : tabela[tabela.length - 1];
+    }
+
+    if (regra.valorUltimoManual != null && posicao === ultimaPosicao) {
+        return regra.valorUltimoManual;
     }
 
     const escalao = Math.floor((posicao - 1) / regra.equipasPorEscalao);
@@ -755,6 +763,20 @@ function desenharJornadaSelecionada() {
     // não vai acontecer.
     const cobraEsta = Boolean(regra) && (regra.cobraTreino || !jornada.treino);
 
+    // Quem fica em último nesta jornada, entre quem paga — precisa de ser
+    // calculado aqui e não dentro de valorDaPosicao porque depende de todas
+    // as equipas ativas desta jornada, não só da posição de uma.
+    const posicoesAtivas = estado.detalhe.equipas
+        .filter((equipa) => equipa.estado === "ATIVA")
+        .map((equipa) => {
+            const resultado = pontosPorEquipa.get(equipa.id);
+            return bloqueada
+                ? (resultado ? resultado.posicao : null)
+                : posicaoPreviaPorEquipa.get(equipa.id);
+        })
+        .filter((posicao) => posicao != null);
+    const ultimaPosicao = posicoesAtivas.length ? Math.max(...posicoesAtivas) : null;
+
     const linhas = estado.detalhe.equipas
         .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
         .slice()
@@ -778,7 +800,7 @@ function desenharJornadaSelecionada() {
                 ? (resultado ? resultado.posicao : null)
                 : posicaoPreviaPorEquipa.get(equipa.id);
             const valorDesta = (cobraEsta && equipa.estado === "ATIVA" && posicaoDaJornada)
-                ? valorDaPosicao(regra, posicaoDaJornada)
+                ? valorDaPosicao(regra, posicaoDaJornada, ultimaPosicao)
                 : null;
             const valor = valorDesta === null ? "&ndash;" : formatoMoeda(valorDesta);
             return `
@@ -962,6 +984,7 @@ function desenharRegraDivida() {
     $("#regra-incremento").value = r ? r.incremento : "";
     $("#regra-escalao").value = r ? r.equipasPorEscalao : "";
     $("#regra-maximo").value = r ? r.valorMaximo : "";
+    $("#regra-ultimo-manual").value = r && r.valorUltimoManual != null ? r.valorUltimoManual : "";
     $("#regra-jornadas").value = r ? r.jornadasPorBloco : "";
     $("#regra-escala").value = r ? r.escala : "FORMULA";
     $("#regra-tabela").value = r && r.tabela ? r.tabela : "";
@@ -1312,6 +1335,7 @@ $("#form-regra-divida").addEventListener("submit", (evento) => {
                 incremento: Number($("#regra-incremento").value || 0),
                 equipasPorEscalao: Number($("#regra-escalao").value || 1),
                 valorMaximo: Number($("#regra-maximo").value || 0),
+                valorUltimoManual: $("#regra-ultimo-manual").value ? Number($("#regra-ultimo-manual").value) : null,
                 jornadasPorBloco: Number($("#regra-jornadas").value || 1),
                 escala: $("#regra-escala").value,
                 tabela: $("#regra-tabela").value,

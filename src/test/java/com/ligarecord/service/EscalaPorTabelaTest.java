@@ -61,7 +61,7 @@ class EscalaPorTabelaTest {
 
     private RegraDivida comTabela(String texto) {
         return servico.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 1,
-                BigDecimal.ZERO, 1, EscalaDivida.TABELA, EscalaColada.ler(texto), false, null);
+                BigDecimal.ZERO, 1, EscalaDivida.TABELA, EscalaColada.ler(texto), false, null, null);
     }
 
     @Test
@@ -141,7 +141,7 @@ class EscalaPorTabelaTest {
     void umaRegraPorTabelaPrecisaDaTabela() {
         assertThrows(IllegalArgumentException.class,
                 () -> servico.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 1,
-                        BigDecimal.ZERO, 1, EscalaDivida.TABELA, List.of(), true, null));
+                        BigDecimal.ZERO, 1, EscalaDivida.TABELA, List.of(), true, null, null));
     }
 
     /** A fórmula continua a ser o que sempre foi — nada disto lhe mexeu. */

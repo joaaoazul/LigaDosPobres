@@ -74,6 +74,17 @@ public class RegraDivida extends EntidadeBase {
     private EscalaDivida escala = EscalaDivida.FORMULA;
 
     /**
+     * Valor próprio para quem ficar em último numa jornada, só em vigor com
+     * {@link EscalaDivida#FORMULA}. A fórmula sozinha trava todos os
+     * escalões finais no mesmo {@code valorMaximo}; isto deixa o último
+     * lugar pagar um valor diferente (tipicamente maior, como castigo) sem
+     * ter de se abandonar a fórmula pelos restantes lugares. A null, nada
+     * muda — o último paga o que a fórmula já dava.
+     */
+    @Column(name = "valor_ultimo_manual")
+    private BigDecimal valorUltimoManual;
+
+    /**
      * Há ligas em que as jornadas de treino não são cobradas. Nas que já
      * existiam são — o manual diz "para efeitos de dinheiro e de classificação,
      * as duas contam igual" — e é por isso que o valor por omissão é este.
@@ -170,6 +181,14 @@ public class RegraDivida extends EntidadeBase {
 
     public void setEscala(EscalaDivida escala) {
         this.escala = escala;
+    }
+
+    public BigDecimal getValorUltimoManual() {
+        return valorUltimoManual;
+    }
+
+    public void setValorUltimoManual(BigDecimal valorUltimoManual) {
+        this.valorUltimoManual = valorUltimoManual;
     }
 
     public boolean isCobraTreino() {
@@ -293,6 +312,19 @@ public class RegraDivida extends EntidadeBase {
 
         int escalao = (posicao - 1) / equipasPorEscalao;
         return valorInicial.add(incremento.multiply(BigDecimal.valueOf(escalao))).min(valorMaximo);
+    }
+
+    /**
+     * O valor da posição, sabendo qual foi a última posição dessa jornada —
+     * só isto permite trocar o valor de quem ficou mesmo em último pelo
+     * {@link #valorUltimoManual}, quando definido. Sem ele, é exactamente
+     * {@link #valorDaPosicao(int)}.
+     */
+    public BigDecimal valorDaPosicao(int posicao, int ultimaPosicao) {
+        if (escala == EscalaDivida.FORMULA && valorUltimoManual != null && posicao == ultimaPosicao) {
+            return valorUltimoManual;
+        }
+        return valorDaPosicao(posicao);
     }
 
     @Override

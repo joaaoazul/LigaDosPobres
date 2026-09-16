@@ -22,5 +22,6 @@ public record DefinirRegraDividaRequest(
         String escala,
         String tabela,
         Boolean cobraTreino,
-        List<CobrancaPedidaRequest> cobrancas) {
+        List<CobrancaPedidaRequest> cobrancas,
+        BigDecimal valorUltimoManual) {
 }

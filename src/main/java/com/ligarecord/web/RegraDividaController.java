@@ -77,7 +77,7 @@ public class RegraDividaController {
         RegraDivida regra = regraDividaService.definir(liga,
                 pedido.valorInscricao(), pedido.valorInicial(), pedido.incremento(),
                 pedido.equipasPorEscalao(), pedido.valorMaximo(), pedido.jornadasPorBloco(),
-                escala, tabela, cobraTreino, cobrancas);
+                escala, tabela, cobraTreino, cobrancas, pedido.valorUltimoManual());
         return RegraDividaDto.de(regra);
     }
 

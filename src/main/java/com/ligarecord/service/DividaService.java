@@ -116,13 +116,19 @@ public class DividaService {
     public void processarFechoBloco(RegraDivida regra, List<Jornada> jornadasDoBloco) {
         Map<Equipa, BigDecimal> totalPorEquipa = new HashMap<>();
         for (Jornada jornada : jornadasDoBloco) {
-            for (ResultadoJornada resultado : jornada.getResultadoJ()) {
-                Equipa equipa = resultado.getEquipa();
-                if (equipa.getEstado() != EstadoEquipa.ATIVA) {
-                    continue;
-                }
-                BigDecimal valor = classificacaoService.calcularValor(regra, resultado.getPosicao());
-                totalPorEquipa.merge(equipa, valor, BigDecimal::add);
+            List<ResultadoJornada> resultadosAtivos = jornada.getResultadoJ().stream()
+                    .filter(resultado -> resultado.getEquipa().getEstado() == EstadoEquipa.ATIVA)
+                    .toList();
+            // Quem ficou em último NESTA jornada, entre quem ainda paga — uma
+            // equipa desistente pode ter ficado pior classificada e não é ela
+            // que decide quem leva o valorUltimoManual, já que nunca é cobrada.
+            int ultimaPosicao = resultadosAtivos.stream()
+                    .mapToInt(ResultadoJornada::getPosicao)
+                    .max()
+                    .orElse(0);
+            for (ResultadoJornada resultado : resultadosAtivos) {
+                BigDecimal valor = classificacaoService.calcularValor(regra, resultado.getPosicao(), ultimaPosicao);
+                totalPorEquipa.merge(resultado.getEquipa(), valor, BigDecimal::add);
             }
         }
         totalPorEquipa.forEach(this::registarBloco);

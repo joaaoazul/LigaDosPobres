@@ -20,7 +20,8 @@ public record RegraDividaDto(
         String escala,
         String tabela,
         boolean cobraTreino,
-        List<CobrancaPeriodoDto> cobrancas) {
+        List<CobrancaPeriodoDto> cobrancas,
+        BigDecimal valorUltimoManual) {
 
     public static RegraDividaDto de(RegraDivida regra) {
         return new RegraDividaDto(
@@ -40,7 +41,8 @@ public record RegraDividaDto(
                 regra.isCobraTreino(),
                 // Sem os empates: quem quiser saber se alguma está travada
                 // pergunta a /cobrancas, que é quem sabe a classificação.
-                regra.getCobrancas().stream().map(c -> CobrancaPeriodoDto.de(c, List.of())).toList()
+                regra.getCobrancas().stream().map(c -> CobrancaPeriodoDto.de(c, List.of())).toList(),
+                regra.getValorUltimoManual()
         );
     }
 }

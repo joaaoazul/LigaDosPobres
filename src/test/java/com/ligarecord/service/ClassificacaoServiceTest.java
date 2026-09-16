@@ -72,6 +72,46 @@ Equipa real = new Equipa(UUID.randomUUID(), "RealDesistente", david, ligaTeste, 
         assertEquals(new BigDecimal("2.50"), classificacaoService.calcularValor(regra, 31));
     }
 
+    /**
+     * O valorUltimoManual troca o valor de quem ficou mesmo em último pela
+     * fórmula normal — só quem está nessa posição, mais ninguém do mesmo
+     * escalão.
+     */
+    @Test
+    public void valorUltimoManualSubstituiSoQuemFicaEmUltimo(){
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 45, EstadoLiga.ATIVA, gestor);
+        RegraDivida regra = new RegraDivida(UUID.randomUUID(), liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 5, new BigDecimal("2.50"), 5);
+        regra.setValorUltimoManual(new BigDecimal("5.00"));
+
+        // Última posição desta jornada: 34. Quem lá fica paga o valor manual.
+        assertEquals(new BigDecimal("5.00"), classificacaoService.calcularValor(regra, 34, 34));
+        // Todos os outros continuam na fórmula, incluindo outro do mesmo
+        // escalão (tecto 2.50) que não é o último.
+        assertEquals(new BigDecimal("2.50"), classificacaoService.calcularValor(regra, 33, 34));
+
+        // Sem valor manual definido, o último continua a pagar o tecto normal.
+        regra.setValorUltimoManual(null);
+        assertEquals(new BigDecimal("2.50"), classificacaoService.calcularValor(regra, 34, 34));
+    }
+
+    /** O valorUltimoManual só vale para a fórmula — uma regra por tabela ignora-o. */
+    @Test
+    public void valorUltimoManualNaoSeAplicaComTabela(){
+        ClassificacaoService classificacaoService = new ClassificacaoService();
+        Gestor gestor = new Gestor(UUID.randomUUID(), "gestor@teste.pt", "hash", "Gestor de Teste");
+        Liga liga = new Liga(UUID.randomUUID(), "Teste", 10, EstadoLiga.ATIVA, gestor);
+        RegraDivida regra = new RegraDivida(UUID.randomUUID(), liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, 1, BigDecimal.ZERO, 1);
+        regra.setEscala(com.ligarecord.domain.enums.EscalaDivida.TABELA);
+        regra.substituirTabela(List.of(new BigDecimal("1.00"), new BigDecimal("2.00")));
+        regra.setValorUltimoManual(new BigDecimal("99.00"));
+
+        assertEquals(new BigDecimal("2.00"), classificacaoService.calcularValor(regra, 2, 2));
+    }
+
 
     /**
      * Há ligas em que o treino é um aquecimento: quando as oficiais começam, a

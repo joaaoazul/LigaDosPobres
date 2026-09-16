@@ -74,7 +74,7 @@ class CobrancaPeriodoServiceTest {
         return regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 1,
                 BigDecimal.ZERO, 1, EscalaDivida.TABELA, EscalaColada.ler("1-0€\n2-0€\n3-0€"), false,
                 List.of(new RegraDivida.CobrancaPedida("Inverno", jornadaOficial,
-                        EscalaColada.ler(TABELA_INVERNO))));
+                        EscalaColada.ler(TABELA_INVERNO))), null);
     }
 
     private Jornada jogar(int pontosPrimeira, int pontosSegunda, int pontosTerceira) {
@@ -181,7 +181,7 @@ class CobrancaPeriodoServiceTest {
         RegraDivida regra = regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, 1, BigDecimal.ZERO, 1, EscalaDivida.TABELA,
                 EscalaColada.ler("1-0€\n2-0€\n3-0€"), false,
-                List.of(new RegraDivida.CobrancaPedida("Inverno", 2, EscalaColada.ler("1-2€\n2-2€\n3-2€"))));
+                List.of(new RegraDivida.CobrancaPedida("Inverno", 2, EscalaColada.ler("1-2€\n2-2€\n3-2€"))), null);
         passarOTreino();
 
         empatarAlfaEBravoNaGeral();

@@ -191,5 +191,14 @@ public class ClassificacaoService {
         return regra.valorDaPosicao(posicao);
     }
 
+    /**
+     * O mesmo, mas sabendo qual foi a última posição da jornada — é o que
+     * permite ao {@link RegraDivida#getValorUltimoManual()} substituir o
+     * valor de quem ficou em último. Ver {@link DividaService#processarFechoBloco}.
+     */
+    public BigDecimal calcularValor(RegraDivida regra, int posicao, int ultimaPosicao) {
+        return regra.valorDaPosicao(posicao, ultimaPosicao);
+    }
+
 
 }
