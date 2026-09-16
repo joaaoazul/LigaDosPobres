@@ -1,0 +1,11 @@
+-- JornadaService.abrirJornada e .reabrirJornada verificam "já existe uma
+-- jornada aberta" com um simples select antes de escrever (check-then-act),
+-- sem lock nenhum a segurar o meio: dois pedidos verdadeiramente simultâneos
+-- (reabrir a última + abrir uma nova, ou dois "abrir" a bater ao mesmo tempo)
+-- podiam ambos passar a verificação e deixar duas jornadas não-fechadas na
+-- mesma liga. Mesmo princípio já usado para o número do bloco de dívida
+-- (bloco_divida_numero_unico): uma constraint real na base de dados apanha a
+-- corrida que o código sozinho não consegue, e GlobalExceptionHandler já
+-- mapeia DataIntegrityViolationException para 409 — quem perder a corrida
+-- só tem de tentar outra vez.
+create unique index jornada_liga_nao_fechada_unica on jornada (liga_id) where estado <> 'FECHADA';
