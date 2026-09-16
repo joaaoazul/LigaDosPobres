@@ -763,19 +763,34 @@ function desenharJornadaSelecionada() {
     // não vai acontecer.
     const cobraEsta = Boolean(regra) && (regra.cobraTreino || !jornada.treino);
 
+    // A posição desta equipa nesta jornada: a atribuída, se já fechou; a
+    // prevista pelas pontuações inseridas, se ainda está aberta.
+    const posicaoDaJornadaDe = (equipa) => {
+        const resultado = pontosPorEquipa.get(equipa.id);
+        return bloqueada
+            ? (resultado && resultado.posicao ? resultado.posicao : null)
+            : (posicaoPreviaPorEquipa.get(equipa.id) ?? null);
+    };
+
     // Quem fica em último nesta jornada, entre quem paga — precisa de ser
     // calculado aqui e não dentro de valorDaPosicao porque depende de todas
     // as equipas ativas desta jornada, não só da posição de uma.
-    const posicoesAtivas = estado.detalhe.equipas
-        .filter((equipa) => equipa.estado === "ATIVA")
-        .map((equipa) => {
-            const resultado = pontosPorEquipa.get(equipa.id);
-            return bloqueada
-                ? (resultado ? resultado.posicao : null)
-                : posicaoPreviaPorEquipa.get(equipa.id);
-        })
-        .filter((posicao) => posicao != null);
-    const ultimaPosicao = posicoesAtivas.length ? Math.max(...posicoesAtivas) : null;
+    //
+    // Fica a null (e ninguém leva o valor do último) em dois casos, porque
+    // em qualquer deles a resposta ainda não existe e anunciá-la era mostrar
+    // ao gestor uma cobrança que não vai acontecer:
+    //  * empate no fundo — a posição é partilhada, e só o desempate decide
+    //    quem lá fica mesmo; mostrá-la aos dois cobrava a ambos;
+    //  * jornada aberta com pontuações a faltar — o último dos já inseridos
+    //    não é o último de nada, e o valor saltava de equipa em equipa a
+    //    cada pontuação que entrasse.
+    const equipasQuePagam = estado.detalhe.equipas.filter((equipa) => equipa.estado === "ATIVA");
+    const posicoesAtivas = equipasQuePagam.map(posicaoDaJornadaDe).filter((posicao) => posicao !== null);
+    const maiorPosicao = posicoesAtivas.length ? Math.max(...posicoesAtivas) : null;
+    const ultimaPosicaoDefinida = maiorPosicao !== null
+        && posicoesAtivas.filter((posicao) => posicao === maiorPosicao).length === 1
+        && (bloqueada || posicoesAtivas.length === equipasQuePagam.length);
+    const ultimaPosicao = ultimaPosicaoDefinida ? maiorPosicao : null;
 
     const linhas = estado.detalhe.equipas
         .filter((equipa) => equipa.estado === "ATIVA" || pontosPorEquipa.has(equipa.id))
@@ -796,9 +811,7 @@ function desenharJornadaSelecionada() {
         .map((equipa) => {
             const resultado = pontosPorEquipa.get(equipa.id);
             const podeEditar = !bloqueada && equipa.estado === "ATIVA";
-            const posicaoDaJornada = bloqueada
-                ? (resultado ? resultado.posicao : null)
-                : posicaoPreviaPorEquipa.get(equipa.id);
+            const posicaoDaJornada = posicaoDaJornadaDe(equipa);
             const valorDesta = (cobraEsta && equipa.estado === "ATIVA" && posicaoDaJornada)
                 ? valorDaPosicao(regra, posicaoDaJornada, ultimaPosicao)
                 : null;

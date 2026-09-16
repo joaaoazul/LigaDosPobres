@@ -187,15 +187,26 @@ as linhas novas esbarram na unicidade `(regra_id, posicao)` das antigas, o que
 dava 409 ao guardar a mesma regra duas vezes. É a mesma armadilha dos números de
 bloco, mais abaixo.
 
-O cálculo da fórmula está espelhado em `calcularValorEscalao` no `app.js`, mas
-só para a pré-visualização. **A cobrança a sério é sempre do servidor.**
+O cálculo está espelhado em `valorDaPosicao` no `app.js`, mas só para a
+pré-visualização. **A cobrança a sério é sempre do servidor.** O espelho tem de
+se dar ao trabalho de decidir se sabe quem é o último (ver a seguir): numa
+jornada ainda aberta, ou com um empate no fundo, não sabe — e aí não mostra
+castigo nenhum, em vez de o mostrar a quem talvez não o venha a pagar.
 
-Duas coisas que variam de liga para liga e que estavam assumidas no código:
+Três coisas que variam de liga para liga e que estavam assumidas no código:
 
 - `RegraDivida.cobraTreino` — se as jornadas de treino entram nos blocos.
 - `Liga.pontosTreinoContam` — se os pontos delas contam para a classificação.
   Vive na liga e não na regra porque é do formato da prova: uma liga sem regra
   nenhuma continua a ter classificação.
+- `RegraDivida.valorUltimoManual` — um valor próprio para quem fica em último,
+  só com a escala por fórmula. A fórmula trava todos os escalões finais no
+  mesmo tecto, e há ligas que querem castigar só o último. É **por jornada**,
+  não pela classificação geral: o último de cada jornada do bloco, apurado
+  entre as equipas **activas** (uma desistente pior classificada não rouba o
+  castigo a quem é o último a pagar, já que ela nunca é cobrada). Não se
+  aplica às cobranças de época (`CobrancaPeriodo`), que têm tabela própria.
+  A null, o último paga o tecto, como sempre pagou.
 
 Ambas nascem no comportamento antigo (`true`), para nenhuma liga a decorrer
 mudar de contas.
