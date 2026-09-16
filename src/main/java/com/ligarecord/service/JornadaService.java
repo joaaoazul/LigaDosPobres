@@ -29,6 +29,28 @@ public class JornadaService {
 
     private static final int NUMERO_JORNADAS_TREINO = 5;
 
+    /**
+     * A ordem de uma jornada: quem desistiu vai sempre depois de quem ainda
+     * joga, e dentro de cada grupo manda a pontuação, da maior para a menor.
+     *
+     * <p>As desistentes não são cobradas, mas enquanto ocupavam um lugar no
+     * meio da tabela empurravam para baixo — e para valores mais caros — as
+     * equipas que ainda pagam. O mesmo critério que a classificação geral já
+     * usava; aqui faltava.
+     *
+     * <p>Está num sítio só porque é usado a fechar a jornada e outra vez a
+     * resolver o desempate. Enquanto a conta esteve escrita duas vezes, as
+     * duas cópias discordaram — e foi assim que nasceram dois dos bugs de
+     * dinheiro que esta classe já teve.
+     */
+    private static final Comparator<ResultadoJornada> ORDEM_NA_JORNADA =
+            Comparator.comparing((ResultadoJornada resultado) -> desistente(resultado))
+                    .thenComparing(Comparator.comparingInt(ResultadoJornada::getPontuacao).reversed());
+
+    private static boolean desistente(ResultadoJornada resultado) {
+        return resultado.getEquipa().getEstado() == EstadoEquipa.DESISTENTE;
+    }
+
     private JornadaRepository jornadaRepository;
     private final RegraDividaService regraDividaService;
     private final CobrancaPeriodoService cobrancaPeriodoService;
@@ -227,8 +249,12 @@ public class JornadaService {
             lugarNaOrdem.put(ordem.get(i), i);
         }
 
+        // A mesma ordem do fecho — desistentes no fundo, e só depois a
+        // pontuação — com a ordem que o gestor deu a decidir entre iguais.
+        // Sem o primeiro critério, resolver o desempate desfazia o que o fecho
+        // tinha acabado de fazer e devolvia as desistentes ao meio da tabela.
         List<ResultadoJornada> ordenados = new ArrayList<>(jornada.getResultadoJ());
-        ordenados.sort(Comparator.comparingInt(ResultadoJornada::getPontuacao).reversed()
+        ordenados.sort(ORDEM_NA_JORNADA
                 .thenComparingInt(resultado -> lugarNaOrdem.getOrDefault(resultado.getEquipa().getId(), 0)));
 
         // Já não há posições partilhadas: depois do desempate cada equipa tem
@@ -310,30 +336,42 @@ public class JornadaService {
                 .orElse(false);
     }
 
-    /** Posições por pontuação decrescente, com os empatados a partilhar a posição. */
+    /**
+     * Posições por {@link #ORDEM_NA_JORNADA}, com os empatados a partilhar a
+     * posição — mas uma desistente nunca partilha posição com quem ainda joga,
+     * mesmo tendo feito a mesma pontuação: são grupos diferentes da tabela.
+     */
     private void atribuirPosicoesPorPontuacao(Jornada jornada){
         List<ResultadoJornada> ordenados = new ArrayList<>(jornada.getResultadoJ());
-        ordenados.sort(Comparator.comparingInt(ResultadoJornada::getPontuacao).reversed());
+        ordenados.sort(ORDEM_NA_JORNADA);
 
         int posicao = 0;
-        Integer pontuacaoAnterior = null;
+        ResultadoJornada anterior = null;
         for(int i = 0; i < ordenados.size(); i++){
             ResultadoJornada resultado = ordenados.get(i);
-            if(pontuacaoAnterior == null || resultado.getPontuacao() != pontuacaoAnterior){
+            if(anterior == null
+                    || resultado.getPontuacao() != anterior.getPontuacao()
+                    || desistente(resultado) != desistente(anterior)){
                 posicao = i + 1;
-                pontuacaoAnterior = resultado.getPontuacao();
             }
             resultado.setPosicao(posicao);
+            anterior = resultado;
         }
     }
 
     /**
-     * Os resultados que partilham pontuação com pelo menos outro. Inclui
-     * equipas desistentes que tenham resultado nesta jornada: a posição delas
-     * aparece na tabela como a de qualquer outra, mesmo não sendo cobrada.
+     * Os resultados que partilham pontuação com pelo menos outro, entre quem
+     * ainda joga.
+     *
+     * <p>As desistentes ficam de fora: vão todas para o fundo da tabela por
+     * {@link #ORDEM_NA_JORNADA} e não são cobradas, por isso a ordem entre
+     * elas não decide dinheiro nenhum — e obrigar o gestor a desempatar uma
+     * equipa que já saiu da prova era pedir-lhe trabalho para nada. É o mesmo
+     * que as cobranças de época já fazem.
      */
     private List<ResultadoJornada> resultadosEmpatados(Jornada jornada){
         return jornada.getResultadoJ().stream()
+                .filter(resultado -> !desistente(resultado))
                 .collect(Collectors.groupingBy(ResultadoJornada::getPontuacao))
                 .values().stream()
                 .filter(grupo -> grupo.size() > 1)

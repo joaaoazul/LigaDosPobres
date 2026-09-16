@@ -210,6 +210,71 @@ class JornadaServiceTest {
         assertTrue(dividaService.buscarPorEquipa(primeira).isPresent());
     }
 
+    /**
+     * Uma equipa que desiste com a jornada já a meio vai para o fundo da
+     * tabela dessa jornada, em vez de ficar no lugar que a pontuação lhe dava.
+     * Se ficasse, empurrava para baixo — e para valores mais caros — quem
+     * ainda joga e ainda paga.
+     */
+    @Test
+    void desistenteVaiParaOFundoDaJornadaENaoEmpurraAsOutras() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1);
+
+        // A terceira foi a melhor da jornada, mas desistiu antes de ela fechar.
+        Jornada jornada = abrirEPontuar(2, 1, 3);
+        terceira.setEstado(EstadoEquipa.DESISTENTE);
+        jornadaService.fecharJornada(jornada);
+
+        assertEquals(EstadoJornada.FECHADA, jornada.getEstadoJ());
+        // Primeira e segunda ficam com os dois primeiros lugares, apesar de a
+        // terceira ter feito mais pontos; a desistente fica em último.
+        assertEquals(1, posicaoDe(jornada, primeira));
+        assertEquals(2, posicaoDe(jornada, segunda));
+        assertEquals(3, posicaoDe(jornada, terceira));
+        // E é por esses lugares que pagam: 1º nada, 2º 0.50 (escalão de 1).
+        assertEquals(BigDecimal.ZERO, totalDe(primeira));
+        assertEquals(new BigDecimal("0.50"), totalDe(segunda));
+        assertEquals(BigDecimal.ZERO, totalDe(terceira));
+    }
+
+    /**
+     * Um empate que só existe por causa de uma desistente não trava o fecho:
+     * a ordem entre ela e quem ainda joga não decide dinheiro nenhum.
+     */
+    @Test
+    void empateComDesistenteNaoObrigaADesempate() {
+        regraDividaService.definir(liga, BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.50"), 1, new BigDecimal("2.50"), 1);
+
+        // A segunda e a terceira empatam a 2, mas a terceira desistiu.
+        Jornada jornada = abrirEPontuar(3, 2, 2);
+        terceira.setEstado(EstadoEquipa.DESISTENTE);
+        jornadaService.fecharJornada(jornada);
+
+        assertEquals(EstadoJornada.FECHADA, jornada.getEstadoJ());
+        // Mesmo com a mesma pontuação, não partilham posição: grupos diferentes.
+        assertEquals(2, posicaoDe(jornada, segunda));
+        assertEquals(3, posicaoDe(jornada, terceira));
+    }
+
+    /** Entre equipas activas o empate continua a travar o fecho, como sempre. */
+    @Test
+    void empateEntreActivasContinuaATravarOFecho() {
+        Jornada jornada = abrirEPontuar(3, 2, 2);
+        jornadaService.fecharJornada(jornada);
+
+        assertEquals(EstadoJornada.DESEMPATE, jornada.getEstadoJ());
+    }
+
+    private int posicaoDe(Jornada jornada, Equipa equipa) {
+        return jornada.getResultadoJ().stream()
+                .filter(resultado -> resultado.getEquipa().equals(equipa))
+                .findFirst()
+                .orElseThrow()
+                .getPosicao();
+    }
+
     private BigDecimal totalDe(Equipa equipa) {
         Optional<Divida> divida = dividaService.buscarPorEquipa(equipa);
         return divida.map(dividaService::calcularTotalDivida).orElse(BigDecimal.ZERO);

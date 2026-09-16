@@ -222,20 +222,32 @@ function valorDaPosicao(regra, posicao, ultimaPosicao) {
     return Math.min(valor, regra.valorMaximo);
 }
 
-/* Espelha o critério de JornadaService.fecharJornada: ordena por pontuação
-   desta jornada e dá a mesma posição a quem empata. Usado para prever, numa
-   jornada ainda aberta, a posição que cada equipa vai ficar quando fechar. */
-function calcularPosicoesPreview(resultados) {
-    const ordenados = resultados.slice().sort((a, b) => b.pontuacao - a.pontuacao);
+/* Espelha o critério de JornadaService.fecharJornada: desistentes no fundo,
+   depois por pontuação desta jornada, e a mesma posição a quem empata. Usado
+   para prever, numa jornada ainda aberta, a posição que cada equipa vai ficar
+   quando fechar.
+
+   `desistentes` é o conjunto de ids que já saíram da prova. Sem ele a prévia
+   punha-as no meio da tabela e mostrava a toda a gente abaixo delas uma
+   posição — e um valor — que não era o que o servidor ia cobrar. */
+function calcularPosicoesPreview(resultados, desistentes = new Set()) {
+    const saiu = (resultado) => desistentes.has(resultado.equipaId);
+    const ordenados = resultados.slice()
+        .sort((a, b) => (saiu(a) - saiu(b)) || (b.pontuacao - a.pontuacao));
     const posicoes = new Map();
     let posicaoAtual = 0;
-    let pontuacaoAnterior = null;
+    let anterior = null;
     ordenados.forEach((resultado, indice) => {
-        if (pontuacaoAnterior === null || resultado.pontuacao !== pontuacaoAnterior) {
+        // Nova posição quando muda a pontuação ou quando se passa das activas
+        // para as desistentes: uma desistente nunca partilha posição com quem
+        // ainda joga, mesmo com a mesma pontuação.
+        if (anterior === null
+                || resultado.pontuacao !== anterior.pontuacao
+                || saiu(resultado) !== saiu(anterior)) {
             posicaoAtual = indice + 1;
-            pontuacaoAnterior = resultado.pontuacao;
         }
         posicoes.set(resultado.equipaId, posicaoAtual);
+        anterior = resultado;
     });
     return posicoes;
 }
@@ -755,7 +767,12 @@ function desenharJornadaSelecionada() {
     // backend soma às restantes do bloco quando este fechar), não a
     // classificação geral acumulada da liga. Fechada, usa a posição já
     // atribuída; aberta, prevê a posição a partir das pontuações inseridas.
-    const posicaoPreviaPorEquipa = bloqueada ? null : calcularPosicoesPreview(jornada.resultados);
+    const desistentes = new Set(estado.detalhe.equipas
+        .filter((equipa) => equipa.estado !== "ATIVA")
+        .map((equipa) => equipa.id));
+    const posicaoPreviaPorEquipa = bloqueada
+        ? null
+        : calcularPosicoesPreview(jornada.resultados, desistentes);
     const regra = estado.regraDivida;
 
     // Uma jornada de treino numa liga que não cobra treinos não pesa em bloco

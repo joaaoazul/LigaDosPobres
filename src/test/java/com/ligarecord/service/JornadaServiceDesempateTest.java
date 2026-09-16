@@ -297,4 +297,32 @@ class JornadaServiceDesempateTest {
 
         assertThrows(IllegalStateException.class, () -> jornadaService.abrirJornada(liga));
     }
+
+    /**
+     * Resolver o desempate não pode desfazer o que o fecho fez às desistentes:
+     * elas continuam no fundo da tabela, mesmo tendo feito mais pontos do que
+     * as equipas que ainda jogam.
+     */
+    @Test
+    void oDesempateMantemAsDesistentesNoFundo() {
+        regraDeUmaEquipaPorEscalao();
+
+        // A quarta foi a melhor da jornada mas desistiu; a primeira e a
+        // segunda empatam a 3 e são elas que vão a desempate.
+        Jornada jornada = abrirEPontuar(3, 3, 1, 9);
+        quarta.setEstado(EstadoEquipa.DESISTENTE);
+        jornadaService.fecharJornada(jornada);
+        assertEquals(EstadoJornada.DESEMPATE, jornada.getEstadoJ());
+
+        jornadaService.resolverDesempate(jornada,
+                List.of(segunda.getId(), primeira.getId()));
+
+        assertEquals(EstadoJornada.FECHADA, jornada.getEstadoJ());
+        assertEquals(1, posicaoDe(jornada, segunda));
+        assertEquals(2, posicaoDe(jornada, primeira));
+        assertEquals(3, posicaoDe(jornada, terceira));
+        // A desistente fica em último apesar dos 9 pontos.
+        assertEquals(4, posicaoDe(jornada, quarta));
+        assertEquals(BigDecimal.ZERO, totalDe(quarta));
+    }
 }
