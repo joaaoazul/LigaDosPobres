@@ -72,6 +72,10 @@ public class SecurityConfig {
                     // chega pelo link ainda não tem conta nenhuma para entrar.
                     // O que a protege é o código, que não se adivinha.
                     .requestMatchers("/convite.html", "/convite.js").permitAll()
+                    // E o formulário de contacto, pela razão mais directa de
+                    // todas: quem escreve para o suporte a dizer que não
+                    // consegue entrar não pode ter de entrar para o escrever.
+                    .requestMatchers("/suporte.html", "/suporte.js").permitAll()
                     // Os tipos de letra são servidos pela própria aplicação, para a
                     // CSP poder continuar a ser default-src 'self'. Sem esta linha,
                     // o pedido do .woff2 na página de login seria reencaminhado para
@@ -80,6 +84,10 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/registo", "/api/auth/registo-treinador",
                                      "/api/auth/login", "/api/auth/estado",
                                      "/api/auth/recuperar", "/api/auth/recuperar/confirmar").permitAll()
+                    // Aberto de propósito, com travão por origem no
+                    // SuporteService: é o único endereço público que faz sair
+                    // um email sem ninguém ter sessão.
+                    .requestMatchers(HttpMethod.POST, "/api/suporte").permitAll()
                     // Só a leitura do convite pelo código; emitir e revogar
                     // continuam atrás da autorização por dono da liga.
                     .requestMatchers(HttpMethod.GET, "/api/convites-treinador/*").permitAll()

@@ -45,7 +45,11 @@ async function submeter(caminho, corpo, form, aoSucesso) {
 
         if (resposta.ok) {
             if (aoSucesso) {
-                aoSucesso();
+                // O corpo vai para quem o quiser ler — o formulário de
+                // contacto usa-o para saber se o email chegou mesmo a sair.
+                // Quem não o usa ignora o argumento, e quem responde sem
+                // corpo nenhum passa null em vez de rebentar no json().
+                aoSucesso(await resposta.json().catch(() => null));
             } else {
                 window.location.href = "/";
             }

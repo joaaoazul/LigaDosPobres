@@ -44,6 +44,11 @@ public class GlobalExceptionHandler {
         return resposta(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
+    @ExceptionHandler(PedidosDemaisException.class)
+    public ResponseEntity<ErroDto> pedidosDemais(PedidosDemaisException ex) {
+        return resposta(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroDto> pedidoInvalido(IllegalArgumentException ex) {
         return resposta(HttpStatus.BAD_REQUEST, ex.getMessage());

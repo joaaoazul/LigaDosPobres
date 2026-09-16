@@ -29,7 +29,7 @@ class RecuperacaoServiceTest {
         final List<Mensagem> enviadas = new ArrayList<>();
 
         @Override
-        public boolean enviar(String para, String assunto, String texto, String html) {
+        public boolean enviar(String para, String assunto, String texto, String html, String responderA) {
             enviadas.add(new Mensagem(para, assunto, texto, html));
             return true;
         }

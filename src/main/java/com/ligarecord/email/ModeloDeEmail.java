@@ -145,6 +145,64 @@ public final class ModeloDeEmail {
     }
 
     /**
+     * O que alguém escreveu no formulário de contacto, a caminho de quem dá
+     * apoio.
+     *
+     * <p>Ao contrário das outras, esta mensagem não é para um utilizador: é
+     * para a caixa de correio do suporte. Por isso não tem botão nem link para
+     * carregar — leva o que interessa a quem vai responder (quem escreveu, de
+     * que endereço, e o texto tal e qual), e a resposta sai por "Responder",
+     * que o {@code responderA} do envio aponta a quem escreveu.
+     *
+     * <p>O texto da pessoa vai dentro de um {@code <pre>} para as mudanças de
+     * linha que ela escreveu continuarem lá. Passa pelo {@code escapar} como
+     * tudo o resto: é texto de fora, e sem isso um {@code <script>} escrito no
+     * formulário chegava inteiro a quem abrisse o email.
+     */
+    public static Mensagem mensagemDeSuporte(String nome, String email, String assunto, String mensagem) {
+        String assuntoEmail = "[Suporte] " + assunto;
+
+        String texto = "Mensagem do formulário de contacto da Quota.\n\n"
+                + "De: " + nome + " <" + email + ">\n"
+                + "Assunto: " + assunto + "\n\n"
+                + mensagem + "\n\n"
+                + "-- \n"
+                + "Responde a esta mensagem para responder diretamente a quem escreveu.\n";
+
+        String html = pagina(
+                "Mensagem de " + nome + ": " + assunto,
+                bloco(
+                        "<p style=\"margin:0 0 8px;font-size:12px;line-height:1.5;color:" + TINTA_FRACA
+                                + ";text-transform:uppercase;letter-spacing:0.08em;\">"
+                                + "Formulário de contacto"
+                                + "</p>"
+                                + "<p style=\"margin:0 0 4px;font-size:15px;line-height:1.55;color:" + TINTA + ";\">"
+                                + "<strong>" + escapar(nome) + "</strong>"
+                                + "</p>"
+                                + "<p style=\"margin:0 0 20px;font-size:13px;line-height:1.5;\">"
+                                + "<a href=\"mailto:" + escapar(email) + "\" style=\"color:" + SINAL
+                                + ";text-decoration:none;\">" + escapar(email) + "</a>"
+                                + "</p>"
+                                + "<p style=\"margin:0 0 6px;font-size:12px;line-height:1.5;color:" + TINTA_FRACA + ";\">"
+                                + "Assunto"
+                                + "</p>"
+                                + "<p style=\"margin:0 0 20px;font-size:15px;line-height:1.55;color:" + TINTA + ";\">"
+                                + escapar(assunto)
+                                + "</p>"
+                                + "<p style=\"margin:0 0 6px;font-size:12px;line-height:1.5;color:" + TINTA_FRACA + ";\">"
+                                + "Mensagem"
+                                + "</p>"
+                                + "<pre style=\"margin:0;font-family:" + LETRA + ";font-size:15px;"
+                                + "line-height:1.55;color:" + TINTA_MEDIA + ";white-space:pre-wrap;"
+                                + "word-break:break-word;\">"
+                                + escapar(mensagem)
+                                + "</pre>"),
+                "Responde a esta mensagem para responderes diretamente a quem escreveu.");
+
+        return new Mensagem(assuntoEmail, texto, html);
+    }
+
+    /**
      * O invólucro: fundo claro, cartão escuro com a régua de sinal no topo, a
      * marca, o conteúdo e o rodapé.
      *

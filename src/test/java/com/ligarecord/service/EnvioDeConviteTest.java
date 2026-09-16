@@ -32,7 +32,7 @@ class EnvioDeConviteTest {
         boolean consegue = true;
 
         @Override
-        public boolean enviar(String para, String assunto, String texto, String html) {
+        public boolean enviar(String para, String assunto, String texto, String html, String responderA) {
             if (!consegue) {
                 return false;
             }

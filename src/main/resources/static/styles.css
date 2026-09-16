@@ -1198,6 +1198,15 @@ td.numero, th.numero { text-align: right; }
 .cartao-auth .botao { margin-top: var(--e3); width: 100%; }
 .cartao-auth a { color: var(--sinal); }
 
+/* A caixa de texto do formulário de contacto. O line-height fica aqui pela
+   mesma razão que em .largura-toda textarea: o de uma textarea é "normal" e
+   não herda o do corpo, o que dava linhas mais juntas do que o resto. E só
+   cresce na vertical — a horizontal esticava-a para fora do cartão. */
+.cartao-auth textarea {
+    line-height: 1.5;
+    resize: vertical;
+}
+
 /* ------------------------------------------------------- administração --- */
 
 .conteudo-admin {

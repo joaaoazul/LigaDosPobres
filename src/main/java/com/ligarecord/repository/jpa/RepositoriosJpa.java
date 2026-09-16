@@ -8,6 +8,7 @@ import com.ligarecord.domain.Gestor;
 import com.ligarecord.domain.Jornada;
 import com.ligarecord.domain.Liga;
 import com.ligarecord.domain.LigaLogo;
+import com.ligarecord.domain.MensagemSuporte;
 import com.ligarecord.domain.PedidoRecuperacao;
 import com.ligarecord.domain.RegraDivida;
 import com.ligarecord.domain.TentativaLoginFalhada;
@@ -21,6 +22,7 @@ import com.ligarecord.repository.GestorRepository;
 import com.ligarecord.repository.JornadaRepository;
 import com.ligarecord.repository.LigaLogoRepository;
 import com.ligarecord.repository.LigaRepository;
+import com.ligarecord.repository.MensagemSuporteRepository;
 import com.ligarecord.repository.PedidoRecuperacaoRepository;
 import com.ligarecord.repository.RegraDividaRepository;
 import com.ligarecord.repository.TentativaLoginRepository;
@@ -360,6 +362,26 @@ public final class RepositoriosJpa {
         @Override
         public long contarDoEmailDesde(String email, Instant desde) {
             return jpa.countByEmailAndCriadoEmAfter(email, desde);
+        }
+    }
+
+    @Repository
+    public static class MensagensSuporte implements MensagemSuporteRepository {
+
+        private final MensagemSuporteJpaRepository jpa;
+
+        public MensagensSuporte(MensagemSuporteJpaRepository jpa) {
+            this.jpa = jpa;
+        }
+
+        @Override
+        public MensagemSuporte guardar(MensagemSuporte mensagem) {
+            return jpa.save(mensagem);
+        }
+
+        @Override
+        public long contarDoIpDesde(String ip, Instant desde) {
+            return jpa.countByIpAndCriadoEmAfter(ip, desde);
         }
     }
 }

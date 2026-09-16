@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -33,12 +34,20 @@ public class EnviadorResend implements EnviadorDeEmail {
     }
 
     @Override
-    public boolean enviar(String para, String assunto, String texto, String html) {
+    public boolean enviar(String para, String assunto, String texto, String html, String responderA) {
         try {
+            // Map.of não aceita valores nulos, e o reply_to só entra quando há
+            // um: um HashMap é o que permite deixá-lo de fora sem ter de
+            // montar dois pedidos diferentes.
+            Map<String, Object> corpo = new HashMap<>(Map.of(
+                    "from", remetente, "to", para, "subject", assunto,
+                    "text", texto, "html", html));
+            if (responderA != null && !responderA.isBlank()) {
+                corpo.put("reply_to", responderA);
+            }
             cliente.post()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("from", remetente, "to", para, "subject", assunto,
-                            "text", texto, "html", html))
+                    .body(corpo)
                     .retrieve()
                     .toBodilessEntity();
             return true;

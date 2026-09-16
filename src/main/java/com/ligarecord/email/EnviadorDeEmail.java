@@ -22,5 +22,17 @@ public interface EnviadorDeEmail {
      * cliente que recusa HTML, tem de continuar a conseguir recuperar a
      * password; e um email só com HTML é olhado de lado pelos filtros de spam.
      */
-    boolean enviar(String para, String assunto, String texto, String html);
+    default boolean enviar(String para, String assunto, String texto, String html) {
+        return enviar(para, assunto, texto, html, null);
+    }
+
+    /**
+     * O mesmo, dizendo para onde vai a resposta de quem carregar em "Responder".
+     *
+     * <p>Existe pelo formulário de contacto: a mensagem sai do endereço da
+     * aplicação ({@code noreply@}) mas quem a escreveu foi uma pessoa, e sem
+     * isto responder-lhe obrigava a copiar o endereço do corpo da mensagem para
+     * uma mensagem nova. Com {@code responderA} a null é um envio normal.
+     */
+    boolean enviar(String para, String assunto, String texto, String html, String responderA);
 }
