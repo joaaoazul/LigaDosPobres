@@ -98,6 +98,30 @@ async function executar(acao) {
     }
 }
 
+/* Só interessa a quem cria ligas: um admin, ou uma conta só de treinador
+   (convite aceite, sem podeCriarLigas), nunca fica sujeito à licença — ver
+   Gestor.licencaAtiva no backend, esta condição espelha-a. */
+function mostrarAvisoLicenca() {
+    const aviso = $("#aviso-licenca");
+    if (!estado.gestor.podeCriarLigas || estado.gestor.admin) {
+        aviso.classList.add("oculto");
+        return;
+    }
+
+    aviso.classList.remove("oculto");
+    const expira = new Date(estado.gestor.licencaExpiraEm).toLocaleDateString("pt-PT");
+
+    if (!estado.gestor.licencaAtiva) {
+        aviso.className = "alerta";
+        aviso.textContent = "A tua licença expirou. Contacta o administrador para renovar o acesso.";
+    } else if (estado.gestor.emTrial) {
+        aviso.className = "alerta aviso";
+        aviso.textContent = `Restam ${estado.gestor.diasLicencaRestantes} dia(s) do teste gratuito (até ${expira}).`;
+    } else {
+        aviso.classList.add("oculto");
+    }
+}
+
 /* O mesmo, com o botão desligado enquanto o pedido corre. Para as acções em que
    um duplo clique custa alguma coisa: emitir um convite duas vezes ao mesmo
    tempo dava duas credenciais para a mesma equipa, e agora que a base de dados
@@ -1888,6 +1912,7 @@ async function iniciar() {
     if (estado.gestor.admin) {
         $("#link-admin").classList.remove("oculto");
     }
+    mostrarAvisoLicenca();
     if (!estado.gestor.podeCriarLigas) {
         // Conta sem permissão para criar ligas (normalmente uma conta que só
         // aceitou um convite de treinador). O servidor já recusa o pedido de

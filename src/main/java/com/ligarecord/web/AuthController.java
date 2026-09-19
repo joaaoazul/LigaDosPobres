@@ -71,9 +71,7 @@ public class AuthController {
         // Regista e inicia sessão de imediato: evita pedir a password duas vezes seguidas.
         autenticar(pedido.email(), pedido.password(), http, resposta);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new GestorDto(gestor.getId(), gestor.getNome(), gestor.getEmail(),
-                        gestor.isAdmin(), gestor.isPodeCriarLigas()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(GestorDto.de(gestor));
     }
 
     /** Para quem aceita um convite de treinador e ainda não tem conta nenhuma. */
@@ -86,9 +84,7 @@ public class AuthController {
 
         autenticar(pedido.email(), pedido.password(), http, resposta);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new GestorDto(conta.getId(), conta.getNome(), conta.getEmail(),
-                        conta.isAdmin(), conta.isPodeCriarLigas()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(GestorDto.de(conta));
     }
 
     /**

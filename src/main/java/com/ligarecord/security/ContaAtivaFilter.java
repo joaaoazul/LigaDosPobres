@@ -48,22 +48,47 @@ public class ContaAtivaFilter extends OncePerRequestFilter {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
 
         if (autenticacao != null && autenticacao.getPrincipal() instanceof GestorAutenticado gestor) {
-            Optional<Gestor> atual = gestorRepository.buscarPorId(gestor.getId());
+            Optional<Gestor> atualOpt = gestorRepository.buscarPorId(gestor.getId());
 
-            if (atual.isEmpty() || !atual.get().isAtivo()) {
+            if (atualOpt.isEmpty() || !atualOpt.get().isAtivo()) {
                 terminar(pedido, resposta, "A tua conta foi desativada.");
                 return;
             }
+            Gestor atual = atualOpt.get();
 
-            if (sessaoAnteriorAUmaMudancaDePassword(pedido, atual.get())) {
+            if (sessaoAnteriorAUmaMudancaDePassword(pedido, atual)) {
                 terminar(pedido, resposta, "A password desta conta foi alterada. Entra outra vez.");
                 return;
             }
 
-            trocarPeloPrincipalFresco(autenticacao, atual.get());
+            // Trocado antes da verificação de licença: mesmo bloqueada, a
+            // sessão continua válida e o principal desta requisição fica
+            // sempre fresco (usado por /api/auth/estado a seguir).
+            trocarPeloPrincipalFresco(autenticacao, atual);
+
+            if (!atual.licencaAtiva() && !pedido.getRequestURI().startsWith("/api/auth/")) {
+                bloquearPorLicencaExpirada(resposta);
+                return;
+            }
         }
 
         cadeia.doFilter(pedido, resposta);
+    }
+
+    /**
+     * Ao contrário de {@link #terminar}, não invalida a sessão nem obriga a
+     * entrar de novo: a conta continua autenticada, só não pode usar a
+     * aplicação enquanto a licença não for renovada. Assim que um admin a
+     * autorizar, o próximo pedido já passa — sem precisar de sair e voltar a
+     * entrar, tal como o resto desta classe já garante para `ativo` e
+     * `podeCriarLigas`.
+     */
+    private void bloquearPorLicencaExpirada(HttpServletResponse resposta) throws IOException {
+        resposta.setStatus(HttpServletResponse.SC_PAYMENT_REQUIRED);
+        resposta.setContentType("application/json;charset=UTF-8");
+        objectMapper.writeValue(resposta.getWriter(),
+                new ErroDto(HttpServletResponse.SC_PAYMENT_REQUIRED,
+                        "A licença desta conta expirou. Contacta o administrador para renovar o acesso."));
     }
 
     /**

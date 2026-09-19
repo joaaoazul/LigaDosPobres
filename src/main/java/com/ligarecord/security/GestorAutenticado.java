@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,6 +24,10 @@ public class GestorAutenticado implements UserDetails {
     private final boolean admin;
     private final boolean ativo;
     private final boolean podeCriarLigas;
+    private final boolean licencaAtiva;
+    private final boolean emTrial;
+    private final long diasLicencaRestantes;
+    private final Instant licencaExpiraEm;
 
     public GestorAutenticado(Gestor gestor) {
         this.id = gestor.getId();
@@ -32,6 +37,10 @@ public class GestorAutenticado implements UserDetails {
         this.admin = gestor.isAdmin();
         this.ativo = gestor.isAtivo();
         this.podeCriarLigas = gestor.isPodeCriarLigas();
+        this.licencaAtiva = gestor.licencaAtiva();
+        this.emTrial = gestor.emTrial();
+        this.diasLicencaRestantes = gestor.diasLicencaRestantes();
+        this.licencaExpiraEm = gestor.licencaExpiraEm();
     }
 
     public boolean isAdmin() {
@@ -40,6 +49,22 @@ public class GestorAutenticado implements UserDetails {
 
     public boolean isPodeCriarLigas() {
         return podeCriarLigas;
+    }
+
+    public boolean isLicencaAtiva() {
+        return licencaAtiva;
+    }
+
+    public boolean isEmTrial() {
+        return emTrial;
+    }
+
+    public long getDiasLicencaRestantes() {
+        return diasLicencaRestantes;
+    }
+
+    public Instant getLicencaExpiraEm() {
+        return licencaExpiraEm;
     }
 
     public UUID getId() {

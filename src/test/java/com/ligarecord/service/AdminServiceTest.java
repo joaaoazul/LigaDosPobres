@@ -190,4 +190,31 @@ class AdminServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> adminService.alterarNome(admin.getId(), admin.getId(), "Outro Nome"));
     }
+
+    /* --------------------------------------------------------- licença --- */
+
+    @Test
+    void deveAutorizarLicencaPorNDias() {
+        assertTrue(gestor.emTrial());
+
+        Gestor autorizado = adminService.autorizarLicenca(admin.getId(), gestor.getId(), 365);
+
+        assertFalse(autorizado.emTrial());
+        assertTrue(autorizado.licencaAtiva());
+    }
+
+    @Test
+    void deveRevogarLicencaAutorizandoPorZeroDias() {
+        adminService.autorizarLicenca(admin.getId(), gestor.getId(), 365);
+
+        Gestor revogado = adminService.autorizarLicenca(admin.getId(), gestor.getId(), 0);
+
+        assertFalse(revogado.licencaAtiva());
+    }
+
+    @Test
+    void naoDeveAutorizarLicencaDaPropriaConta() {
+        assertThrows(IllegalStateException.class,
+                () -> adminService.autorizarLicenca(admin.getId(), admin.getId(), 365));
+    }
 }

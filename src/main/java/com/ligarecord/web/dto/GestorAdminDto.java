@@ -12,7 +12,11 @@ public record GestorAdminDto(
         String papel,
         boolean ativo,
         boolean podeCriarLigas,
-        Instant criadoEm) {
+        Instant criadoEm,
+        boolean licencaAtiva,
+        boolean emTrial,
+        long diasLicencaRestantes,
+        Instant licencaExpiraEm) {
 
     public static GestorAdminDto de(Gestor gestor) {
         return new GestorAdminDto(
@@ -22,7 +26,11 @@ public record GestorAdminDto(
                 gestor.getPapel().name(),
                 gestor.isAtivo(),
                 gestor.isPodeCriarLigas(),
-                gestor.getCriadoEm()
+                gestor.getCriadoEm(),
+                gestor.licencaAtiva(),
+                gestor.emTrial(),
+                gestor.diasLicencaRestantes(),
+                gestor.licencaExpiraEm()
         );
     }
 }

@@ -74,6 +74,24 @@ public class AdminService {
     }
 
     /**
+     * Autoriza (ou renova) a licença de uma conta por {@code dias} a partir de
+     * agora. {@code dias <= 0} revoga-a de imediato — {@link Gestor#autorizarLicencaPor}
+     * trata isso como "já expirou", sem precisar de um método de revogação à parte.
+     *
+     * <p>Só tem efeito prático em contas com {@code podeCriarLigas}: um admin
+     * ou um treinador só-convidado nunca são bloqueados por licença, tal como
+     * {@link Gestor#licencaAtiva()} já garante.
+     */
+    @Transactional
+    public Gestor autorizarLicenca(UUID adminId, UUID gestorId, int dias) {
+        Gestor gestor = buscar(gestorId);
+        verificarNaoEProprio(adminId, gestorId, "licença");
+
+        gestor.autorizarLicencaPor(dias);
+        return gestorRepository.guardar(gestor);
+    }
+
+    /**
      * Corrige o email de uma conta.
      *
      * <p>Existe por causa da recuperação de password: quem escreveu o email mal

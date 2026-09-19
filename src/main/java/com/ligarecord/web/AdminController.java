@@ -57,9 +57,10 @@ public class AdminController {
                                         @PathVariable UUID gestorId,
                                         @RequestBody AlterarGestorRequest pedido) {
 
-        if (pedido.ativo() == null && pedido.papel() == null
-                && pedido.podeCriarLigas() == null && pedido.email() == null && pedido.nome() == null) {
-            throw new IllegalArgumentException("Indica o estado, o papel, a permissão, o email ou o nome a alterar.");
+        if (pedido.ativo() == null && pedido.papel() == null && pedido.podeCriarLigas() == null
+                && pedido.email() == null && pedido.nome() == null && pedido.licencaDias() == null) {
+            throw new IllegalArgumentException(
+                    "Indica o estado, o papel, a permissão, o email, o nome ou a licença a alterar.");
         }
 
         Gestor gestor = null;
@@ -78,6 +79,9 @@ public class AdminController {
         }
         if (pedido.nome() != null) {
             gestor = adminService.alterarNome(admin.getId(), gestorId, pedido.nome());
+        }
+        if (pedido.licencaDias() != null) {
+            gestor = adminService.autorizarLicenca(admin.getId(), gestorId, pedido.licencaDias());
         }
 
         return GestorAdminDto.de(gestor);

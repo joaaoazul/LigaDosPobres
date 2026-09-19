@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -69,6 +70,22 @@ public class Gestor extends EntidadeBase {
      */
     @Column(name = "sessoes_validas_desde")
     private Instant sessoesValidasDesde;
+
+    /** Dias de teste gratuito a contar de {@link #criadoEm}, para quem nunca teve uma licença autorizada. */
+    public static final int DIAS_TRIAL = 30;
+
+    /**
+     * Até quando esta conta pode usar a aplicação. {@code null} enquanto o
+     * admin nunca autorizou nada, e nesse caso vale o teste gratuito de
+     * {@link #DIAS_TRIAL} dias a contar de {@link #criadoEm} — ver
+     * {@link #licencaExpiraEm()}.
+     *
+     * <p>Só interessa a contas com {@link #podeCriarLigas}: um admin ou um
+     * treinador só-convidado nunca ficam bloqueados por isto, tal como já
+     * acontecia com {@code podeCriarLigas} — ver {@link #licencaAtiva()}.
+     */
+    @Column(name = "licenca_valida_ate")
+    private Instant licencaValidaAte;
 
     protected Gestor() {
         // exigido pelo Hibernate
@@ -151,6 +168,46 @@ public class Gestor extends EntidadeBase {
 
     public Instant getSessoesValidasDesde() {
         return sessoesValidasDesde;
+    }
+
+    public Instant getLicencaValidaAte() {
+        return licencaValidaAte;
+    }
+
+    /**
+     * Autoriza (ou renova) a licença desta conta por {@code dias} a partir de
+     * agora. {@code dias <= 0} equivale a revogar: a licença fica já
+     * expirada, sem precisar de um método à parte para isso.
+     */
+    public void autorizarLicencaPor(int dias) {
+        this.licencaValidaAte = Instant.now().plus(dias, ChronoUnit.DAYS);
+    }
+
+    /** Data a partir da qual esta conta deixa de poder usar a aplicação. */
+    public Instant licencaExpiraEm() {
+        return licencaValidaAte != null
+                ? licencaValidaAte
+                : criadoEm.plus(DIAS_TRIAL, ChronoUnit.DAYS);
+    }
+
+    /** {@code true} enquanto nenhuma licença tiver sido autorizada — o teste gratuito ainda não foi trocado por uma data explícita. */
+    public boolean emTrial() {
+        return licencaValidaAte == null;
+    }
+
+    /**
+     * Se esta conta pode usar a aplicação agora. Só se aplica a quem cria
+     * ligas: um admin, ou um treinador que só aceitou um convite e nunca
+     * pagou nada, não ficam bloqueados por isto.
+     */
+    public boolean licencaAtiva() {
+        return isAdmin() || !podeCriarLigas || Instant.now().isBefore(licencaExpiraEm());
+    }
+
+    /** Dias inteiros até a licença expirar, nunca negativo. Para mostrar uma contagem decrescente. */
+    public long diasLicencaRestantes() {
+        long dias = Instant.now().until(licencaExpiraEm(), ChronoUnit.DAYS);
+        return Math.max(0, dias);
     }
 
     /**

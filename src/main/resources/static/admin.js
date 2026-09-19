@@ -72,9 +72,26 @@ function badge(estadoTexto) {
         DISPONIVEL: "verde", USADO: "azul", REVOGADO: "vermelho",
         EXPIRADO: "amarelo", ADMIN: "amarelo", GESTOR: "",
         ATIVO: "verde", DESATIVADO: "vermelho",
-        Sim: "verde", "Não": "vermelho"
+        Sim: "verde", "Não": "vermelho",
+        "Em teste": "amarelo", "Com licença": "verde", "Expirada": "vermelho"
     };
     return `<span class="badge ${cores[estadoTexto] ?? ""}">${texto(estadoTexto)}</span>`;
+}
+
+/* g.podeCriarLigas=false ou g.papel="ADMIN": a licença não se aplica a essas
+   contas (ver Gestor.licencaAtiva no backend), e mostrar aqui uma contagem ou
+   uma data de expiração dava a entender o contrário. */
+function licencaTexto(g) {
+    if (g.papel === "ADMIN" || !g.podeCriarLigas) {
+        return `<span class="ajuda">n/a</span>`;
+    }
+    if (!g.licencaAtiva) {
+        return `${badge("Expirada")} <span class="ajuda">desde ${data(g.licencaExpiraEm)}</span>`;
+    }
+    if (g.emTrial) {
+        return `${badge("Em teste")} <span class="ajuda">${g.diasLicencaRestantes} dia(s)</span>`;
+    }
+    return `${badge("Com licença")} <span class="ajuda">até ${data(g.licencaExpiraEm)}</span>`;
 }
 
 /* ------------------------------------------------------------- convites -- */
@@ -119,7 +136,7 @@ function desenharGestores() {
     $("#tabela-gestores").innerHTML = `
         <table>
             <thead>
-                <tr><th>Nome</th><th>Email</th><th>Papel</th><th>Estado</th><th>Cria ligas</th><th>Desde</th><th></th></tr>
+                <tr><th>Nome</th><th>Email</th><th>Papel</th><th>Estado</th><th>Cria ligas</th><th>Licença</th><th>Desde</th><th></th></tr>
             </thead>
             <tbody>
                 ${estado.gestores.map((g) => {
@@ -131,6 +148,7 @@ function desenharGestores() {
                         <td>${badge(g.papel)}</td>
                         <td>${g.ativo ? badge("ATIVO") : badge("DESATIVADO")}</td>
                         <td>${badge(g.podeCriarLigas ? "Sim" : "Não")}</td>
+                        <td>${licencaTexto(g)}</td>
                         <td>${data(g.criadoEm)}</td>
                         <td class="numero">
                             ${proprio ? `<span class="ajuda">a tua conta</span>` : `
@@ -146,6 +164,14 @@ function desenharGestores() {
                                         data-novo-cria-ligas="${!g.podeCriarLigas}">
                                     ${g.podeCriarLigas ? "Bloquear criar ligas" : "Permitir criar ligas"}
                                 </button>
+                                ${g.papel !== "ADMIN" && g.podeCriarLigas ? `
+                                <button class="botao pequeno" data-autorizar-licenca="${g.id}">
+                                    Autorizar licença
+                                </button>
+                                ${g.licencaAtiva ? `
+                                <button class="botao pequeno perigo" data-revogar-licenca="${g.id}">
+                                    Revogar licença
+                                </button>` : ""}` : ""}
                                 <button class="botao pequeno" data-email="${g.id}"
                                         data-email-atual="${texto(g.email)}">
                                     Corrigir email
@@ -199,7 +225,8 @@ $("#btn-sair").addEventListener("click", () => {
 
 document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest(
-        "[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas], [data-email], [data-nome]");
+        "[data-revogar], [data-copiar], [data-estado], [data-papel], [data-cria-ligas], [data-email], [data-nome], " +
+        "[data-autorizar-licenca], [data-revogar-licenca]");
     if (!alvo) {
         return;
     }
@@ -266,6 +293,35 @@ document.addEventListener("click", (evento) => {
             });
             await carregar();
             mostrarAlerta(permitir ? "Passa a poder criar ligas." : "Deixa de poder criar ligas.", "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.autorizarLicenca) {
+        const dias = prompt("Autorizar licença por quantos dias, a partir de hoje?", "365");
+        if (dias === null || dias.trim() === "" || !Number.isFinite(Number(dias)) || Number(dias) <= 0) {
+            return;
+        }
+        executar(async () => {
+            await api(`/api/admin/gestores/${alvo.dataset.autorizarLicenca}`, {
+                method: "PATCH",
+                body: JSON.stringify({ licencaDias: Number(dias) })
+            });
+            await carregar();
+            mostrarAlerta(`Licença autorizada por ${dias} dia(s).`, "sucesso");
+        });
+        return;
+    }
+
+    if (alvo.dataset.revogarLicenca) {
+        if (!confirm("Revogar a licença desta conta? Fica bloqueada de imediato, sem precisar de sair da sessão.")) return;
+        executar(async () => {
+            await api(`/api/admin/gestores/${alvo.dataset.revogarLicenca}`, {
+                method: "PATCH",
+                body: JSON.stringify({ licencaDias: 0 })
+            });
+            await carregar();
+            mostrarAlerta("Licença revogada.", "sucesso");
         });
         return;
     }
