@@ -152,6 +152,7 @@ function desenharGestores() {
                         <td>${data(g.criadoEm)}</td>
                         <td class="numero">
                             ${proprio ? `<span class="ajuda">a tua conta</span>` : `
+                            <div class="acoes-gestor">
                                 <button class="botao pequeno" data-papel="${g.id}"
                                         data-novo-papel="${g.papel === "ADMIN" ? "GESTOR" : "ADMIN"}">
                                     ${g.papel === "ADMIN" ? "Despromover" : "Tornar admin"}
@@ -179,7 +180,8 @@ function desenharGestores() {
                                 <button class="botao pequeno" data-nome="${g.id}"
                                         data-nome-atual="${texto(g.nome)}">
                                     Corrigir nome
-                                </button>`}
+                                </button>
+                            </div>`}
                         </td>
                     </tr>`;
                 }).join("")}

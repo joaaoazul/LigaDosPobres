@@ -909,6 +909,19 @@ td.numero, th.numero { text-align: right; }
     gap: var(--e4);
 }
 
+/* A linha de ações de um gestor, na tabela de Administração, cresceu para
+   sete botões (papel, estado, criar ligas, licença × 2, email, nome). Como
+   texto solto dentro de td.numero, cada um dependia do espaço em branco do
+   HTML para se separar do seguinte — inconsistente, e uma linha embrulhada
+   não ficava encostada à direita como a primeira. Um flex com gap próprio
+   embrulha como um bloco só, sempre alinhado ao fim da coluna. */
+.acoes-gestor {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--e2);
+}
+
 /* A regra de dívida é a configuração da liga, não os seus dados: fica na sua
    própria caixa, acima da lista de equipas, com a mesma moldura dos outros
    painéis interiores. Sem isto o formulário ficava solto por cima da grelha,
